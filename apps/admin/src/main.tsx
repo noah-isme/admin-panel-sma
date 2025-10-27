@@ -74,6 +74,7 @@ import { CalendarPage } from "./pages/calendar";
 import { UsersPage } from "./pages/users";
 import { HomeroomAssignmentsPage } from "./pages/homeroom-assignments";
 import ConfigurationPage from "./pages/configuration";
+import { StudentsPage } from "./pages/students";
 
 import "@refinedev/antd/dist/reset.css";
 import "antd/dist/reset.css";
@@ -470,6 +471,8 @@ async function bootstrap() {
                         element={
                           resource.name === "dashboard" ? (
                             <DashboardPage />
+                          ) : resource.name === "students" ? (
+                            <StudentsPage />
                           ) : resource.name === "users" ? (
                             <UsersPage />
                           ) : resource.name === "homerooms" ? (
