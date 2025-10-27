@@ -4,6 +4,27 @@ import {
   type SemesterScheduleSlotRecord,
   type TeacherPreferenceRecord,
 } from "./seed";
+import type {
+  GradeReportResponse,
+  GradeReportRow,
+  GradeStatusCode,
+  GradeStatusMeta,
+} from "../types/grade-report";
+import type {
+  StudentRosterResponse,
+  StudentRosterRow,
+  StudentStatusCode,
+  StudentGenderCode,
+  StudentRosterSortField,
+} from "../types/student-roster";
+import type {
+  TeacherRosterAppliedFilters,
+  TeacherRosterResponse,
+  TeacherRosterRow,
+  TeacherRosterSortField,
+  TeacherStatusCode,
+  TeacherAvailabilityLevel,
+} from "../types/teacher-roster";
 
 /**
  * Skenario MSW: SMA Negeri Harapan Nusantara (TP 2024/2025)
@@ -39,6 +60,36 @@ const behaviorNotes = [...seed.behaviorNotes];
 const mutations = [...seed.mutations];
 const archives = [...seed.archives];
 const principalDashboard = { ...seed.dashboard };
+
+const termById = new Map(terms.map((term) => [term.id, term]));
+const classById = new Map(classes.map((klass) => [klass.id, klass]));
+const subjectById = new Map(subjects.map((subject) => [subject.id, subject]));
+const teacherById = new Map(teachers.map((teacher) => [teacher.id, teacher]));
+const studentById = new Map(students.map((student) => [student.id, student]));
+const enrollmentById = new Map(enrollments.map((enrollment) => [enrollment.id, enrollment]));
+const gradeComponentById = new Map(gradeComponents.map((component) => [component.id, component]));
+const classSubjectById = new Map(
+  classSubjects.map((classSubject) => [classSubject.id, classSubject])
+);
+const gradeConfigByClassSubject = new Map(
+  gradeConfigs.map((config) => [config.classSubjectId, config])
+);
+const classSubjectsByTeacher = new Map<string, (typeof classSubjects)[number][]>();
+classSubjects.forEach((mapping) => {
+  const list = classSubjectsByTeacher.get(mapping.teacherId) ?? [];
+  list.push(mapping);
+  classSubjectsByTeacher.set(mapping.teacherId, list);
+});
+const homeroomClassByTeacher = new Map<string, (typeof classes)[number]>();
+classes.forEach((klass) => {
+  if (klass.homeroomId) {
+    homeroomClassByTeacher.set(klass.homeroomId, klass);
+  }
+});
+const teacherPreferenceByTeacher = new Map(
+  teacherPreferences.map((pref) => [pref.teacherId, pref])
+);
+
 type MockUserRecord = {
   id: string;
   email: string;
@@ -733,6 +784,939 @@ const buildListResponse = (resource: ResourceKey, url: URL) => {
   return { data: paginated.data, total: paginated.total };
 };
 
+const GRADE_STATUS_META: Record<GradeStatusCode, Omit<GradeStatusMeta, "code">> = {
+  PASS: {
+    label: "✅ Lulus",
+    description: "Nilai memenuhi atau melampaui KKM.",
+    tone: "success",
+    icon: "check",
+  },
+  CAUTION: {
+    label: "⚠️ Perlu perhatian",
+    description: "Nilai mendekati batas KKM dan perlu pemantauan.",
+    tone: "warning",
+    icon: "alert",
+  },
+  REMEDIAL: {
+    label: "❌ Remedial",
+    description: "Nilai di bawah KKM dan membutuhkan tindak lanjut.",
+    tone: "danger",
+    icon: "x",
+  },
+};
+
+const resolveGradeStatus = (score: number, kkm: number): GradeStatusMeta => {
+  const normalizedKkm = Number.isFinite(kkm) ? kkm : 75;
+  let code: GradeStatusCode;
+  if (score >= normalizedKkm) {
+    code = "PASS";
+  } else if (score >= Math.max(normalizedKkm - 10, 0)) {
+    code = "CAUTION";
+  } else {
+    code = "REMEDIAL";
+  }
+  const meta = GRADE_STATUS_META[code];
+  return {
+    code,
+    ...meta,
+  };
+};
+
+const numberFromParam = (value: string | null): number | undefined => {
+  if (value === null) {
+    return undefined;
+  }
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+};
+
+const deterministicHash = (value: string) => {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+  return hash;
+};
+
+const synthesizeTimestamp = (
+  term: { startDate?: string; year?: string; semester?: number } | undefined,
+  seed: string,
+  variance = 0
+) => {
+  const fallback = new Date("2024-07-15T07:00:00.000Z");
+  const base = term?.startDate ? new Date(term.startDate) : fallback;
+  if (Number.isNaN(base.getTime())) {
+    base.setTime(fallback.getTime());
+  }
+  const hash = deterministicHash(`${seed}:${variance}`);
+  const dayOffset = hash % 45;
+  const minuteOffset = (hash % 6) * 30;
+  const result = new Date(base.getTime());
+  result.setDate(result.getDate() + dayOffset);
+  result.setHours(7 + (hash % 4), minuteOffset, 0, 0);
+  return result.toISOString();
+};
+
+const GRADE_DISTRIBUTION_BUCKETS = [
+  { bucket: "0-59", from: 0, to: 59 },
+  { bucket: "60-69", from: 60, to: 69 },
+  { bucket: "70-79", from: 70, to: 79 },
+  { bucket: "80-89", from: 80, to: 89 },
+  { bucket: "90-100", from: 90, to: 100 },
+] as const;
+
+const STUDENT_STATUS_LABELS: Record<StudentStatusCode, string> = {
+  active: "Aktif",
+  inactive: "Tidak aktif",
+  alumni: "Alumni",
+  graduated: "Lulus",
+};
+
+const STUDENT_GENDER_LABELS: Record<StudentGenderCode, string> = {
+  M: "Laki-laki",
+  F: "Perempuan",
+};
+
+const TEACHER_STATUS_LABELS: Record<TeacherStatusCode, string> = {
+  active: "Aktif",
+  inactive: "Tidak aktif",
+  on_leave: "Cuti",
+};
+
+const TEACHER_AVAILABILITY_LABELS: Record<TeacherAvailabilityLevel, string> = {
+  HIGH: "Sangat tersedia",
+  MEDIUM: "Cukup tersedia",
+  LOW: "Terbatas",
+};
+
+const buildGradeReportResponse = (url: URL): GradeReportResponse => {
+  const params = url.searchParams;
+  const selectedTermId = params.get("termId");
+  const selectedClassId = params.get("classId");
+  const selectedSubjectId = params.get("subjectId");
+  const selectedComponentId = params.get("componentId");
+  const selectedTeacherId = params.get("teacherId");
+  const rawStatus = params.get("status");
+  const statusParam = (rawStatus ? rawStatus.toUpperCase() : "ALL") as GradeStatusCode | "ALL";
+  const searchRaw = params.get("search") ?? params.get("q") ?? "";
+  const searchNeedle = searchRaw.trim().toLowerCase();
+  const scoreMin = numberFromParam(params.get("scoreMin"));
+  const scoreMax = numberFromParam(params.get("scoreMax"));
+  const rawPage = numberFromParam(params.get("page")) ?? 1;
+  const page = rawPage >= 1 ? rawPage : 1;
+  const rawPerPage =
+    numberFromParam(params.get("perPage")) ??
+    numberFromParam(params.get("pageSize")) ??
+    numberFromParam(params.get("limit")) ??
+    25;
+  const perPage = rawPerPage && rawPerPage > 0 ? rawPerPage : 25;
+
+  const baseRows: GradeReportRow[] = [];
+  grades.forEach((grade) => {
+    const component = gradeComponentById.get(grade.componentId);
+    if (!component) return;
+
+    const classSubject = classSubjectById.get(component.classSubjectId);
+    if (!classSubject) return;
+
+    const enrollment = enrollmentById.get(grade.enrollmentId);
+    if (!enrollment) return;
+
+    const student = studentById.get(enrollment.studentId);
+    if (!student) return;
+
+    const classRecord =
+      classById.get(classSubject.classroomId) ?? classById.get(enrollment.classId);
+    if (!classRecord) return;
+
+    const subject = subjectById.get(classSubject.subjectId) ?? subjectById.get(grade.subjectId);
+    if (!subject) return;
+
+    const teacher = teacherById.get(grade.teacherId) ?? teacherById.get(classSubject.teacherId);
+    const gradeConfig = gradeConfigByClassSubject.get(component.classSubjectId);
+    const term =
+      termById.get(classSubject.termId) ??
+      termById.get(classRecord.termId) ??
+      termById.get(enrollment.termId);
+
+    const kkm =
+      typeof component.kkm === "number"
+        ? component.kkm
+        : typeof gradeConfig?.kkm === "number"
+          ? gradeConfig.kkm
+          : 75;
+    const status = resolveGradeStatus(grade.score, kkm);
+    const componentCategory = component.name.split(" ")[0] ?? component.name;
+    const resolvedTeacher = teacher ?? teacherById.get(classSubject.teacherId);
+    const fallbackTerm = termById.get(enrollment.termId) ?? termById.get(classRecord.termId);
+    const effectiveTerm = term ?? fallbackTerm;
+    const recordedAt = synthesizeTimestamp(effectiveTerm, grade.id, 1);
+    const lastUpdated = synthesizeTimestamp(effectiveTerm, `${grade.id}:updated`, 5);
+    const termName = effectiveTerm?.name ?? fallbackTerm?.name ?? "Tahun Pelajaran";
+    const termLabel = effectiveTerm
+      ? `${effectiveTerm.year} • Semester ${effectiveTerm.semester}`
+      : fallbackTerm
+        ? `${fallbackTerm.year} • Semester ${fallbackTerm.semester}`
+        : "Tahun Pelajaran Berjalan";
+
+    baseRows.push({
+      id: grade.id,
+      studentId: student.id,
+      studentName: student.fullName,
+      studentNis: student.nis,
+      classId: classRecord.id,
+      className: classRecord.name,
+      subjectId: subject.id,
+      subjectName: subject.name,
+      componentId: component.id,
+      componentName: component.name,
+      componentCategory,
+      componentWeight: component.weight,
+      componentDescription: component.description,
+      score: grade.score,
+      kkm,
+      status,
+      teacherId: resolvedTeacher?.id ?? classSubject.teacherId,
+      teacherName: resolvedTeacher?.fullName ?? "Guru Pengampu",
+      recordedAt,
+      lastUpdated,
+      termId: effectiveTerm?.id ?? fallbackTerm?.id ?? enrollment.termId ?? classRecord.termId,
+      termName,
+      termLabel,
+    });
+  });
+
+  const filteredRows = baseRows.filter((row) => {
+    if (selectedTermId && row.termId !== selectedTermId) return false;
+    if (selectedClassId && row.classId !== selectedClassId) return false;
+    if (selectedSubjectId && row.subjectId !== selectedSubjectId) return false;
+    if (selectedComponentId && row.componentId !== selectedComponentId) return false;
+    if (selectedTeacherId && row.teacherId !== selectedTeacherId) return false;
+    if (statusParam !== "ALL" && row.status.code !== statusParam) return false;
+    if (typeof scoreMin === "number" && row.score < scoreMin) return false;
+    if (typeof scoreMax === "number" && row.score > scoreMax) return false;
+    if (searchNeedle.length > 0) {
+      const haystack =
+        `${row.studentName} ${row.studentNis} ${row.subjectName} ${row.componentName}`.toLowerCase();
+      if (!haystack.includes(searchNeedle)) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  const totalScores = filteredRows.reduce((acc, row) => acc + row.score, 0);
+  const averageScore =
+    filteredRows.length > 0 ? Number((totalScores / filteredRows.length).toFixed(1)) : null;
+  const sortedByScore = [...filteredRows].sort((a, b) => b.score - a.score);
+  const highestRow = sortedByScore[0];
+  const lowestRow = sortedByScore[sortedByScore.length - 1];
+  const belowKkmCount = filteredRows.filter((row) => row.score < row.kkm).length;
+  const remedialCount = filteredRows.filter((row) => row.status.code === "REMEDIAL").length;
+  const componentCount = new Set(filteredRows.map((row) => row.componentId)).size;
+  const statusBreakdown = (["PASS", "CAUTION", "REMEDIAL"] as GradeStatusCode[]).map((code) => ({
+    code,
+    label: GRADE_STATUS_META[code].label,
+    count: filteredRows.filter((row) => row.status.code === code).length,
+  }));
+  const distribution = GRADE_DISTRIBUTION_BUCKETS.map((bucket) => ({
+    ...bucket,
+    count: filteredRows.filter((row) => row.score >= bucket.from && row.score <= bucket.to).length,
+  }));
+
+  const sortFieldRaw = params.get("sortField");
+  const sortOrderRaw = (params.get("sortOrder") ?? "ascend").toLowerCase();
+  const allowedSortFields = new Set<keyof GradeReportRow>([
+    "studentName",
+    "subjectName",
+    "componentName",
+    "score",
+    "lastUpdated",
+  ]);
+  const sortField =
+    sortFieldRaw && allowedSortFields.has(sortFieldRaw as keyof GradeReportRow)
+      ? (sortFieldRaw as keyof GradeReportRow)
+      : undefined;
+  const sortOrder: "ascend" | "descend" = sortOrderRaw === "descend" ? "descend" : "ascend";
+
+  const dateComparableFields = new Set<keyof GradeReportRow>(["lastUpdated", "recordedAt"]);
+
+  const sortedRows = sortField
+    ? [...filteredRows].sort((a, b) => {
+        const valueA = a[sortField];
+        const valueB = b[sortField];
+        if (valueA === valueB) return 0;
+        if (valueA === undefined || valueA === null) return 1;
+        if (valueB === undefined || valueB === null) return -1;
+
+        if (typeof valueA === "number" && typeof valueB === "number") {
+          return sortOrder === "descend" ? valueB - valueA : valueA - valueB;
+        }
+
+        if (dateComparableFields.has(sortField)) {
+          const timeA = Date.parse(String(valueA));
+          const timeB = Date.parse(String(valueB));
+          if (!Number.isNaN(timeA) && !Number.isNaN(timeB)) {
+            return sortOrder === "descend" ? timeB - timeA : timeA - timeB;
+          }
+        }
+
+        const stringA = String(valueA ?? "")
+          .trim()
+          .toLocaleLowerCase("id-ID");
+        const stringB = String(valueB ?? "")
+          .trim()
+          .toLocaleLowerCase("id-ID");
+        if (stringA === stringB) return 0;
+        const baseComparison = stringA < stringB ? -1 : 1;
+        return sortOrder === "descend" ? baseComparison * -1 : baseComparison;
+      })
+    : filteredRows;
+
+  const total = sortedRows.length;
+  const totalPages = total === 0 ? 1 : Math.max(1, Math.ceil(total / perPage));
+  const currentPage = Math.min(Math.max(1, page), totalPages);
+  const startIndex = (currentPage - 1) * perPage;
+  const rows = sortedRows.slice(startIndex, startIndex + perPage);
+
+  const filters = {
+    terms: terms.map((term) => ({
+      id: term.id,
+      label: term.name,
+      extras: { year: term.year, semester: term.semester, active: term.active },
+    })),
+    classes: classes.map((klass) => ({
+      id: klass.id,
+      label: klass.name,
+      extras: { level: klass.level, track: klass.track },
+    })),
+    subjects: subjects.map((subject) => ({
+      id: subject.id,
+      label: subject.name,
+      extras: { code: subject.code },
+    })),
+    components: gradeComponents.map((component) => {
+      const mapping = classSubjectById.get(component.classSubjectId);
+      return {
+        id: component.id,
+        label: component.name,
+        extras: {
+          subjectId: mapping?.subjectId ?? component.classSubjectId,
+          classId: mapping?.classroomId ?? "",
+        },
+      };
+    }),
+    teachers: teachers.map((teacher) => ({
+      id: teacher.id,
+      label: teacher.fullName,
+    })),
+    statuses: [
+      { value: "ALL" as const, label: "Semua status" },
+      { value: "PASS" as const, label: GRADE_STATUS_META.PASS.label },
+      { value: "CAUTION" as const, label: GRADE_STATUS_META.CAUTION.label },
+      { value: "REMEDIAL" as const, label: GRADE_STATUS_META.REMEDIAL.label },
+    ],
+  };
+
+  const fallbackRow = rows[0] ?? filteredRows[0] ?? null;
+  const contextTermId = selectedTermId ?? fallbackRow?.termId ?? null;
+  const contextTerm = contextTermId ? termById.get(contextTermId) : undefined;
+  const contextClassId = selectedClassId ?? fallbackRow?.classId ?? null;
+  const contextClass = contextClassId ? classById.get(contextClassId) : undefined;
+  const contextSubjectId = selectedSubjectId ?? fallbackRow?.subjectId ?? null;
+  const contextSubject = contextSubjectId ? subjectById.get(contextSubjectId) : undefined;
+  const contextTeacherId = selectedTeacherId ?? fallbackRow?.teacherId ?? null;
+  const contextTeacher = contextTeacherId ? teacherById.get(contextTeacherId) : undefined;
+
+  const context = {
+    termId: contextTermId,
+    termName: contextTerm?.name ?? fallbackRow?.termName ?? null,
+    termLabel: contextTerm
+      ? `${contextTerm.year} • Semester ${contextTerm.semester}`
+      : (fallbackRow?.termLabel ?? null),
+    classId: contextClassId,
+    className: contextClass?.name ?? fallbackRow?.className ?? null,
+    subjectId: contextSubjectId,
+    subjectName: contextSubject?.name ?? fallbackRow?.subjectName ?? null,
+    teacherId: contextTeacherId,
+    teacherName: contextTeacher?.fullName ?? fallbackRow?.teacherName ?? null,
+  };
+
+  const summary = {
+    averageScore,
+    highestScore: highestRow
+      ? {
+          score: highestRow.score,
+          studentId: highestRow.studentId,
+          studentName: highestRow.studentName,
+          componentName: highestRow.componentName,
+          componentCategory: highestRow.componentCategory,
+        }
+      : undefined,
+    lowestScore: lowestRow
+      ? {
+          score: lowestRow.score,
+          studentId: lowestRow.studentId,
+          studentName: lowestRow.studentName,
+          componentName: lowestRow.componentName,
+        }
+      : undefined,
+    belowKkmCount,
+    componentCount,
+    remedialCount,
+    statusBreakdown,
+    distribution,
+  };
+
+  const appliedFilters: Record<string, unknown> = {};
+  if (selectedTermId) appliedFilters.termId = selectedTermId;
+  if (selectedClassId) appliedFilters.classId = selectedClassId;
+  if (selectedSubjectId) appliedFilters.subjectId = selectedSubjectId;
+  if (selectedComponentId) appliedFilters.componentId = selectedComponentId;
+  if (selectedTeacherId) appliedFilters.teacherId = selectedTeacherId;
+  if (statusParam && statusParam !== "ALL") appliedFilters.status = statusParam;
+  if (searchNeedle.length > 0) appliedFilters.search = searchRaw.trim();
+  if (typeof scoreMin === "number") appliedFilters.scoreMin = scoreMin;
+  if (typeof scoreMax === "number") appliedFilters.scoreMax = scoreMax;
+  if (sortField) {
+    appliedFilters.sortField = sortField;
+    appliedFilters.sortOrder = sortOrder;
+  }
+  appliedFilters.page = currentPage;
+  appliedFilters.perPage = perPage;
+
+  return {
+    context,
+    summary,
+    filters,
+    rows,
+    pagination: {
+      page: currentPage,
+      perPage,
+      total,
+      totalPages,
+    },
+    appliedFilters,
+  };
+};
+
+const buildStudentRosterResponse = (url: URL): StudentRosterResponse => {
+  const params = url.searchParams;
+  const classIdParam = params.get("classId") ?? undefined;
+  const statusParamRaw = params.get("status") ?? undefined;
+  const statusParam =
+    statusParamRaw && statusParamRaw !== "all" ? (statusParamRaw as StudentStatusCode) : undefined;
+  const genderParamRaw = params.get("gender") ?? undefined;
+  const genderParam =
+    genderParamRaw && genderParamRaw !== "all"
+      ? (genderParamRaw.toUpperCase() as StudentGenderCode)
+      : undefined;
+  const guardianParam = params.get("guardian") ?? undefined;
+  const trackParam = params.get("track") ?? undefined;
+  const birthYearStart = numberFromParam(params.get("birthYearStart"));
+  const birthYearEnd = numberFromParam(params.get("birthYearEnd"));
+  const searchRaw = params.get("search") ?? params.get("q") ?? "";
+  const searchNeedle = searchRaw.trim().toLowerCase();
+  const rawPage = numberFromParam(params.get("page")) ?? 1;
+  const page = rawPage >= 1 ? rawPage : 1;
+  const rawPerPage =
+    numberFromParam(params.get("perPage")) ??
+    numberFromParam(params.get("pageSize")) ??
+    numberFromParam(params.get("limit")) ??
+    20;
+  const perPage = rawPerPage && rawPerPage > 0 ? rawPerPage : 20;
+  const sortFieldRaw = params.get("sortField");
+  const allowedSortFields: StudentRosterSortField[] = [
+    "fullName",
+    "className",
+    "status",
+    "nis",
+    "lastUpdated",
+  ];
+  const sortField = allowedSortFields.includes(sortFieldRaw as StudentRosterSortField)
+    ? (sortFieldRaw as StudentRosterSortField)
+    : undefined;
+  const sortOrderRaw = (params.get("sortOrder") ?? "ascend").toLowerCase();
+  const sortOrder: "ascend" | "descend" = sortOrderRaw === "descend" ? "descend" : "ascend";
+
+  const rosterRows: StudentRosterRow[] = students.map((student) => {
+    const classRecord = classById.get(student.classId);
+    const term = classRecord ? termById.get(classRecord.termId) : undefined;
+    const homeroom = classRecord ? teacherById.get(classRecord.homeroomId) : undefined;
+    const lastUpdated = synthesizeTimestamp(term, `${student.id}:updated`, 3);
+    const createdAt = synthesizeTimestamp(term, `${student.id}:created`, 12);
+
+    return {
+      id: student.id,
+      nis: student.nis,
+      fullName: student.fullName,
+      preferredName: student.fullName.split(" ")[0] ?? student.fullName,
+      gender: student.gender,
+      birthDate: student.birthDate,
+      birthPlace: undefined,
+      classId: classRecord?.id ?? student.classId,
+      className: classRecord?.name ?? "Kelas belum ditetapkan",
+      classLevel: classRecord?.level ?? 0,
+      classTrack: classRecord?.track ?? "IPA",
+      homeroomId: classRecord?.homeroomId ?? null,
+      homeroomName: homeroom?.fullName ?? undefined,
+      status: student.status as StudentStatusCode,
+      guardianName: student.guardian,
+      guardianPhone: student.guardianPhone,
+      guardianEmail: student.guardianEmail,
+      emergencyPhone: undefined,
+      address: undefined,
+      lastUpdated,
+      createdAt,
+    };
+  });
+
+  const filteredRows = rosterRows.filter((row) => {
+    if (classIdParam && row.classId !== classIdParam) return false;
+    if (statusParam && row.status !== statusParam) return false;
+    if (genderParam && row.gender !== genderParam) return false;
+    if (trackParam && row.classTrack !== trackParam) return false;
+    if (guardianParam) {
+      const normalizedGuardian = guardianParam.trim().toLowerCase();
+      if (!row.guardianName.toLowerCase().includes(normalizedGuardian)) {
+        return false;
+      }
+    }
+    if (typeof birthYearStart === "number" || typeof birthYearEnd === "number") {
+      const birthYear = new Date(row.birthDate).getFullYear();
+      if (typeof birthYearStart === "number" && birthYear < birthYearStart) return false;
+      if (typeof birthYearEnd === "number" && birthYear > birthYearEnd) return false;
+    }
+    if (searchNeedle.length > 0) {
+      const haystack =
+        `${row.fullName} ${row.nis} ${row.className} ${row.guardianName}`.toLowerCase();
+      if (!haystack.includes(searchNeedle)) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  const sortedRows = [...filteredRows].sort((a, b) => {
+    if (!sortField || sortField === "fullName") {
+      const nameA = a.fullName.toLowerCase();
+      const nameB = b.fullName.toLowerCase();
+      if (nameA === nameB) return a.nis.localeCompare(b.nis);
+      const direction = nameA.localeCompare(nameB);
+      return sortOrder === "descend" ? -direction : direction;
+    }
+
+    if (sortField === "className") {
+      const classA = a.className.toLowerCase();
+      const classB = b.className.toLowerCase();
+      const direction = classA.localeCompare(classB);
+      return sortOrder === "descend" ? -direction : direction;
+    }
+
+    if (sortField === "status") {
+      const direction = a.status.localeCompare(b.status);
+      return sortOrder === "descend" ? -direction : direction;
+    }
+
+    if (sortField === "nis") {
+      const direction = a.nis.localeCompare(b.nis);
+      return sortOrder === "descend" ? -direction : direction;
+    }
+
+    if (sortField === "lastUpdated") {
+      const timeA = Date.parse(a.lastUpdated);
+      const timeB = Date.parse(b.lastUpdated);
+      const direction = timeA - timeB;
+      return sortOrder === "descend" ? -direction : direction;
+    }
+
+    return 0;
+  });
+
+  const total = sortedRows.length;
+  const totalPages = total === 0 ? 1 : Math.max(1, Math.ceil(total / perPage));
+  const currentPage = Math.min(Math.max(1, page), totalPages);
+  const startIndex = (currentPage - 1) * perPage;
+  const pageRows = sortedRows.slice(startIndex, startIndex + perPage);
+
+  const activeStudents = sortedRows.filter((row) => row.status === "active").length;
+  const inactiveStudents = sortedRows.filter((row) => row.status === "inactive").length;
+  const alumniStudents = sortedRows.filter((row) => row.status === "alumni").length;
+
+  const genderBreakdown = (["M", "F"] as StudentGenderCode[]).map((gender) => ({
+    gender,
+    label: STUDENT_GENDER_LABELS[gender],
+    count: sortedRows.filter((row) => row.gender === gender).length,
+  }));
+
+  const classDistributionMap = new Map<string, { className: string; count: number }>();
+  sortedRows.forEach((row) => {
+    const existing = classDistributionMap.get(row.classId);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      classDistributionMap.set(row.classId, { className: row.className, count: 1 });
+    }
+  });
+  const classDistribution = Array.from(classDistributionMap.entries()).map(([classId, value]) => ({
+    classId,
+    className: value.className,
+    count: value.count,
+  }));
+
+  const statuses: StudentStatusCode[] = ["active", "inactive", "alumni", "graduated"];
+  const statusBreakdown = statuses.map((status) => ({
+    status,
+    label: STUDENT_STATUS_LABELS[status],
+    count: sortedRows.filter((row) => row.status === status).length,
+  }));
+
+  const summary = {
+    totalStudents: total,
+    activeStudents,
+    inactiveStudents,
+    alumniStudents,
+    genderBreakdown,
+    classDistribution,
+    statusBreakdown,
+    activeRate: total > 0 ? Math.round((activeStudents / total) * 1000) / 10 : 0,
+  };
+
+  const uniqueGuardians = Array.from(
+    new Set(rosterRows.map((row) => row.guardianName).filter(Boolean))
+  )
+    .sort((a, b) => a.localeCompare(b))
+    .map((name) => ({ value: name, label: name }));
+
+  const uniqueBirthYears = Array.from(
+    new Set(
+      rosterRows
+        .map((row) => new Date(row.birthDate).getFullYear())
+        .filter((item) => Number.isFinite(item))
+    )
+  )
+    .sort((a, b) => a - b)
+    .map((year) => ({ value: year, label: `Tahun ${year}` }));
+
+  const uniqueTracks = Array.from(new Set(classes.map((klass) => klass.track))).map((track) => ({
+    value: track,
+    label: `Program ${track}`,
+  }));
+
+  const filters = {
+    classes: classes.map((klass) => ({
+      id: klass.id,
+      label: klass.name,
+      level: klass.level,
+      track: klass.track,
+    })),
+    statuses: [
+      { value: "all" as const, label: "Semua status" },
+      { value: "active" as const, label: STUDENT_STATUS_LABELS.active },
+      { value: "inactive" as const, label: STUDENT_STATUS_LABELS.inactive },
+      { value: "alumni" as const, label: STUDENT_STATUS_LABELS.alumni },
+      { value: "graduated" as const, label: STUDENT_STATUS_LABELS.graduated },
+    ],
+    genders: [
+      { value: "all" as const, label: "Semua gender" },
+      { value: "M" as const, label: STUDENT_GENDER_LABELS.M },
+      { value: "F" as const, label: STUDENT_GENDER_LABELS.F },
+    ],
+    guardians: uniqueGuardians,
+    birthYears: uniqueBirthYears,
+    tracks: uniqueTracks,
+  };
+
+  const appliedFilters: StudentRosterResponse["appliedFilters"] = {
+    page: currentPage,
+    perPage,
+  };
+  if (classIdParam) appliedFilters.classId = classIdParam;
+  if (statusParam) appliedFilters.status = statusParam;
+  if (genderParam) appliedFilters.gender = genderParam;
+  if (guardianParam) appliedFilters.guardian = guardianParam;
+  if (typeof birthYearStart === "number") appliedFilters.birthYearStart = birthYearStart;
+  if (typeof birthYearEnd === "number") appliedFilters.birthYearEnd = birthYearEnd;
+  if (trackParam) appliedFilters.track = trackParam;
+  if (searchNeedle.length > 0) appliedFilters.search = searchRaw.trim();
+  if (sortField) {
+    appliedFilters.sortField = sortField;
+    appliedFilters.sortOrder = sortOrder;
+  }
+
+  return {
+    summary,
+    filters,
+    rows: pageRows,
+    pagination: {
+      page: currentPage,
+      perPage,
+      total,
+      totalPages,
+    },
+    appliedFilters,
+  };
+};
+
+const buildTeacherRosterResponse = (url: URL): TeacherRosterResponse => {
+  const params = url.searchParams;
+  const subjectParam = params.get("subjectId") ?? undefined;
+  const statusParamRaw = params.get("status") ?? undefined;
+  const statusParam =
+    statusParamRaw && statusParamRaw !== "all" ? (statusParamRaw as TeacherStatusCode) : undefined;
+  const trackParam = params.get("track") ?? undefined;
+  const availabilityParamRaw = params.get("availability") ?? undefined;
+  const availabilityParam =
+    availabilityParamRaw && availabilityParamRaw !== "all"
+      ? (availabilityParamRaw.toUpperCase() as TeacherAvailabilityLevel)
+      : undefined;
+  const homeroomParam = params.get("homeroomClassId") ?? undefined;
+  const searchRaw = params.get("search") ?? params.get("q") ?? "";
+  const searchNeedle = searchRaw.trim().toLowerCase();
+  const rawPage = numberFromParam(params.get("page")) ?? 1;
+  const page = rawPage >= 1 ? rawPage : 1;
+  const rawPerPage =
+    numberFromParam(params.get("perPage")) ??
+    numberFromParam(params.get("pageSize")) ??
+    numberFromParam(params.get("limit")) ??
+    12;
+  const perPage = rawPerPage && rawPerPage > 0 ? rawPerPage : 12;
+  const sortFieldRaw = params.get("sortField") ?? undefined;
+  const allowedSortFields: TeacherRosterSortField[] = [
+    "fullName",
+    "mainSubjectName",
+    "status",
+    "assignmentCount",
+    "availability",
+    "lastUpdated",
+  ];
+  const sortField = allowedSortFields.includes(sortFieldRaw as TeacherRosterSortField)
+    ? (sortFieldRaw as TeacherRosterSortField)
+    : undefined;
+  const sortOrderRaw = (params.get("sortOrder") ?? "ascend").toLowerCase();
+  const sortOrder: "ascend" | "descend" = sortOrderRaw === "descend" ? "descend" : "ascend";
+
+  const rosterRows: TeacherRosterRow[] = teachers.map((teacher) => {
+    const mainSubject = teacher.mainSubjectId ? subjectById.get(teacher.mainSubjectId) : undefined;
+    const assignments = classSubjectsByTeacher.get(teacher.id) ?? [];
+    const assignmentClasses = assignments
+      .map((mapping) => classById.get(mapping.classroomId))
+      .filter((klass): klass is (typeof classes)[number] => Boolean(klass));
+    const trackSet = new Set<string>();
+    assignmentClasses.forEach((klass) => trackSet.add(klass.track));
+    const homeroom = homeroomClassByTeacher.get(teacher.id);
+    if (homeroom) {
+      trackSet.add(homeroom.track);
+    }
+    const preference = teacherPreferenceByTeacher.get(teacher.id);
+    const status: TeacherStatusCode = teacher.active ? "active" : "inactive";
+    const termIdForTimestamps =
+      homeroom?.termId ?? assignmentClasses[0]?.termId ?? terms[0]?.id ?? null;
+    const term = termIdForTimestamps ? termById.get(termIdForTimestamps) : undefined;
+    const lastUpdated = synthesizeTimestamp(term, `${teacher.id}:updated`, 7);
+    const createdAt = synthesizeTimestamp(term, `${teacher.id}:created`, 18);
+
+    return {
+      id: teacher.id,
+      fullName: teacher.fullName,
+      nip: teacher.nip,
+      email: teacher.email,
+      phone: teacher.phone,
+      status,
+      mainSubjectId: teacher.mainSubjectId ?? null,
+      mainSubjectName: mainSubject?.name ?? "Belum ditetapkan",
+      subjectGroup: mainSubject?.group,
+      tracks: Array.from(trackSet),
+      homeroomClassId: homeroom?.id ?? null,
+      homeroomClassName: homeroom?.name ?? null,
+      assignmentCount: assignments.length,
+      availability: preference?.availabilityLevel ?? null,
+      lastUpdated,
+      createdAt,
+    };
+  });
+
+  const filteredRows = rosterRows.filter((row) => {
+    if (subjectParam && row.mainSubjectId !== subjectParam) return false;
+    if (statusParam && row.status !== statusParam) return false;
+    if (trackParam && !row.tracks.includes(trackParam)) return false;
+    if (availabilityParam && row.availability !== availabilityParam) return false;
+    if (homeroomParam && row.homeroomClassId !== homeroomParam) return false;
+    if (searchNeedle.length > 0) {
+      const haystack =
+        `${row.fullName} ${row.nip} ${row.email} ${row.phone} ${row.mainSubjectName ?? ""}`.toLowerCase();
+      if (!haystack.includes(searchNeedle)) return false;
+    }
+    return true;
+  });
+
+  const sortedRows = [...filteredRows].sort((a, b) => {
+    const directionMultiplier = sortOrder === "descend" ? -1 : 1;
+    switch (sortField) {
+      case "mainSubjectName": {
+        const nameA = (a.mainSubjectName ?? "").toLowerCase();
+        const nameB = (b.mainSubjectName ?? "").toLowerCase();
+        return nameA.localeCompare(nameB) * directionMultiplier;
+      }
+      case "status": {
+        return a.status.localeCompare(b.status) * directionMultiplier;
+      }
+      case "assignmentCount": {
+        if (a.assignmentCount === b.assignmentCount) {
+          return a.fullName.localeCompare(b.fullName) * directionMultiplier;
+        }
+        return (a.assignmentCount - b.assignmentCount) * directionMultiplier;
+      }
+      case "availability": {
+        const order: Record<TeacherAvailabilityLevel, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 };
+        const valA =
+          a.availability && order[a.availability] !== undefined ? order[a.availability] : 3;
+        const valB =
+          b.availability && order[b.availability] !== undefined ? order[b.availability] : 3;
+        if (valA === valB) {
+          return a.fullName.localeCompare(b.fullName) * directionMultiplier;
+        }
+        return (valA - valB) * directionMultiplier;
+      }
+      case "lastUpdated": {
+        const timeA = Date.parse(a.lastUpdated);
+        const timeB = Date.parse(b.lastUpdated);
+        if (timeA === timeB) {
+          return a.fullName.localeCompare(b.fullName) * directionMultiplier;
+        }
+        return (timeA - timeB) * directionMultiplier;
+      }
+      case "fullName":
+      default: {
+        const nameA = a.fullName.toLowerCase();
+        const nameB = b.fullName.toLowerCase();
+        if (nameA === nameB) {
+          return a.nip.localeCompare(b.nip) * directionMultiplier;
+        }
+        return nameA.localeCompare(nameB) * directionMultiplier;
+      }
+    }
+  });
+
+  const total = sortedRows.length;
+  const totalPages = total === 0 ? 1 : Math.max(1, Math.ceil(total / perPage));
+  const currentPage = Math.min(Math.max(1, page), totalPages);
+  const startIndex = (currentPage - 1) * perPage;
+  const pageRows = sortedRows.slice(startIndex, startIndex + perPage);
+
+  const activeTeachers = sortedRows.filter((row) => row.status === "active").length;
+  const inactiveTeachers = sortedRows.filter((row) => row.status === "inactive").length;
+  const homeroomTeachers = sortedRows.filter((row) => Boolean(row.homeroomClassId)).length;
+
+  const subjectDistributionMap = new Map<string, { subjectName: string; count: number }>();
+  sortedRows.forEach((row) => {
+    if (!row.mainSubjectId) return;
+    const subjectName = row.mainSubjectName ?? "Tanpa mapel utama";
+    const existing = subjectDistributionMap.get(row.mainSubjectId);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      subjectDistributionMap.set(row.mainSubjectId, { subjectName, count: 1 });
+    }
+  });
+  const subjectDistribution = Array.from(subjectDistributionMap.entries())
+    .map(([subjectId, value]) => ({
+      subjectId,
+      subjectName: value.subjectName,
+      count: value.count,
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  const trackDistributionMap = new Map<string, number>();
+  sortedRows.forEach((row) => {
+    row.tracks.forEach((track) => {
+      const next = (trackDistributionMap.get(track) ?? 0) + 1;
+      trackDistributionMap.set(track, next);
+    });
+  });
+  const trackDistribution = Array.from(trackDistributionMap.entries())
+    .map(([track, count]) => ({
+      track,
+      count,
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  const availabilityLevels: TeacherAvailabilityLevel[] = ["HIGH", "MEDIUM", "LOW"];
+  const availabilityBreakdown = availabilityLevels.map((level) => ({
+    level,
+    count: sortedRows.filter((row) => row.availability === level).length,
+  }));
+
+  const summary = {
+    totalTeachers: total,
+    activeTeachers,
+    inactiveTeachers,
+    homeroomTeachers,
+    activeRate: total > 0 ? Math.round((activeTeachers / total) * 1000) / 10 : 0,
+    subjectDistribution,
+    trackDistribution,
+    availabilityBreakdown,
+  };
+
+  const filters = {
+    subjects: subjects.map((subject) => ({
+      id: subject.id,
+      label: subject.name,
+      group: subject.group,
+    })),
+    statuses: [
+      { value: "all" as const, label: "Semua status" },
+      { value: "active" as const, label: TEACHER_STATUS_LABELS.active },
+      { value: "inactive" as const, label: TEACHER_STATUS_LABELS.inactive },
+      { value: "on_leave" as const, label: TEACHER_STATUS_LABELS.on_leave },
+    ],
+    tracks: Array.from(new Set(classes.map((klass) => klass.track))).map((track) => ({
+      value: track,
+      label: `Program ${track}`,
+    })),
+    availabilities: [
+      { value: "all" as const, label: "Semua ketersediaan" },
+      { value: "HIGH" as const, label: TEACHER_AVAILABILITY_LABELS.HIGH },
+      { value: "MEDIUM" as const, label: TEACHER_AVAILABILITY_LABELS.MEDIUM },
+      { value: "LOW" as const, label: TEACHER_AVAILABILITY_LABELS.LOW },
+    ],
+    homerooms: classes
+      .filter((klass) => Boolean(klass.homeroomId))
+      .map((klass) => ({
+        id: klass.id,
+        label: `${klass.name} • ${klass.track}`,
+      })),
+  };
+
+  const appliedFilters: TeacherRosterAppliedFilters = {
+    page: currentPage,
+    perPage,
+  };
+  if (subjectParam) appliedFilters.subjectId = subjectParam;
+  if (statusParam) appliedFilters.status = statusParam;
+  if (trackParam) appliedFilters.track = trackParam;
+  if (availabilityParam) appliedFilters.availability = availabilityParam;
+  if (homeroomParam) appliedFilters.homeroomClassId = homeroomParam;
+  if (searchNeedle.length > 0) appliedFilters.search = searchRaw.trim();
+  if (sortField) {
+    appliedFilters.sortField = sortField;
+    appliedFilters.sortOrder = sortOrder;
+  }
+
+  return {
+    summary,
+    filters,
+    rows: pageRows,
+    pagination: {
+      page: currentPage,
+      perPage,
+      total,
+      totalPages,
+    },
+    appliedFilters,
+  };
+};
+
 const findRecord = (resource: ResourceKey, id: string | null) => {
   if (!id) return null;
   return stores[resource].find((item) => String(item.id) === String(id)) ?? null;
@@ -1181,6 +2165,35 @@ export async function createHandlers() {
       stores["semester-schedule"] = semesterSchedule;
 
       return HttpResponse.json({ success: true, count: sanitizedSlots.length }, { status: 200 });
+    }),
+
+    http.get(/\/api(?:\/v1)?\/grades\/report$/, ({ request }) => {
+      const url = new URL(request.url);
+      const payload = buildGradeReportResponse(url);
+      return HttpResponse.json(payload, { status: 200 });
+    }),
+    http.get(/\/api(?:\/v1)?\/students\/roster$/, ({ request }) => {
+      const url = new URL(request.url);
+      const payload = buildStudentRosterResponse(url);
+      return HttpResponse.json(payload, { status: 200 });
+    }),
+
+    http.get(/\/api(?:\/v1)?\/grades\/report$/, ({ request }) => {
+      const url = new URL(request.url);
+      const payload = buildGradeReportResponse(url);
+      return HttpResponse.json(payload, { status: 200 });
+    }),
+
+    http.get(/\/api(?:\/v1)?\/students\/roster$/, ({ request }) => {
+      const url = new URL(request.url);
+      const payload = buildStudentRosterResponse(url);
+      return HttpResponse.json(payload, { status: 200 });
+    }),
+
+    http.get(/\/api(?:\/v1)?\/teachers\/roster$/, ({ request }) => {
+      const url = new URL(request.url);
+      const payload = buildTeacherRosterResponse(url);
+      return HttpResponse.json(payload, { status: 200 });
     }),
 
     http.get(resourcePathRegex, ({ request }) => {

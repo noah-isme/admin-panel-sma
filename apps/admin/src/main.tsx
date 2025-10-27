@@ -52,6 +52,7 @@ import {
   UserOutlined,
 } from "@ant-design/icons";
 import { GradeConfigPage } from "./pages/grade-config";
+import { GradesPage } from "./pages/grades";
 import { DashboardPage } from "./pages/dashboard";
 import { AttendanceCreate } from "./pages/attendance-create";
 import { AttendanceEdit } from "./pages/attendance-edit";
@@ -485,6 +486,8 @@ async function bootstrap() {
                             <AttendanceAnalyticsPage />
                           ) : resource.name === "schedules" ? (
                             <SchedulesPage />
+                          ) : resource.name === "grades" ? (
+                            <GradesPage />
                           ) : resource.name === "classes" ? (
                             <ClassesPage />
                           ) : (

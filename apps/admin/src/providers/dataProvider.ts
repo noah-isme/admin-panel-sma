@@ -78,6 +78,8 @@ const api = axios.create({
   withCredentials: true,
 });
 
+export const httpClient = api;
+
 // Log resolved base in browser runtime (non-sensitive)
 try {
   if (typeof window !== "undefined") {
