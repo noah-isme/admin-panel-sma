@@ -25,7 +25,26 @@ import {
 } from "@mui/material";
 import { useList, useNavigation } from "@refinedev/core";
 import { BarChart3, Users, AlertTriangle, ChevronUp, ChevronDown } from "lucide-react";
-import { ResponsiveContainer, LineChart, Line } from "recharts";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  Legend,
+  Cell,
+  PieChart,
+  Pie,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar,
+} from "recharts";
 import type { Theme } from "@mui/material/styles";
 
 import { SummaryCard } from "../components/dashboard/summary-card";
@@ -177,16 +196,31 @@ export const DashboardPage: React.FC = () => {
         attendanceByClass.length === 0 &&
         attendanceAlerts.length === 0));
 
+  const getAttendanceColor = (percentage: number) => {
+    if (percentage >= 92) return theme.palette.success.main;
+    if (percentage >= 86) return theme.palette.warning.main;
+    return theme.palette.error.main;
+  };
+
+  const getAttendanceStatus = (percentage: number) => {
+    if (percentage >= 92) return { label: "Baik", color: "success" as const };
+    if (percentage >= 86) return { label: "Waspada", color: "warning" as const };
+    return { label: "Perlu Tindakan", color: "error" as const };
+  };
+
+  const goodClasses = attendanceByClass.filter((row) => row.percentage >= 92).length;
+  const warningClasses = attendanceByClass.filter(
+    (row) => row.percentage >= 86 && row.percentage < 92
+  ).length;
+  const dangerClasses = attendanceByClass.filter((row) => row.percentage < 86).length;
+
   return (
-    <Stack spacing={4} sx={{ width: "100%", maxWidth: "100%", overflow: "hidden" }}>
+    <Stack spacing={5} sx={{ width: "100%", maxWidth: "100%", overflow: "hidden", pb: 4 }}>
       <Box>
         <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2}>
           <Box>
-            <Typography variant="h4" sx={{ fontWeight: 700, letterSpacing: -0.4 }} gutterBottom>
+            <Typography variant="h4" sx={{ fontWeight: 700, letterSpacing: -0.4 }}>
               Dashboard Akademik
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              Ikhtisar nilai, kehadiran, serta indikator risiko terbaru untuk tindakan cepat.
             </Typography>
           </Box>
           <Button
@@ -243,9 +277,9 @@ export const DashboardPage: React.FC = () => {
         <Grid container spacing={{ xs: 2, sm: 3 }} columns={12}>
           <Grid item xs={12} sm={6} lg={4}>
             <SummaryCard
-              title="Rata-rata Nilai"
+              title="Rata-rata Nilai Sekolah"
               value={dashboard ? dashboard.distribution.overallAverage.toFixed(1) : "0.0"}
-              subtitle={`${(dashboard?.distribution.totalStudents ?? 0).toLocaleString("id-ID")} siswa dipantau`}
+              subtitle={`Dari ${(dashboard?.distribution.totalStudents ?? 0).toLocaleString("id-ID")} siswa aktif`}
               icon={<BarChart3 aria-label="Ikon nilai" />}
               accentColor={themeTokens.accentBlue}
               loading={loading}
@@ -254,9 +288,9 @@ export const DashboardPage: React.FC = () => {
           </Grid>
           <Grid item xs={12} sm={6} lg={4}>
             <SummaryCard
-              title="Kehadiran Rata-rata"
+              title="Tingkat Kehadiran"
               value={dashboard ? percent(dashboard.attendance.overall) : percent(0)}
-              subtitle="Seluruh kelas dan mapel"
+              subtitle="Rata-rata semua kelas"
               icon={<Users aria-label="Ikon kehadiran" />}
               accentColor={themeTokens.accentGreen}
               loading={loading}
@@ -265,9 +299,9 @@ export const DashboardPage: React.FC = () => {
           </Grid>
           <Grid item xs={12} sm={6} lg={4}>
             <SummaryCard
-              title="Perlu Remedial"
+              title="Siswa Remedial"
               value={(dashboard?.remedial?.length ?? 0).toLocaleString("id-ID")}
-              subtitle="Siswa belum mencapai KKM"
+              subtitle="Nilai di bawah KKM"
               icon={<AlertTriangle aria-label="Ikon remedial" />}
               accentColor={themeTokens.accentOrange}
               loading={loading}
@@ -289,17 +323,12 @@ export const DashboardPage: React.FC = () => {
                 boxShadow: "0 4px 20px rgba(0, 0, 0, 0.05)",
               }}
             >
-              <Stack
-                direction="row"
-                justifyContent="space-between"
-                alignItems="center"
-                sx={{ mb: 2 }}
-              >
+              <Stack spacing={0.5} sx={{ mb: 2 }}>
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Distribusi Nilai
+                  Distribusi Nilai Siswa
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {totalStudents.toLocaleString("id-ID")} siswa
+                  Jumlah siswa per rentang nilai ({totalStudents.toLocaleString("id-ID")} total)
                 </Typography>
               </Stack>
               {loading ? (
@@ -307,79 +336,208 @@ export const DashboardPage: React.FC = () => {
               ) : distributionByRange.length === 0 ? (
                 <EmptyState message={EMPTY_MESSAGE} />
               ) : (
-                <TableContainer sx={{ overflowX: "auto" }}>
-                  <Table size="small" aria-label="Tabel distribusi nilai" sx={{ minWidth: 400 }}>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell
-                          sx={{
-                            position: "sticky",
-                            top: 0,
-                            bgcolor: "background.paper",
-                            zIndex: 1,
-                          }}
-                        >
-                          Rentang Nilai
-                        </TableCell>
-                        <TableCell
-                          sx={{
-                            position: "sticky",
-                            top: 0,
-                            bgcolor: "background.paper",
-                            zIndex: 1,
-                          }}
-                        >
-                          Jumlah Siswa
-                        </TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {distributionByRange.map((bucket) => (
-                        <TableRow
-                          key={bucket.range}
-                          hover
-                          tabIndex={0}
-                          sx={{
-                            "&:focus-visible": {
-                              outline: `2px solid ${theme.palette.primary.main}`,
-                              outlineOffset: -2,
-                            },
-                          }}
-                        >
-                          <TableCell sx={{ whiteSpace: "nowrap" }}>{bucket.range}</TableCell>
-                          <TableCell sx={{ minWidth: 120 }}>
-                            <Stack spacing={0.5}>
-                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                {bucket.count.toLocaleString("id-ID")}
-                              </Typography>
-                              <LinearProgress
-                                variant="determinate"
-                                value={
-                                  totalStudents === 0 ? 0 : (bucket.count / totalStudents) * 100
-                                }
-                                sx={{
-                                  height: 6,
-                                  borderRadius: 3,
-                                  backgroundColor: alpha(theme.palette.primary.main, 0.08),
-                                  "& .MuiLinearProgress-bar": {
-                                    backgroundColor: theme.palette.primary.main,
-                                    borderRadius: 3,
-                                  },
-                                }}
-                                aria-label={`Distribusi ${bucket.range}`}
-                              />
-                            </Stack>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                <Box sx={{ width: "100%", height: 300, mt: 2 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={distributionByRange}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke={alpha(theme.palette.divider, 0.3)}
+                      />
+                      <XAxis
+                        dataKey="range"
+                        tick={{ fill: theme.palette.text.secondary, fontSize: 12 }}
+                      />
+                      <YAxis
+                        tick={{ fill: theme.palette.text.secondary, fontSize: 12 }}
+                        label={{ value: "Jumlah Siswa", angle: -90, position: "insideLeft" }}
+                      />
+                      <RechartsTooltip
+                        contentStyle={{
+                          backgroundColor: theme.palette.background.paper,
+                          border: `1px solid ${theme.palette.divider}`,
+                          borderRadius: 8,
+                        }}
+                        formatter={(value: number) => [value.toLocaleString("id-ID"), "Siswa"]}
+                      />
+                      <Bar dataKey="count" fill={theme.palette.primary.main} radius={[8, 8, 0, 0]}>
+                        {distributionByRange.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={
+                              entry.range.includes("90-100")
+                                ? theme.palette.success.main
+                                : entry.range.includes("80-89")
+                                  ? theme.palette.primary.main
+                                  : entry.range.includes("70-79")
+                                    ? theme.palette.warning.main
+                                    : theme.palette.error.main
+                            }
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Box>
               )}
             </Paper>
           </Grid>
 
           <Grid item xs={12} md={6}>
+            <Paper
+              elevation={0}
+              sx={{
+                p: { xs: 2.5, sm: 3 },
+                borderRadius: 2,
+                overflow: "visible",
+                boxShadow: "0 4px 20px rgba(0, 0, 0, 0.05)",
+              }}
+            >
+              <Stack spacing={0.5} sx={{ mb: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  Perbandingan Nilai Antar Kelas
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Rata-rata, tertinggi, dan terendah (8 kelas teratas)
+                </Typography>
+              </Stack>
+              {loading ? (
+                <TableSkeleton rows={5} columns={4} />
+              ) : sortedClassSummary.length === 0 ? (
+                <EmptyState />
+              ) : (
+                <Box sx={{ width: "100%", height: 300, mt: 2 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart
+                      data={sortedClassSummary.slice(0, 8).map((row) => ({
+                        className:
+                          row.className.length > 15
+                            ? `${row.className.slice(0, 12)}...`
+                            : row.className,
+                        "Rata-rata": row.average,
+                        Tertinggi: row.highest,
+                        Terendah: row.lowest,
+                      }))}
+                    >
+                      <PolarGrid stroke={alpha(theme.palette.divider, 0.3)} />
+                      <PolarAngleAxis
+                        dataKey="className"
+                        tick={{ fill: theme.palette.text.secondary, fontSize: 11 }}
+                      />
+                      <PolarRadiusAxis
+                        angle={90}
+                        domain={[0, 100]}
+                        tick={{ fill: theme.palette.text.secondary, fontSize: 10 }}
+                      />
+                      <Radar
+                        name="Rata-rata"
+                        dataKey="Rata-rata"
+                        stroke={theme.palette.primary.main}
+                        fill={theme.palette.primary.main}
+                        fillOpacity={0.6}
+                      />
+                      <Radar
+                        name="Tertinggi"
+                        dataKey="Tertinggi"
+                        stroke={theme.palette.success.main}
+                        fill={theme.palette.success.main}
+                        fillOpacity={0.3}
+                      />
+                      <Radar
+                        name="Terendah"
+                        dataKey="Terendah"
+                        stroke={theme.palette.error.main}
+                        fill={theme.palette.error.main}
+                        fillOpacity={0.3}
+                      />
+                      <Legend wrapperStyle={{ fontSize: "12px" }} iconSize={10} />
+                      <RechartsTooltip
+                        contentStyle={{
+                          backgroundColor: theme.palette.background.paper,
+                          border: `1px solid ${theme.palette.divider}`,
+                          borderRadius: 8,
+                          fontSize: 12,
+                        }}
+                      />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </Box>
+              )}
+            </Paper>
+          </Grid>
+        </Grid>
+
+        <Grid container spacing={{ xs: 2, sm: 3 }} columns={12}>
+          <Grid item xs={12} lg={8}>
+            <Paper
+              elevation={0}
+              sx={{
+                p: { xs: 2.5, sm: 3 },
+                borderRadius: 2,
+                overflow: "visible",
+                boxShadow: "0 4px 20px rgba(0, 0, 0, 0.05)",
+              }}
+            >
+              <Stack spacing={0.5} sx={{ mb: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  Persentase Kehadiran per Kelas
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Rata-rata sekolah:{" "}
+                  {dashboard ? percent(dashboard.attendance.overall) : percent(0)}
+                </Typography>
+              </Stack>
+              {loading ? (
+                <TableSkeleton rows={5} columns={3} />
+              ) : attendanceByClass.length === 0 ? (
+                <EmptyState />
+              ) : (
+                <Box sx={{ width: "100%", height: 320, mt: 2 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={attendanceByClass.slice(0, 10)}
+                      layout="vertical"
+                      margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke={alpha(theme.palette.divider, 0.3)}
+                      />
+                      <XAxis
+                        type="number"
+                        domain={[0, 100]}
+                        tick={{ fill: theme.palette.text.secondary, fontSize: 12 }}
+                        label={{ value: "Persentase (%)", position: "insideBottom", offset: -5 }}
+                      />
+                      <YAxis
+                        type="category"
+                        dataKey="className"
+                        tick={{ fill: theme.palette.text.secondary, fontSize: 11 }}
+                        width={95}
+                      />
+                      <RechartsTooltip
+                        contentStyle={{
+                          backgroundColor: theme.palette.background.paper,
+                          border: `1px solid ${theme.palette.divider}`,
+                          borderRadius: 8,
+                        }}
+                        formatter={(value: number) => [`${value.toFixed(1)}%`, "Kehadiran"]}
+                      />
+                      <Bar dataKey="percentage" radius={[0, 8, 8, 0]}>
+                        {attendanceByClass.slice(0, 10).map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={getAttendanceColor(entry.percentage)} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Box>
+              )}
+            </Paper>
+          </Grid>
+
+          <Grid item xs={12} lg={4}>
             <Paper
               elevation={0}
               sx={{
@@ -396,125 +554,95 @@ export const DashboardPage: React.FC = () => {
                 sx={{ mb: 2 }}
               >
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Kelas vs Nilai
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Urutkan untuk melihat tren
+                  Kategori Kelas Berdasarkan Kehadiran
                 </Typography>
               </Stack>
               {loading ? (
-                <TableSkeleton rows={5} columns={4} />
-              ) : sortedClassSummary.length === 0 ? (
+                <TableSkeleton rows={3} columns={2} />
+              ) : attendanceByClass.length === 0 ? (
                 <EmptyState />
               ) : (
-                <TableContainer sx={{ maxHeight: 420, overflowX: "auto", overflowY: "auto" }}>
-                  <Table
-                    stickyHeader
-                    size="small"
-                    aria-label="Tabel kelas dan nilai"
-                    sx={{ minWidth: 500 }}
-                  >
-                    <TableHead>
-                      <TableRow>
-                        <TableCell
-                          sx={{
-                            fontWeight: 600,
-                            minWidth: 120,
-                            maxWidth: 200,
-                            position: "sticky",
-                            top: 0,
-                            bgcolor: "background.paper",
-                            zIndex: 2,
-                          }}
-                        >
-                          Kelas
-                        </TableCell>
-                        {(["average", "highest", "lowest"] as const).map((key) => (
-                          <TableCell
-                            key={key}
-                            sortDirection={sortConfig.orderBy === key ? sortConfig.order : false}
-                            sx={{
-                              whiteSpace: "nowrap",
-                              position: "sticky",
-                              top: 0,
-                              bgcolor: "background.paper",
-                              zIndex: 2,
-                            }}
-                          >
-                            <TableSortLabel
-                              active={sortConfig.orderBy === key}
-                              direction={sortConfig.orderBy === key ? sortConfig.order : "asc"}
-                              onClick={handleSort(key)}
-                            >
-                              {key === "average"
-                                ? "Rata-rata"
-                                : key === "highest"
-                                  ? "Tertinggi"
-                                  : "Terendah"}
-                            </TableSortLabel>
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {sortedClassSummary.map((row) => (
-                        <TableRow
-                          key={row.classId}
-                          hover
-                          tabIndex={0}
-                          sx={{
-                            transition: "background-color 0.2s ease",
-                            cursor: "pointer",
-                            "&:hover": { backgroundColor: alpha(theme.palette.primary.main, 0.08) },
-                            "&:focus-visible": {
-                              outline: `2px solid ${theme.palette.primary.main}`,
-                              outlineOffset: -2,
+                <>
+                  <Box sx={{ px: 1, mb: 2 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Jumlah kelas berdasarkan tingkat kehadiran
+                    </Typography>
+                  </Box>
+                  <Box sx={{ width: "100%", height: 280, mt: 1 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={[
+                            {
+                              name: `${goodClasses} kelas (≥92%)`,
+                              shortName: "Baik",
+                              value: goodClasses,
+                              fill: theme.palette.success.main,
                             },
-                          }}
+                            {
+                              name: `${warningClasses} kelas (86-92%)`,
+                              shortName: "Waspada",
+                              value: warningClasses,
+                              fill: theme.palette.warning.main,
+                            },
+                            {
+                              name: `${dangerClasses} kelas (<86%)`,
+                              shortName: "Perlu Tindakan",
+                              value: dangerClasses,
+                              fill: theme.palette.error.main,
+                            },
+                          ].filter((item) => item.value > 0)}
+                          cx="50%"
+                          cy="45%"
+                          labelLine={false}
+                          label={({ shortName, value }) => `${shortName}: ${value}`}
+                          outerRadius={75}
+                          fill="#8884d8"
+                          dataKey="value"
                         >
-                          <TableCell
-                            sx={{
-                              fontWeight: 600,
-                              maxWidth: 200,
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {row.className}
-                          </TableCell>
-                          <TableCell>
-                            <Typography
-                              sx={{
-                                fontWeight: 600,
-                                color: scoreColor(row.average, theme.palette),
-                              }}
-                            >
-                              {row.average.toFixed(1)}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography
-                              sx={{
-                                fontWeight: 500,
-                                color: scoreColor(row.highest, theme.palette),
-                              }}
-                            >
-                              {row.highest.toFixed(0)}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography
-                              sx={{ fontWeight: 500, color: scoreColor(row.lowest, theme.palette) }}
-                            >
-                              {row.lowest.toFixed(0)}
-                            </Typography>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                          {[
+                            {
+                              name: `${goodClasses} kelas (≥92%)`,
+                              value: goodClasses,
+                              fill: theme.palette.success.main,
+                            },
+                            {
+                              name: `${warningClasses} kelas (86-92%)`,
+                              value: warningClasses,
+                              fill: theme.palette.warning.main,
+                            },
+                            {
+                              name: `${dangerClasses} kelas (<86%)`,
+                              value: dangerClasses,
+                              fill: theme.palette.error.main,
+                            },
+                          ]
+                            .filter((item) => item.value > 0)
+                            .map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.fill} />
+                            ))}
+                        </Pie>
+                        <RechartsTooltip
+                          contentStyle={{
+                            backgroundColor: theme.palette.background.paper,
+                            border: `1px solid ${theme.palette.divider}`,
+                            borderRadius: 8,
+                          }}
+                          formatter={(value: number, name: string, props: any) => [
+                            `${value} dari ${attendanceByClass.length} kelas`,
+                            props.payload.name,
+                          ]}
+                        />
+                        <Legend
+                          verticalAlign="bottom"
+                          height={36}
+                          wrapperStyle={{ fontSize: "10px" }}
+                          formatter={(value: string) => value}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </Box>
+                </>
               )}
             </Paper>
           </Grid>
@@ -529,146 +657,18 @@ export const DashboardPage: React.FC = () => {
             boxShadow: "0 4px 20px rgba(0, 0, 0, 0.05)",
           }}
         >
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+          <Stack spacing={0.5} sx={{ mb: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              Ringkasan Kehadiran Kelas
+              🚨 Kelas yang Perlu Tindakan
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {dashboard ? percent(dashboard.attendance.overall) : percent(0)} rata-rata sekolah
-            </Typography>
-          </Stack>
-          {loading ? (
-            <TableSkeleton rows={5} columns={3} />
-          ) : attendanceByClass.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <TableContainer sx={{ overflowX: "auto" }}>
-              <Table size="small" aria-label="Ringkasan kehadiran kelas" sx={{ minWidth: 600 }}>
-                <TableHead>
-                  <TableRow>
-                    <TableCell
-                      sx={{
-                        minWidth: 100,
-                        maxWidth: 180,
-                        position: "sticky",
-                        top: 0,
-                        bgcolor: "background.paper",
-                        zIndex: 1,
-                      }}
-                    >
-                      Kelas
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        whiteSpace: "nowrap",
-                        position: "sticky",
-                        top: 0,
-                        bgcolor: "background.paper",
-                        zIndex: 1,
-                      }}
-                    >
-                      Persentase
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        whiteSpace: "nowrap",
-                        position: "sticky",
-                        top: 0,
-                        bgcolor: "background.paper",
-                        zIndex: 1,
-                      }}
-                    >
-                      Status
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {attendanceByClass.map((row) => (
-                    <TableRow
-                      key={row.classId}
-                      hover
-                      tabIndex={0}
-                      sx={{
-                        "&:hover": { backgroundColor: alpha(theme.palette.primary.main, 0.08) },
-                        "&:focus-visible": {
-                          outline: `2px solid ${theme.palette.primary.main}`,
-                          outlineOffset: -2,
-                        },
-                      }}
-                    >
-                      <TableCell
-                        sx={{
-                          fontWeight: 600,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          maxWidth: 180,
-                        }}
-                      >
-                        {row.className}
-                      </TableCell>
-                      <TableCell>
-                        <Typography sx={{ fontWeight: 600 }}>{percent(row.percentage)}</Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          size="small"
-                          label={
-                            row.percentage >= 95
-                              ? "Stabil"
-                              : row.percentage >= 90
-                                ? "Perlu pantau"
-                                : "Perlu tindakan"
-                          }
-                          color={
-                            row.percentage >= 95
-                              ? "success"
-                              : row.percentage >= 90
-                                ? "warning"
-                                : "error"
-                          }
-                          variant={row.percentage >= 95 ? "outlined" : "filled"}
-                          aria-label={`Status kehadiran ${row.className}`}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-        </Paper>
-
-        <Paper
-          elevation={0}
-          sx={{
-            p: { xs: 2.5, sm: 3 },
-            borderRadius: 2,
-            overflow: "visible",
-            boxShadow: "0 4px 20px rgba(0, 0, 0, 0.05)",
-          }}
-        >
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              Alert Kehadiran
-            </Typography>
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              Terakhir diperbarui:{" "}
-              {dashboard?.updatedAt ? new Date(dashboard.updatedAt).toLocaleString("id-ID") : "-"}
+              Prioritas tinggi: kehadiran kritikal (&lt;86%)
             </Typography>
           </Stack>
           {loading ? (
             <TableSkeleton rows={4} columns={4} />
           ) : attendanceAlerts.length === 0 ? (
-            <EmptyState message="Tidak ada lonjakan ketidakhadiran minggu ini." />
+            <EmptyState message="✅ Tidak ada kelas dengan kehadiran kritikal. Semua kelas di atas ambang 86%" />
           ) : (
             <TableContainer sx={{ overflowX: "auto" }}>
               <Table size="small" aria-label="Daftar alert kehadiran" sx={{ minWidth: 800 }}>
@@ -826,6 +826,77 @@ export const DashboardPage: React.FC = () => {
           )}
         </Paper>
       </Collapse>
+
+      {!isMinimized && !loading && !isError && attendanceByClass.length > 0 && (
+        <Paper
+          elevation={0}
+          sx={{
+            p: 3,
+            borderRadius: 3,
+            background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.primary.main, 0.02)} 100%)`,
+            border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+          }}
+        >
+          <Stack spacing={2.5}>
+            <Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Ringkasan performa siswa: nilai rata-rata, tingkat kehadiran, dan kelas yang perlu
+                perhatian
+              </Typography>
+            </Box>
+
+            <Box
+              sx={{
+                borderLeft: `3px solid ${theme.palette.primary.main}`,
+                pl: 2,
+              }}
+            >
+              <Stack spacing={1.5}>
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <Box
+                    sx={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: "50%",
+                      bgcolor: theme.palette.primary.main,
+                    }}
+                  />
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                    📊 Insight Minggu Ini
+                  </Typography>
+                </Stack>
+                <Stack spacing={1.5} sx={{ pl: 1.5 }}>
+                  {dangerClasses > 0 && (
+                    <Typography variant="body2" color="text.secondary">
+                      • <strong>{dangerClasses} kelas</strong> memerlukan tindakan prioritas
+                      (kehadiran &lt;86%)
+                    </Typography>
+                  )}
+                  {warningClasses > 0 && (
+                    <Typography variant="body2" color="text.secondary">
+                      • <strong>{warningClasses} kelas</strong> dalam kategori waspada (kehadiran
+                      86-92%)
+                    </Typography>
+                  )}
+                  {goodClasses > 0 && (
+                    <Typography variant="body2" color="text.secondary">
+                      • <strong>{goodClasses} kelas</strong> menunjukkan kehadiran baik (&ge;92%)
+                    </Typography>
+                  )}
+                  {attendanceAlerts.length > 0 && (
+                    <Typography variant="body2" color="text.secondary">
+                      • Kelas dengan kehadiran terendah:{" "}
+                      <strong>
+                        {attendanceAlerts[0].className} ({percent(attendanceAlerts[0].percentage)})
+                      </strong>
+                    </Typography>
+                  )}
+                </Stack>
+              </Stack>
+            </Box>
+          </Stack>
+        </Paper>
+      )}
     </Stack>
   );
 };
