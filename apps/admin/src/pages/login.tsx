@@ -108,9 +108,11 @@ export const LoginPage: React.FC = () => {
             </Form.Item>
           </Form>
 
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            Default credentials: superadmin@example.sch.id / Admin123!
-          </Text>
+          {import.meta.env.DEV ? (
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              Default credentials: superadmin@example.sch.id / Admin123!
+            </Text>
+          ) : null}
         </Space>
       </Card>
     </Layout>

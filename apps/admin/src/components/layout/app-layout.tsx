@@ -128,6 +128,7 @@ const NAV_ITEMS = (logout: () => void): NavNode[] => [
         icon: <CalendarClock size={18} aria-label="Kalender akademik" />,
         ariaLabel: "Kalender Akademik",
         path: "/calendar",
+        resource: "calendar",
       },
       {
         key: "akademik-classes",
@@ -163,6 +164,13 @@ const NAV_ITEMS = (logout: () => void): NavNode[] => [
         icon: <BookOpen size={18} aria-label="Mata pelajaran" />,
         ariaLabel: "Mapel",
         resource: "subjects",
+      },
+      {
+        key: "akademik-enrollments",
+        label: "Penempatan",
+        icon: <DeploymentUnitOutlined size={18} aria-label="Penempatan" />,
+        ariaLabel: "Penempatan",
+        resource: "enrollments",
       },
     ],
   },
@@ -269,6 +277,7 @@ const NAV_ITEMS = (logout: () => void): NavNode[] => [
         icon: <Settings2 size={18} aria-label="Konfigurasi" />,
         ariaLabel: "Konfigurasi",
         path: "/configuration",
+        resource: "settings",
       },
       {
         key: "administrasi-backup",
@@ -278,6 +287,20 @@ const NAV_ITEMS = (logout: () => void): NavNode[] => [
         disabled: true,
       },
     ],
+  },
+  {
+    key: "setup",
+    label: "Setup Pra-Semester",
+    icon: <Sparkles size={18} aria-label="Setup pra-semester" />,
+    ariaLabel: "Setup pra-semester",
+    path: "/setup",
+  },
+  {
+    key: "import-status",
+    label: "Status Import",
+    icon: <ListChecks size={18} aria-label="Status import" />,
+    ariaLabel: "Status import",
+    path: "/setup/import-status",
   },
   {
     key: "announcements",

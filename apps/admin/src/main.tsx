@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Outlet, Route, Routes } from "react-router-dom";
 import { Refine, Authenticated } from "@refinedev/core";
+import { ResourceActionGuard } from "./components/resource-action-guard";
 import routerProvider, {
   DocumentTitleHandler,
   NavigateToResource,
@@ -59,7 +60,6 @@ import { AttendanceEdit } from "./pages/attendance-edit";
 import { AttendanceDailyPage } from "./pages/attendance-daily";
 import { AttendanceLessonPage } from "./pages/attendance-lesson";
 import { AttendanceAnalyticsPage } from "./pages/attendance-analytics";
-import { ResourceShow } from "./pages/resource-show";
 import { SetupWizard } from "./pages/setup-wizard";
 import { ImportStatusPage } from "./pages/import-status";
 import { AnnouncementsPage } from "./pages/announcements";
@@ -104,13 +104,12 @@ const resources = [
     list: "/students",
     create: "/students/create",
     edit: "/students/edit/:id",
-    show: "/students/show/:id",
     meta: {
       label: "Siswa",
       canCreate: true,
       canEdit: true,
       canDelete: true,
-      canShow: true,
+      canShow: false,
       showSetupWizardLink: true,
       showImportStatusLink: true,
       icon: <SolutionOutlined />,
@@ -121,13 +120,12 @@ const resources = [
     list: "/teachers",
     create: "/teachers/create",
     edit: "/teachers/edit/:id",
-    show: "/teachers/show/:id",
     meta: {
       label: "Guru",
       canCreate: true,
       canEdit: true,
       canDelete: true,
-      canShow: true,
+      canShow: false,
       showImportStatusLink: true,
       icon: <TeamOutlined />,
     },
@@ -152,13 +150,12 @@ const resources = [
     list: "/subjects",
     create: "/subjects/create",
     edit: "/subjects/edit/:id",
-    show: "/subjects/show/:id",
     meta: {
       label: "Mata Pelajaran",
       canCreate: true,
       canEdit: true,
       canDelete: true,
-      canShow: true,
+      canShow: false,
       icon: <BookOutlined />,
     },
   },
@@ -167,13 +164,12 @@ const resources = [
     list: "/terms",
     create: "/terms/create",
     edit: "/terms/edit/:id",
-    show: "/terms/show/:id",
     meta: {
       label: "Tahun Ajaran",
       canCreate: true,
       canEdit: true,
       canDelete: true,
-      canShow: true,
+      canShow: false,
       showSetupWizardLink: true,
       icon: <ContainerOutlined />,
     },
@@ -191,17 +187,38 @@ const resources = [
     },
   },
   {
+    name: "teacher-preferences",
+    list: "/schedules/preferences",
+    meta: {
+      label: "Preferensi Guru",
+      canCreate: false,
+      canEdit: true,
+      canDelete: false,
+      canShow: false,
+    },
+  },
+  {
+    name: "settings",
+    list: "/configuration",
+    meta: {
+      label: "Konfigurasi",
+      canCreate: false,
+      canEdit: true,
+      canDelete: false,
+      canShow: false,
+    },
+  },
+  {
     name: "enrollments",
     list: "/enrollments",
     create: "/enrollments/create",
     edit: "/enrollments/edit/:id",
-    show: "/enrollments/show/:id",
     meta: {
       label: "Penempatan",
       canCreate: true,
       canEdit: true,
       canDelete: true,
-      canShow: true,
+      canShow: false,
       icon: <DeploymentUnitOutlined />,
     },
   },
@@ -222,13 +239,12 @@ const resources = [
     list: "/schedules",
     create: "/schedules/create",
     edit: "/schedules/edit/:id",
-    show: "/schedules/show/:id",
     meta: {
       label: "Jadwal",
       canCreate: true,
       canEdit: true,
       canDelete: true,
-      canShow: true,
+      canShow: false,
       icon: <CalendarOutlined />,
     },
   },
@@ -237,13 +253,12 @@ const resources = [
     list: "/grade-components",
     create: "/grade-components/create",
     edit: "/grade-components/edit/:id",
-    show: "/grade-components/show/:id",
     meta: {
       label: "Komponen Nilai",
       canCreate: true,
       canEdit: true,
       canDelete: true,
-      canShow: true,
+      canShow: false,
       showGradeConfigLink: true,
       icon: <FileDoneOutlined />,
     },
@@ -252,13 +267,12 @@ const resources = [
     name: "grades",
     list: "/grades",
     edit: "/grades/edit/:id",
-    show: "/grades/show/:id",
     meta: {
       label: "Nilai",
       canCreate: false,
       canEdit: true,
       canDelete: true,
-      canShow: true,
+      canShow: false,
       icon: <CheckCircleOutlined />,
     },
   },
@@ -270,7 +284,7 @@ const resources = [
       canCreate: false,
       canEdit: true,
       canDelete: true,
-      canShow: true,
+      canShow: false,
       icon: <FileDoneOutlined />,
     },
   },
@@ -282,7 +296,7 @@ const resources = [
       canCreate: true,
       canEdit: true,
       canDelete: true,
-      canShow: true,
+      canShow: false,
       icon: <NotificationOutlined />,
     },
   },
@@ -294,19 +308,8 @@ const resources = [
       canCreate: true,
       canEdit: true,
       canDelete: true,
-      canShow: true,
+      canShow: false,
       icon: <FileDoneOutlined />,
-    },
-  },
-  {
-    name: "grade-configs",
-    list: "/grade-configs",
-    meta: {
-      label: "Konfigurasi Penilaian",
-      canCreate: false,
-      canEdit: true,
-      canDelete: true,
-      canShow: true,
     },
   },
   {
@@ -314,13 +317,12 @@ const resources = [
     list: "/attendance",
     create: "/attendance/create",
     edit: "/attendance/edit/:id",
-    show: "/attendance/show/:id",
     meta: {
       label: "Absensi",
       canCreate: true,
       canEdit: true,
       canDelete: true,
-      canShow: true,
+      canShow: false,
       icon: <ScheduleOutlined />,
     },
   },
@@ -332,8 +334,22 @@ const resources = [
       canCreate: false,
       canEdit: true,
       canDelete: true,
-      canShow: true,
+      canShow: false,
       icon: <TeamOutlined />,
+    },
+  },
+  {
+    name: "enrollments",
+    list: "/enrollments",
+    create: "/enrollments/create",
+    edit: "/enrollments/edit/:id",
+    meta: {
+      label: "Penempatan",
+      canCreate: true,
+      canEdit: true,
+      canDelete: true,
+      canShow: false,
+      icon: <DeploymentUnitOutlined />,
     },
   },
 ] as const;
@@ -507,26 +523,75 @@ async function bootstrap() {
                       {resourceRouteConfig[resource.name]?.edit ? (
                         <Route path="edit/:id" element={resourceRouteConfig[resource.name]!.edit} />
                       ) : null}
-                      <Route
-                        path="show/:id"
-                        element={resource.name === "classes" ? <ClassesShow /> : <ResourceShow />}
-                      />
+                      {resource.name === "classes" ? (
+                        <Route path="show/:id" element={<ClassesShow />} />
+                      ) : null}
                       {resource.name === "attendance" ? (
                         <>
-                          <Route path="daily" element={<AttendanceDailyPage />} />
-                          <Route path="lesson" element={<AttendanceLessonPage />} />
+                          <Route
+                            path="daily"
+                            element={
+                              <ResourceActionGuard action="create" resourceName="attendance">
+                                <AttendanceDailyPage />
+                              </ResourceActionGuard>
+                            }
+                          />
+                          <Route
+                            path="lesson"
+                            element={
+                              <ResourceActionGuard action="create" resourceName="attendance">
+                                <AttendanceLessonPage />
+                              </ResourceActionGuard>
+                            }
+                          />
                         </>
                       ) : resource.name === "schedules" ? (
                         <>
-                          <Route path="generator" element={<ScheduleGeneratorPage />} />
-                          <Route path="preferences" element={<TeacherPreferencesPage />} />
+                          <Route
+                            path="generator"
+                            element={
+                              <ResourceActionGuard action="edit" resourceName="schedules">
+                                <ScheduleGeneratorPage />
+                              </ResourceActionGuard>
+                            }
+                          />
+
+                          <Route
+                            path="preferences"
+                            element={
+                              <ResourceActionGuard action="edit" resourceName="teacher-preferences">
+                                <TeacherPreferencesPage />
+                              </ResourceActionGuard>
+                            }
+                          />
                         </>
                       ) : null}
                     </Route>
                   ))}
-                  <Route path="setup" element={<SetupWizard />} />
-                  <Route path="setup/import-status" element={<ImportStatusPage />} />
-                  <Route path="configuration" element={<ConfigurationPage />} />
+                  <Route
+                    path="setup"
+                    element={
+                      <ResourceActionGuard action="create" resourceName="terms">
+                        <SetupWizard />
+                      </ResourceActionGuard>
+                    }
+                  />
+                  <Route
+                    path="setup/import-status"
+                    element={
+                      <ResourceActionGuard action="list" resourceName="students">
+                        <ImportStatusPage />
+                      </ResourceActionGuard>
+                    }
+                  />
+                  <Route
+                    path="configuration"
+                    element={
+                      <ResourceActionGuard action="edit" resourceName="settings">
+                        <ConfigurationPage />
+                      </ResourceActionGuard>
+                    }
+                  />
                 </Route>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="*" element={<ErrorComponent />} />
