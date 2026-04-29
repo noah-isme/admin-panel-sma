@@ -1,8 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "pnpm install && pnpm --filter @apps/shared build && pnpm --filter @apps/admin build",
-  "outputDirectory": "apps/admin/dist",
+  "buildCommand": "pnpm install && pnpm --filter @apps/shared build && pnpm --filter @apps/landing build && pnpm --filter @apps/admin build && mkdir -p dist/admin && cp -r apps/landing/dist/* dist/ && cp -r apps/admin/dist/* dist/admin/",
+  "outputDirectory": "dist",
   "installCommand": "pnpm install",
+  "rewrites": [
+    { "source": "/admin/(.*)", "destination": "/admin/index.html" },
+    { "source": "/((?!admin/).*)", "destination": "/index.html" }
+  ],
   "preview": {
     "env": {
       "VITE_ENABLE_MSW": "true",

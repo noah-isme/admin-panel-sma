@@ -5,8 +5,9 @@
   "type": "module",
   "packageManager": "pnpm@9.7.1",
   "scripts": {
-    "dev": "concurrently -n api,worker,admin -c green,magenta,cyan \"pnpm --filter @apps/api dev\" \"pnpm --filter @apps/worker dev\" \"pnpm --filter @apps/admin dev\"",
+    "dev": "concurrently -n api,worker,admin,landing -c green,magenta,cyan,yellow \"pnpm --filter @apps/api dev\" \"pnpm --filter @apps/worker dev\" \"pnpm --filter @apps/admin dev\" \"pnpm --filter @apps/landing dev\"",
     "dev:admin": "pnpm --filter @apps/admin dev",
+    "dev:landing": "pnpm --filter @apps/landing dev",
     "build": "pnpm -r build",
     "lint": "eslint .",
     "test": "pnpm -r test",
