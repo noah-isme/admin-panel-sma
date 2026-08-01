@@ -50,6 +50,7 @@ import type { Theme } from "@mui/material/styles";
 import { SummaryCard } from "../components/dashboard/summary-card";
 import { themeTokens } from "../theme/tokens";
 import { formatWeekLabel, percent } from "../utils/format";
+import { useList as useRefineList } from "@refinedev/core";
 
 const EMPTY_MESSAGE = "Belum ada data. Tambahkan siswa/guru terlebih dulu.";
 
@@ -137,9 +138,24 @@ const scoreColor = (score: number, palette: Theme["palette"]) => {
 
 export const DashboardPage: React.FC = () => {
   const { list, push } = useNavigation();
+
+  // Fetch active term
+  const { data: activeTerms } = useRefineList<TermRecord>({
+    resource: "terms",
+    filters: [{ field: "active", operator: "eq", value: true }],
+    pagination: { current: 1, pageSize: 5 },
+  });
+
+  const activeTerm = React.useMemo(
+    () => activeTerms?.data?.find((term) => term.active) ?? activeTerms?.data?.[0] ?? null,
+    [activeTerms]
+  );
+  const activeTermId = activeTerm?.id;
+
   const dashboardQuery = useList<PrincipalDashboard>({
     resource: "dashboard",
     dataProviderName: "default",
+    ...(activeTermId ? { meta: { termId: activeTermId } } : {}),
   });
 
   const theme = useTheme();
@@ -156,9 +172,10 @@ export const DashboardPage: React.FC = () => {
   const attendanceByClass = dashboard?.attendance.byClass ?? [];
   const attendanceAlerts = dashboard?.attendance.alerts ?? [];
 
-  const [sortConfig, setSortConfig] = React.useState<{ orderBy: keyof ClassSummary; order: Order }>(
-    () => ({ orderBy: "average", order: "desc" })
-  );
+  const [sortConfig] = React.useState<{ orderBy: keyof ClassSummary; order: Order }>(() => ({
+    orderBy: "average",
+    order: "desc",
+  }));
 
   const [isMinimized, setIsMinimized] = React.useState(false);
 
@@ -177,14 +194,6 @@ export const DashboardPage: React.FC = () => {
     return rows;
   }, [classSummaryRaw, sortConfig]);
 
-  const handleSort = (property: keyof ClassSummary) => () => {
-    setSortConfig((prev) =>
-      prev.orderBy === property
-        ? { orderBy: property, order: prev.order === "asc" ? "desc" : "asc" }
-        : { orderBy: property, order: "desc" }
-    );
-  };
-
   const totalStudents = distributionByRange.reduce((sum, item) => sum + item.count, 0);
 
   const isEmptyState =
@@ -202,37 +211,52 @@ export const DashboardPage: React.FC = () => {
     return theme.palette.error.main;
   };
 
-  const getAttendanceStatus = (percentage: number) => {
-    if (percentage >= 92) return { label: "Baik", color: "success" as const };
-    if (percentage >= 86) return { label: "Waspada", color: "warning" as const };
-    return { label: "Perlu Tindakan", color: "error" as const };
-  };
-
   const goodClasses = attendanceByClass.filter((row) => row.percentage >= 92).length;
   const warningClasses = attendanceByClass.filter(
     (row) => row.percentage >= 86 && row.percentage < 92
   ).length;
   const dangerClasses = attendanceByClass.filter((row) => row.percentage < 86).length;
 
+  const chartTooltipStyle = {
+    backgroundColor: theme.palette.background.paper,
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: 4,
+    boxShadow: "none",
+    fontSize: 12,
+    padding: "6px 10px",
+  };
+
   return (
-    <Stack spacing={5} sx={{ width: "100%", maxWidth: "100%", overflow: "hidden", pb: 4 }}>
+    <Stack spacing={3} sx={{ width: "100%", maxWidth: "100%", overflow: "hidden", pb: 4 }}>
       <Box>
-        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2}>
           <Box>
-            <Typography variant="h4" sx={{ fontWeight: 700, letterSpacing: -0.4 }}>
+            <Typography variant="h5" sx={{ fontWeight: 700, letterSpacing: "-0.02em" }}>
               Dashboard Akademik
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Ringkasan performa akademik dan kehadiran siswa
             </Typography>
           </Box>
           <Button
             variant="outlined"
             size="small"
             onClick={() => setIsMinimized(!isMinimized)}
-            startIcon={isMinimized ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+            startIcon={isMinimized ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
             sx={{
               minWidth: "auto",
-              px: 2,
-              borderRadius: 2,
+              px: 1.5,
+              py: 0.5,
+              borderRadius: 1,
+              borderColor: "divider",
+              color: "text.secondary",
               textTransform: "none",
+              fontWeight: 600,
+              fontSize: "0.8125rem",
+              "&:hover": {
+                borderColor: "text.secondary",
+                backgroundColor: "transparent",
+              },
             }}
             aria-label={isMinimized ? "Perluas dashboard" : "Minimalkan dashboard"}
           >
@@ -267,14 +291,14 @@ export const DashboardPage: React.FC = () => {
                 </Button>
               </Stack>
             }
-            sx={{ borderRadius: 3 }}
+            sx={{ borderRadius: 1.5, mb: 3 }}
           >
             <AlertTitle>Gagal memuat dashboard</AlertTitle>
             Periksa koneksi atau coba ulang beberapa saat lagi.
           </Alert>
         ) : null}
 
-        <Grid container spacing={{ xs: 2, sm: 3 }} columns={12}>
+        <Grid container spacing={2.5} columns={12} sx={{ mb: 3 }}>
           <Grid item xs={12} sm={6} lg={4}>
             <SummaryCard
               title="Rata-rata Nilai Sekolah"
@@ -312,22 +336,24 @@ export const DashboardPage: React.FC = () => {
 
         {isEmptyState ? <EmptyState /> : null}
 
-        <Grid container spacing={{ xs: 2, sm: 3 }} columns={12}>
+        <Grid container spacing={2.5} columns={12} sx={{ mb: 3 }}>
           <Grid item xs={12} md={6}>
             <Paper
               elevation={0}
               sx={{
-                p: { xs: 2.5, sm: 3 },
-                borderRadius: 2,
-                overflow: "visible",
-                boxShadow: "0 4px 20px rgba(0, 0, 0, 0.05)",
+                p: 2.5,
+                borderRadius: 1.5,
+                border: "1px solid",
+                borderColor: "divider",
+                boxShadow: "none",
+                height: "100%",
               }}
             >
               <Stack spacing={0.5} sx={{ mb: 2 }}>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                   Distribusi Nilai Siswa
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="caption" color="text.secondary">
                   Jumlah siswa per rentang nilai ({totalStudents.toLocaleString("id-ID")} total)
                 </Typography>
               </Stack>
@@ -336,33 +362,33 @@ export const DashboardPage: React.FC = () => {
               ) : distributionByRange.length === 0 ? (
                 <EmptyState message={EMPTY_MESSAGE} />
               ) : (
-                <Box sx={{ width: "100%", height: 300, mt: 2 }}>
+                <Box sx={{ width: "100%", height: 260, mt: 1 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={distributionByRange}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                      margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                     >
                       <CartesianGrid
                         strokeDasharray="3 3"
-                        stroke={alpha(theme.palette.divider, 0.3)}
+                        stroke={theme.palette.divider}
+                        vertical={false}
                       />
                       <XAxis
                         dataKey="range"
-                        tick={{ fill: theme.palette.text.secondary, fontSize: 12 }}
+                        tick={{ fill: theme.palette.text.secondary, fontSize: 11 }}
+                        axisLine={{ stroke: theme.palette.divider }}
+                        tickLine={false}
                       />
                       <YAxis
-                        tick={{ fill: theme.palette.text.secondary, fontSize: 12 }}
-                        label={{ value: "Jumlah Siswa", angle: -90, position: "insideLeft" }}
+                        tick={{ fill: theme.palette.text.secondary, fontSize: 11 }}
+                        axisLine={false}
+                        tickLine={false}
                       />
                       <RechartsTooltip
-                        contentStyle={{
-                          backgroundColor: theme.palette.background.paper,
-                          border: `1px solid ${theme.palette.divider}`,
-                          borderRadius: 8,
-                        }}
+                        contentStyle={chartTooltipStyle}
                         formatter={(value: number) => [value.toLocaleString("id-ID"), "Siswa"]}
                       />
-                      <Bar dataKey="count" fill={theme.palette.primary.main} radius={[8, 8, 0, 0]}>
+                      <Bar dataKey="count" radius={[2, 2, 0, 0]}>
                         {distributionByRange.map((entry, index) => (
                           <Cell
                             key={`cell-${index}`}
@@ -389,17 +415,19 @@ export const DashboardPage: React.FC = () => {
             <Paper
               elevation={0}
               sx={{
-                p: { xs: 2.5, sm: 3 },
-                borderRadius: 2,
-                overflow: "visible",
-                boxShadow: "0 4px 20px rgba(0, 0, 0, 0.05)",
+                p: 2.5,
+                borderRadius: 1.5,
+                border: "1px solid",
+                borderColor: "divider",
+                boxShadow: "none",
+                height: "100%",
               }}
             >
               <Stack spacing={0.5} sx={{ mb: 2 }}>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                   Perbandingan Nilai Antar Kelas
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="caption" color="text.secondary">
                   Rata-rata, tertinggi, dan terendah (8 kelas teratas)
                 </Typography>
               </Stack>
@@ -408,7 +436,7 @@ export const DashboardPage: React.FC = () => {
               ) : sortedClassSummary.length === 0 ? (
                 <EmptyState />
               ) : (
-                <Box sx={{ width: "100%", height: 300, mt: 2 }}>
+                <Box sx={{ width: "100%", height: 260, mt: 1 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <RadarChart
                       data={sortedClassSummary.slice(0, 8).map((row) => ({
@@ -421,46 +449,40 @@ export const DashboardPage: React.FC = () => {
                         Terendah: row.lowest,
                       }))}
                     >
-                      <PolarGrid stroke={alpha(theme.palette.divider, 0.3)} />
+                      <PolarGrid stroke={theme.palette.divider} />
                       <PolarAngleAxis
                         dataKey="className"
-                        tick={{ fill: theme.palette.text.secondary, fontSize: 11 }}
+                        tick={{ fill: theme.palette.text.secondary, fontSize: 10 }}
                       />
                       <PolarRadiusAxis
                         angle={90}
                         domain={[0, 100]}
                         tick={{ fill: theme.palette.text.secondary, fontSize: 10 }}
+                        axisLine={false}
                       />
                       <Radar
                         name="Rata-rata"
                         dataKey="Rata-rata"
                         stroke={theme.palette.primary.main}
                         fill={theme.palette.primary.main}
-                        fillOpacity={0.6}
+                        fillOpacity={0.4}
                       />
                       <Radar
                         name="Tertinggi"
                         dataKey="Tertinggi"
                         stroke={theme.palette.success.main}
                         fill={theme.palette.success.main}
-                        fillOpacity={0.3}
+                        fillOpacity={0.2}
                       />
                       <Radar
                         name="Terendah"
                         dataKey="Terendah"
                         stroke={theme.palette.error.main}
                         fill={theme.palette.error.main}
-                        fillOpacity={0.3}
+                        fillOpacity={0.2}
                       />
-                      <Legend wrapperStyle={{ fontSize: "12px" }} iconSize={10} />
-                      <RechartsTooltip
-                        contentStyle={{
-                          backgroundColor: theme.palette.background.paper,
-                          border: `1px solid ${theme.palette.divider}`,
-                          borderRadius: 8,
-                          fontSize: 12,
-                        }}
-                      />
+                      <Legend wrapperStyle={{ fontSize: "11px" }} iconSize={8} />
+                      <RechartsTooltip contentStyle={chartTooltipStyle} />
                     </RadarChart>
                   </ResponsiveContainer>
                 </Box>
@@ -469,22 +491,24 @@ export const DashboardPage: React.FC = () => {
           </Grid>
         </Grid>
 
-        <Grid container spacing={{ xs: 2, sm: 3 }} columns={12}>
+        <Grid container spacing={2.5} columns={12} sx={{ mb: 3 }}>
           <Grid item xs={12} lg={8}>
             <Paper
               elevation={0}
               sx={{
-                p: { xs: 2.5, sm: 3 },
-                borderRadius: 2,
-                overflow: "visible",
-                boxShadow: "0 4px 20px rgba(0, 0, 0, 0.05)",
+                p: 2.5,
+                borderRadius: 1.5,
+                border: "1px solid",
+                borderColor: "divider",
+                boxShadow: "none",
+                height: "100%",
               }}
             >
               <Stack spacing={0.5} sx={{ mb: 2 }}>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                   Persentase Kehadiran per Kelas
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="caption" color="text.secondary">
                   Rata-rata sekolah:{" "}
                   {dashboard ? percent(dashboard.attendance.overall) : percent(0)}
                 </Typography>
@@ -494,38 +518,38 @@ export const DashboardPage: React.FC = () => {
               ) : attendanceByClass.length === 0 ? (
                 <EmptyState />
               ) : (
-                <Box sx={{ width: "100%", height: 320, mt: 2 }}>
+                <Box sx={{ width: "100%", height: 280, mt: 1 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={attendanceByClass.slice(0, 10)}
                       layout="vertical"
-                      margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
+                      margin={{ top: 5, right: 20, left: 80, bottom: 5 }}
                     >
                       <CartesianGrid
                         strokeDasharray="3 3"
-                        stroke={alpha(theme.palette.divider, 0.3)}
+                        stroke={theme.palette.divider}
+                        horizontal={false}
                       />
                       <XAxis
                         type="number"
                         domain={[0, 100]}
-                        tick={{ fill: theme.palette.text.secondary, fontSize: 12 }}
-                        label={{ value: "Persentase (%)", position: "insideBottom", offset: -5 }}
+                        tick={{ fill: theme.palette.text.secondary, fontSize: 11 }}
+                        axisLine={{ stroke: theme.palette.divider }}
+                        tickLine={false}
                       />
                       <YAxis
                         type="category"
                         dataKey="className"
                         tick={{ fill: theme.palette.text.secondary, fontSize: 11 }}
-                        width={95}
+                        width={75}
+                        axisLine={false}
+                        tickLine={false}
                       />
                       <RechartsTooltip
-                        contentStyle={{
-                          backgroundColor: theme.palette.background.paper,
-                          border: `1px solid ${theme.palette.divider}`,
-                          borderRadius: 8,
-                        }}
+                        contentStyle={chartTooltipStyle}
                         formatter={(value: number) => [`${value.toFixed(1)}%`, "Kehadiran"]}
                       />
-                      <Bar dataKey="percentage" radius={[0, 8, 8, 0]}>
+                      <Bar dataKey="percentage" radius={[0, 2, 2, 0]}>
                         {attendanceByClass.slice(0, 10).map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={getAttendanceColor(entry.percentage)} />
                         ))}
@@ -541,20 +565,20 @@ export const DashboardPage: React.FC = () => {
             <Paper
               elevation={0}
               sx={{
-                p: { xs: 2.5, sm: 3 },
-                borderRadius: 2,
-                overflow: "visible",
-                boxShadow: "0 4px 20px rgba(0, 0, 0, 0.05)",
+                p: 2.5,
+                borderRadius: 1.5,
+                border: "1px solid",
+                borderColor: "divider",
+                boxShadow: "none",
+                height: "100%",
               }}
             >
-              <Stack
-                direction="row"
-                justifyContent="space-between"
-                alignItems="center"
-                sx={{ mb: 2 }}
-              >
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Kategori Kelas Berdasarkan Kehadiran
+              <Stack spacing={0.5} sx={{ mb: 1 }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                  Kategori Kehadiran Kelas
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Jumlah kelas berdasarkan tingkat kehadiran
                 </Typography>
               </Stack>
               {loading ? (
@@ -562,87 +586,75 @@ export const DashboardPage: React.FC = () => {
               ) : attendanceByClass.length === 0 ? (
                 <EmptyState />
               ) : (
-                <>
-                  <Box sx={{ px: 1, mb: 2 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Jumlah kelas berdasarkan tingkat kehadiran
-                    </Typography>
-                  </Box>
-                  <Box sx={{ width: "100%", height: 280, mt: 1 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={[
-                            {
-                              name: `${goodClasses} kelas (≥92%)`,
-                              shortName: "Baik",
-                              value: goodClasses,
-                              fill: theme.palette.success.main,
-                            },
-                            {
-                              name: `${warningClasses} kelas (86-92%)`,
-                              shortName: "Waspada",
-                              value: warningClasses,
-                              fill: theme.palette.warning.main,
-                            },
-                            {
-                              name: `${dangerClasses} kelas (<86%)`,
-                              shortName: "Perlu Tindakan",
-                              value: dangerClasses,
-                              fill: theme.palette.error.main,
-                            },
-                          ].filter((item) => item.value > 0)}
-                          cx="50%"
-                          cy="45%"
-                          labelLine={false}
-                          label={({ shortName, value }) => `${shortName}: ${value}`}
-                          outerRadius={75}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {[
-                            {
-                              name: `${goodClasses} kelas (≥92%)`,
-                              value: goodClasses,
-                              fill: theme.palette.success.main,
-                            },
-                            {
-                              name: `${warningClasses} kelas (86-92%)`,
-                              value: warningClasses,
-                              fill: theme.palette.warning.main,
-                            },
-                            {
-                              name: `${dangerClasses} kelas (<86%)`,
-                              value: dangerClasses,
-                              fill: theme.palette.error.main,
-                            },
-                          ]
-                            .filter((item) => item.value > 0)
-                            .map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.fill} />
-                            ))}
-                        </Pie>
-                        <RechartsTooltip
-                          contentStyle={{
-                            backgroundColor: theme.palette.background.paper,
-                            border: `1px solid ${theme.palette.divider}`,
-                            borderRadius: 8,
-                          }}
-                          formatter={(value: number, name: string, props: any) => [
-                            `${value} dari ${attendanceByClass.length} kelas`,
-                            props.payload.name,
-                          ]}
-                        />
-                        <Legend
-                          verticalAlign="bottom"
-                          height={36}
-                          wrapperStyle={{ fontSize: "10px" }}
-                          formatter={(value: string) => value}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </Box>
-                </>
+                <Box sx={{ width: "100%", height: 260, mt: 1 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={[
+                          {
+                            name: `${goodClasses} kelas (≥92%)`,
+                            shortName: "Baik",
+                            value: goodClasses,
+                            fill: theme.palette.success.main,
+                          },
+                          {
+                            name: `${warningClasses} kelas (86-92%)`,
+                            shortName: "Waspada",
+                            value: warningClasses,
+                            fill: theme.palette.warning.main,
+                          },
+                          {
+                            name: `${dangerClasses} kelas (<86%)`,
+                            shortName: "Perlu Tindakan",
+                            value: dangerClasses,
+                            fill: theme.palette.error.main,
+                          },
+                        ].filter((item) => item.value > 0)}
+                        cx="50%"
+                        cy="45%"
+                        labelLine={false}
+                        label={({ shortName, value }) => `${shortName}: ${value}`}
+                        outerRadius={70}
+                        dataKey="value"
+                      >
+                        {[
+                          {
+                            name: `${goodClasses} kelas (≥92%)`,
+                            value: goodClasses,
+                            fill: theme.palette.success.main,
+                          },
+                          {
+                            name: `${warningClasses} kelas (86-92%)`,
+                            value: warningClasses,
+                            fill: theme.palette.warning.main,
+                          },
+                          {
+                            name: `${dangerClasses} kelas (<86%)`,
+                            value: dangerClasses,
+                            fill: theme.palette.error.main,
+                          },
+                        ]
+                          .filter((item) => item.value > 0)
+                          .map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                          ))}
+                      </Pie>
+                      <RechartsTooltip
+                        contentStyle={chartTooltipStyle}
+                        formatter={(value: number, name: string, props: any) => [
+                          `${value} dari ${attendanceByClass.length} kelas`,
+                          props.payload.name,
+                        ]}
+                      />
+                      <Legend
+                        verticalAlign="bottom"
+                        height={32}
+                        wrapperStyle={{ fontSize: "11px" }}
+                        formatter={(value: string) => value}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </Box>
               )}
             </Paper>
           </Grid>
@@ -651,83 +663,44 @@ export const DashboardPage: React.FC = () => {
         <Paper
           elevation={0}
           sx={{
-            p: { xs: 2.5, sm: 3 },
-            borderRadius: 2,
-            overflow: "visible",
-            boxShadow: "0 4px 20px rgba(0, 0, 0, 0.05)",
+            p: 2.5,
+            borderRadius: 1.5,
+            border: "1px solid",
+            borderColor: "divider",
+            boxShadow: "none",
+            mb: 3,
           }}
         >
           <Stack spacing={0.5} sx={{ mb: 2 }}>
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              🚨 Kelas yang Perlu Tindakan
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+              Kelas Perlu Perhatian
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="caption" color="text.secondary">
               Prioritas tinggi: kehadiran kritikal (&lt;86%)
             </Typography>
           </Stack>
           {loading ? (
             <TableSkeleton rows={4} columns={4} />
           ) : attendanceAlerts.length === 0 ? (
-            <EmptyState message="✅ Tidak ada kelas dengan kehadiran kritikal. Semua kelas di atas ambang 86%" />
+            <EmptyState message="Tidak ada kelas dengan kehadiran kritikal. Semua kelas di atas ambang 86%" />
           ) : (
             <TableContainer sx={{ overflowX: "auto" }}>
-              <Table size="small" aria-label="Daftar alert kehadiran" sx={{ minWidth: 800 }}>
+              <Table size="small" aria-label="Daftar alert kehadiran" sx={{ minWidth: 700 }}>
                 <TableHead>
                   <TableRow>
-                    <TableCell
-                      sx={{
-                        minWidth: 100,
-                        maxWidth: 150,
-                        position: "sticky",
-                        top: 0,
-                        bgcolor: "background.paper",
-                        zIndex: 1,
-                      }}
-                    >
+                    <TableCell sx={{ fontWeight: 600, fontSize: "0.75rem", py: 1 }}>
                       Kelas
                     </TableCell>
-                    <TableCell
-                      sx={{
-                        whiteSpace: "nowrap",
-                        position: "sticky",
-                        top: 0,
-                        bgcolor: "background.paper",
-                        zIndex: 1,
-                      }}
-                    >
+                    <TableCell sx={{ fontWeight: 600, fontSize: "0.75rem", py: 1 }}>
                       Indikator
                     </TableCell>
-                    <TableCell
-                      sx={{
-                        whiteSpace: "nowrap",
-                        position: "sticky",
-                        top: 0,
-                        bgcolor: "background.paper",
-                        zIndex: 1,
-                      }}
-                    >
+                    <TableCell sx={{ fontWeight: 600, fontSize: "0.75rem", py: 1 }}>
                       Kehadiran
                     </TableCell>
-                    <TableCell
-                      sx={{
-                        whiteSpace: "nowrap",
-                        position: "sticky",
-                        top: 0,
-                        bgcolor: "background.paper",
-                        zIndex: 1,
-                      }}
-                    >
+                    <TableCell sx={{ fontWeight: 600, fontSize: "0.75rem", py: 1 }}>
                       Pekan
                     </TableCell>
-                    <TableCell
-                      sx={{
-                        minWidth: 140,
-                        position: "sticky",
-                        top: 0,
-                        bgcolor: "background.paper",
-                        zIndex: 1,
-                      }}
-                    >
+                    <TableCell sx={{ fontWeight: 600, fontSize: "0.75rem", py: 1, minWidth: 140 }}>
                       Tren
                     </TableCell>
                   </TableRow>
@@ -739,64 +712,56 @@ export const DashboardPage: React.FC = () => {
                       hover
                       tabIndex={0}
                       sx={{
-                        "&:hover": { backgroundColor: alpha(theme.palette.primary.main, 0.08) },
+                        "&:hover": { backgroundColor: alpha(theme.palette.action.hover, 0.04) },
                         "&:focus-visible": {
                           outline: `2px solid ${theme.palette.primary.main}`,
                           outlineOffset: -2,
                         },
                       }}
                     >
-                      <TableCell
-                        sx={{
-                          fontWeight: 600,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          maxWidth: 150,
-                        }}
-                      >
+                      <TableCell sx={{ fontWeight: 600, fontSize: "0.8125rem", py: 1 }}>
                         {alert.className}
                       </TableCell>
-                      <TableCell>
+                      <TableCell sx={{ py: 1 }}>
                         <Chip
                           label="Lonjakan ketidakhadiran"
                           color="warning"
-                          variant="filled"
+                          variant="outlined"
                           size="small"
                           aria-label="Lonjakan ketidakhadiran"
                           sx={{
-                            maxWidth: 180,
-                            "& .MuiChip-label": {
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                            },
+                            height: 22,
+                            fontSize: "0.75rem",
+                            borderRadius: 1,
+                            fontWeight: 500,
                           }}
                         />
                       </TableCell>
-                      <TableCell>
-                        <Typography sx={{ fontWeight: 600, color: theme.palette.warning.main }}>
+                      <TableCell sx={{ py: 1 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontWeight: 600,
+                            color: theme.palette.warning.main,
+                            fontSize: "0.8125rem",
+                          }}
+                        >
                           {percent(alert.percentage)}
                         </Typography>
                       </TableCell>
-                      <TableCell>
+                      <TableCell sx={{ py: 1 }}>
                         <Tooltip title={alert.week} placement="top" arrow>
                           <Typography
-                            sx={{
-                              fontWeight: 500,
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                              maxWidth: 100,
-                            }}
+                            variant="body2"
+                            sx={{ fontSize: "0.8125rem", color: "text.secondary" }}
                           >
                             {formatWeekLabel(alert.week)}
                           </Typography>
                         </Tooltip>
                       </TableCell>
-                      <TableCell sx={{ minWidth: 140 }}>
+                      <TableCell sx={{ minWidth: 140, py: 1 }}>
                         <Box
-                          sx={{ width: "100%", height: 46 }}
+                          sx={{ width: "100%", height: 32 }}
                           aria-label={`Tren kehadiran ${alert.className}`}
                         >
                           <ResponsiveContainer width="100%" height="100%">
@@ -810,7 +775,7 @@ export const DashboardPage: React.FC = () => {
                                 type="monotone"
                                 dataKey="value"
                                 stroke={theme.palette.warning.main}
-                                strokeWidth={2}
+                                strokeWidth={1.5}
                                 dot={false}
                                 isAnimationActive={false}
                               />
@@ -831,67 +796,51 @@ export const DashboardPage: React.FC = () => {
         <Paper
           elevation={0}
           sx={{
-            p: 3,
-            borderRadius: 3,
-            background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.primary.main, 0.02)} 100%)`,
-            border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+            p: 2.5,
+            borderRadius: 1.5,
+            border: "1px solid",
+            borderColor: "divider",
+            boxShadow: "none",
+            backgroundColor: "background.paper",
           }}
         >
-          <Stack spacing={2.5}>
-            <Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Ringkasan performa siswa: nilai rata-rata, tingkat kehadiran, dan kelas yang perlu
-                perhatian
-              </Typography>
-            </Box>
+          <Stack spacing={1.5}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+              Ringkasan Performa & Insight
+            </Typography>
 
             <Box
               sx={{
-                borderLeft: `3px solid ${theme.palette.primary.main}`,
+                borderLeft: `2px solid ${theme.palette.primary.main}`,
                 pl: 2,
               }}
             >
-              <Stack spacing={1.5}>
-                <Stack direction="row" alignItems="center" spacing={1}>
-                  <Box
-                    sx={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: "50%",
-                      bgcolor: theme.palette.primary.main,
-                    }}
-                  />
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                    📊 Insight Minggu Ini
+              <Stack spacing={1}>
+                {dangerClasses > 0 && (
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.8125rem" }}>
+                    • <strong>{dangerClasses} kelas</strong> memerlukan tindakan prioritas
+                    (kehadiran &lt;86%)
                   </Typography>
-                </Stack>
-                <Stack spacing={1.5} sx={{ pl: 1.5 }}>
-                  {dangerClasses > 0 && (
-                    <Typography variant="body2" color="text.secondary">
-                      • <strong>{dangerClasses} kelas</strong> memerlukan tindakan prioritas
-                      (kehadiran &lt;86%)
-                    </Typography>
-                  )}
-                  {warningClasses > 0 && (
-                    <Typography variant="body2" color="text.secondary">
-                      • <strong>{warningClasses} kelas</strong> dalam kategori waspada (kehadiran
-                      86-92%)
-                    </Typography>
-                  )}
-                  {goodClasses > 0 && (
-                    <Typography variant="body2" color="text.secondary">
-                      • <strong>{goodClasses} kelas</strong> menunjukkan kehadiran baik (&ge;92%)
-                    </Typography>
-                  )}
-                  {attendanceAlerts.length > 0 && (
-                    <Typography variant="body2" color="text.secondary">
-                      • Kelas dengan kehadiran terendah:{" "}
-                      <strong>
-                        {attendanceAlerts[0].className} ({percent(attendanceAlerts[0].percentage)})
-                      </strong>
-                    </Typography>
-                  )}
-                </Stack>
+                )}
+                {warningClasses > 0 && (
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.8125rem" }}>
+                    • <strong>{warningClasses} kelas</strong> dalam kategori waspada (kehadiran
+                    86-92%)
+                  </Typography>
+                )}
+                {goodClasses > 0 && (
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.8125rem" }}>
+                    • <strong>{goodClasses} kelas</strong> menunjukkan kehadiran baik (&ge;92%)
+                  </Typography>
+                )}
+                {attendanceAlerts.length > 0 && (
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.8125rem" }}>
+                    • Kehadiran terendah:{" "}
+                    <strong>
+                      {attendanceAlerts[0].className} ({percent(attendanceAlerts[0].percentage)})
+                    </strong>
+                  </Typography>
+                )}
               </Stack>
             </Box>
           </Stack>

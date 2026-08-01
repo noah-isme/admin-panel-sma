@@ -26,7 +26,7 @@ const sanitizeBaseUrl = (rawUrl?: string) => {
     // ignore
   }
 
-  return "http://localhost:3000/api/v1";
+  return "http://localhost:8081/api/v1";
 };
 
 const ENABLE_MSW = (import.meta.env.VITE_USE_MSW ?? import.meta.env.VITE_ENABLE_MSW) === "true";
@@ -290,6 +290,15 @@ const dataProvider: DataProvider = {
 
     if (meta?.cursor) {
       queryParams.cursor = meta.cursor;
+    }
+
+    // Pass any meta fields as query parameters (e.g., termId for dashboard)
+    if (meta) {
+      Object.entries(meta).forEach(([key, value]) => {
+        if (key !== "cursor" && value !== undefined && value !== null) {
+          queryParams[key] = value;
+        }
+      });
     }
 
     const response = await api.get(ensureLeadingSlash(resource), {
