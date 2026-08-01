@@ -64,6 +64,12 @@ const buildTermLabel = (term?: TermResource) => {
   return `${term.year}/${term.semester}`;
 };
 
+const enterpriseCardStyle: React.CSSProperties = {
+  border: "1px solid #e2e8f0",
+  boxShadow: "none",
+  borderRadius: 6,
+};
+
 export const ClassesPage: React.FC = () => {
   const { show, edit, create } = useNavigation();
   const { open: notify } = useNotification();
@@ -525,7 +531,7 @@ export const ClassesPage: React.FC = () => {
         contentProps={{ style: { padding: 0 } }}
       >
         <Space direction="vertical" size={24} style={{ width: "100%", padding: 24 }}>
-          <Card>
+          <Card style={enterpriseCardStyle}>
             <Space direction="vertical" size={16} style={{ width: "100%" }}>
               <Typography.Text strong>Pencarian & Filter</Typography.Text>
               <Space wrap style={{ width: "100%" }}>
@@ -568,7 +574,7 @@ export const ClassesPage: React.FC = () => {
             </Space>
           </Card>
 
-          <Card>
+          <Card style={enterpriseCardStyle}>
             <Space
               align="center"
               style={{ width: "100%", justifyContent: "space-between", marginBottom: 16 }}
@@ -633,6 +639,7 @@ export const ClassesPage: React.FC = () => {
             <Table<ClassTableRow>
               {...tableProps}
               rowSelection={rowSelection}
+              size="small"
               columns={columns}
               dataSource={enrichedData}
               loading={isLoading}

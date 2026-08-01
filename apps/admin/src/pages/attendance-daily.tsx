@@ -202,7 +202,7 @@ export const AttendanceDailyPage: React.FC = () => {
   const [saveState, setSaveState] = useState<"idle" | "saving" | "error">("idle");
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [pendingVersion, setPendingVersion] = useState(0);
+  const [, setPendingVersion] = useState(0);
 
   const pendingIdsRef = useRef<Set<string>>(new Set());
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -718,6 +718,12 @@ export const AttendanceDailyPage: React.FC = () => {
     return <Tag color="default">Menunggu input...</Tag>;
   }, [lastSavedAt, pendingCount, saveState]);
 
+  const enterpriseCardStyle: React.CSSProperties = {
+    border: "1px solid #e2e8f0",
+    boxShadow: "none",
+    borderRadius: 6,
+  };
+
   const activeClassName = selectedClassId ? classMap.get(String(selectedClassId))?.name : undefined;
 
   return (
@@ -731,7 +737,7 @@ export const AttendanceDailyPage: React.FC = () => {
         </Typography.Text>
       </Space>
 
-      <Card>
+      <Card style={enterpriseCardStyle}>
         <Space
           direction={isMobile ? "vertical" : "horizontal"}
           size={isMobile ? 12 : 16}
@@ -817,7 +823,7 @@ export const AttendanceDailyPage: React.FC = () => {
         </Space>
       </Card>
 
-      <Card>
+      <Card style={enterpriseCardStyle}>
         <Space
           direction={isMobile ? "vertical" : "horizontal"}
           style={{ width: "100%", justifyContent: "space-between", flexWrap: "wrap" }}
@@ -893,6 +899,7 @@ export const AttendanceDailyPage: React.FC = () => {
         <Spin spinning={attendance.isFetching && tableData.length === 0}>
           <Table
             rowKey="key"
+            size="small"
             dataSource={tableData}
             columns={columns}
             pagination={false}

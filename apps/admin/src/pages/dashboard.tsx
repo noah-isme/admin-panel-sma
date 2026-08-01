@@ -7,7 +7,6 @@ import {
   Chip,
   Collapse,
   Grid,
-  LinearProgress,
   Paper,
   Skeleton,
   Stack,
@@ -17,7 +16,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  TableSortLabel,
   Tooltip,
   Typography,
   alpha,
@@ -45,7 +43,6 @@ import {
   PolarRadiusAxis,
   Radar,
 } from "recharts";
-import type { Theme } from "@mui/material/styles";
 
 import { SummaryCard } from "../components/dashboard/summary-card";
 import { themeTokens } from "../theme/tokens";
@@ -128,13 +125,6 @@ const EmptyState: React.FC<{ message?: string }> = ({ message = EMPTY_MESSAGE })
     </Typography>
   </Box>
 );
-
-const scoreColor = (score: number, palette: Theme["palette"]) => {
-  if (score >= 90) return palette.success.main;
-  if (score >= 80) return palette.primary.main;
-  if (score >= 70) return palette.warning.main;
-  return palette.error.main;
-};
 
 export const DashboardPage: React.FC = () => {
   const { list, push } = useNavigation();

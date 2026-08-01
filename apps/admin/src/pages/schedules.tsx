@@ -181,7 +181,6 @@ export const SchedulesPage: React.FC = () => {
   const subjects = (subjectsResponse?.data ?? []) as SubjectResource[];
   const teachers = (teachersResponse?.data ?? []) as TeacherResource[];
   const terms = (termsResponse?.data ?? []) as TermResource[];
-  const schedules = (tableProps.dataSource ?? []) as ScheduleResource[];
   const allSchedules = (allSchedulesResponse?.data ?? []) as ScheduleResource[];
 
   useEffect(() => {
@@ -517,7 +516,7 @@ export const SchedulesPage: React.FC = () => {
       {
         title: "Jam ke",
         dataIndex: "periodLabel",
-        sorter: (a, b) => (Number(a.periodLabel ?? 0) ?? 0) - (Number(b.periodLabel ?? 0) ?? 0),
+        sorter: (a, b) => Number(a.periodLabel ?? 0) - Number(b.periodLabel ?? 0),
         width: 100,
         render: (_: string | undefined, record) =>
           record.periodLabel ? <Tag color="blue">{record.periodLabel}</Tag> : "-",
@@ -597,6 +596,12 @@ export const SchedulesPage: React.FC = () => {
     loadingTeachers ||
     loadingTerms;
 
+  const enterpriseCardStyle: React.CSSProperties = {
+    border: "1px solid #e2e8f0",
+    boxShadow: "none",
+    borderRadius: 6,
+  };
+
   const { dataSource: _ignoredDataSource, ...restTableProps } = tableProps;
 
   return (
@@ -616,7 +621,7 @@ export const SchedulesPage: React.FC = () => {
         contentProps={{ style: { padding: 0 } }}
       >
         <Space direction="vertical" size={24} style={{ width: "100%", padding: 24 }}>
-          <Card>
+          <Card style={enterpriseCardStyle}>
             <Space direction="vertical" size={16} style={{ width: "100%" }}>
               <Typography.Text strong>Filter Jadwal</Typography.Text>
               <Space wrap style={{ width: "100%" }}>
@@ -679,7 +684,7 @@ export const SchedulesPage: React.FC = () => {
             </Space>
           </Card>
 
-          <Card>
+          <Card style={enterpriseCardStyle}>
             <Space
               align="center"
               style={{ width: "100%", justifyContent: "space-between", marginBottom: 16 }}
@@ -699,6 +704,7 @@ export const SchedulesPage: React.FC = () => {
             <Table<EnrichedSchedule>
               {...restTableProps}
               rowKey="id"
+              size="small"
               columns={columns}
               dataSource={displayedData}
               loading={isLoading}
@@ -707,6 +713,7 @@ export const SchedulesPage: React.FC = () => {
           </Card>
 
           <Card
+            style={enterpriseCardStyle}
             title={
               <Space>
                 <CalendarOutlined />

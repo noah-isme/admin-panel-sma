@@ -81,6 +81,12 @@ const fetchTeacherRoster = async (params: Record<string, unknown>) => {
   return response.data;
 };
 
+const enterpriseCardStyle: React.CSSProperties = {
+  border: "1px solid #e2e8f0",
+  boxShadow: "none",
+  borderRadius: 6,
+};
+
 export const TeachersPage: React.FC = () => {
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
@@ -406,7 +412,7 @@ export const TeachersPage: React.FC = () => {
         dataSource={rows}
         renderItem={(record) => (
           <List.Item key={record.id}>
-            <Card style={{ width: "100%" }}>
+            <Card style={{ width: "100%", ...enterpriseCardStyle }}>
               <Space direction="vertical" size="small" style={{ width: "100%" }}>
                 <Space direction="vertical" size={2}>
                   <Typography.Text strong>{record.fullName}</Typography.Text>
@@ -468,6 +474,7 @@ export const TeachersPage: React.FC = () => {
     return (
       <Table<TeacherRosterRow>
         rowKey="id"
+        size="small"
         columns={columns}
         dataSource={rows}
         loading={isFetching && rows.length === 0}
@@ -490,7 +497,7 @@ export const TeachersPage: React.FC = () => {
 
         <Row gutter={[16, 16]}>
           <Col xs={24} sm={12} md={8}>
-            <Card>
+            <Card style={enterpriseCardStyle}>
               <Statistic
                 title="Total guru"
                 value={summary?.totalTeachers ?? 0}
@@ -502,7 +509,7 @@ export const TeachersPage: React.FC = () => {
             </Card>
           </Col>
           <Col xs={24} sm={12} md={8}>
-            <Card>
+            <Card style={enterpriseCardStyle}>
               <Statistic
                 title="Tingkat keaktifan"
                 suffix="%"
@@ -520,7 +527,7 @@ export const TeachersPage: React.FC = () => {
             </Card>
           </Col>
           <Col xs={24} sm={12} md={8}>
-            <Card>
+            <Card style={enterpriseCardStyle}>
               <Statistic
                 title="Guru wali kelas"
                 value={summary?.homeroomTeachers ?? 0}
@@ -534,7 +541,7 @@ export const TeachersPage: React.FC = () => {
           </Col>
         </Row>
 
-        <Card>
+        <Card style={enterpriseCardStyle}>
           <Row
             gutter={[16, 16]}
             justify="space-between"
@@ -655,7 +662,6 @@ export const TeachersPage: React.FC = () => {
               style={{ width: isMobile ? "100%" : 260 }}
             />
           </Space>
-          *** End Patch
           {appliedFilterTags.length > 0 ? (
             <>
               <Divider />
@@ -682,7 +688,7 @@ export const TeachersPage: React.FC = () => {
 
         {view === "insights" ? (
           <Space direction="vertical" size="large" style={{ width: "100%" }}>
-            <Card title="Sebaran mata pelajaran">
+            <Card title="Sebaran mata pelajaran" style={enterpriseCardStyle}>
               {summary?.subjectDistribution.length ? (
                 <List
                   dataSource={summary.subjectDistribution}
@@ -701,7 +707,7 @@ export const TeachersPage: React.FC = () => {
             </Card>
             <Row gutter={[16, 16]}>
               <Col xs={24} md={12}>
-                <Card title="Program studi yang diampu">
+                <Card title="Program studi yang diampu" style={enterpriseCardStyle}>
                   {summary?.trackDistribution.length ? (
                     <List
                       dataSource={summary.trackDistribution}
@@ -720,7 +726,7 @@ export const TeachersPage: React.FC = () => {
                 </Card>
               </Col>
               <Col xs={24} md={12}>
-                <Card title="Ketersediaan guru">
+                <Card title="Ketersediaan guru" style={enterpriseCardStyle}>
                   {summary?.availabilityBreakdown.length ? (
                     <List
                       dataSource={summary.availabilityBreakdown}
@@ -741,7 +747,9 @@ export const TeachersPage: React.FC = () => {
             </Row>
           </Space>
         ) : (
-          <Card title="Daftar guru">{renderTable}</Card>
+          <Card title="Daftar guru" style={enterpriseCardStyle}>
+            {renderTable}
+          </Card>
         )}
       </Space>
     </Spin>

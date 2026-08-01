@@ -1,6 +1,6 @@
 # admin-panel-sma
 
-Platform pengelolaan absensi dan nilai siswa berbasis NestJS + React Admin. Monorepo ini memuat API terpusat, worker BullMQ, aplikasi admin berbasis Vite, dan shared package untuk schemas/types yang digunakan bersama.
+Platform pengelolaan absensi dan nilai siswa berbasis **Go (sma-adp-api) + React Admin**. Monorepo ini memuat frontend admin berbasis Vite, shared package untuk schemas/types, dan worker BullMQ untuk background jobs. Backend API telah dimigrasikan ke Go (sma-adp-api repository).
 
 ## Cuplikan Dashboard Terbaru
 
@@ -11,14 +11,16 @@ Platform pengelolaan absensi dan nilai siswa berbasis NestJS + React Admin. Mono
 ```
 admin-panel-sma/
 ├── apps/
-│   ├── api/          # NestJS backend API
 │   ├── admin/        # React Admin frontend (Vite)
-│   ├── worker/       # BullMQ worker untuk background jobs
-│   └── shared/       # Shared schemas, types, dan constants (ESM)
+│   ├── landing/      # Public landing page (React + Vite + Tailwind)
+│   ├── shared/       # Shared schemas, types, dan constants (ESM)
+│   └── worker/       # BullMQ worker untuk background jobs
 ├── docs/             # Dokumentasi deployment dan fixes
 ├── vercel.json       # Konfigurasi deployment Vercel
 └── pnpm-workspace.yaml
 ```
+
+Backend API (Go): `../sma-adp-api` (repository terpisah)
 
 Package `@apps/shared` berisi:
 
@@ -43,6 +45,7 @@ Package ini di-build sebagai ES Modules (ESM) agar kompatibel dengan Vite dan bu
 - Node.js 20+ dan [pnpm](https://pnpm.io/) 9+
 - Docker Desktop (opsional tetapi direkomendasikan untuk Postgres & Redis)
 - Akun layanan eksternal untuk produksi: Supabase atau Neon (Postgres), Upstash (Redis), Vercel, Railway
+- Go 1.21+ (untuk backend API di sma-adp-api)
 
 ## Langkah setup
 
@@ -57,21 +60,23 @@ Package ini di-build sebagai ES Modules (ESM) agar kompatibel dengan Vite dan bu
 2. **Siapkan environment file**
 
    - Salin `.env.example` menjadi `.env` di root.
-   - (Opsional) Tambahkan override spesifik service di `apps/api/.env` dan `apps/admin/.env` jika perlu.
+   - (Opsional) Tambahkan override spesifik service di `apps/admin/.env` jika perlu.
 
-3. **Jalankan Postgres & Redis** (pilih salah satu)
-
-   - Start menggunakan Docker Compose: `docker compose -f docker-compose.dev.yml up -d`
-   - Atau gunakan layanan lokal yang sudah tersedia, kemudian perbarui `DATABASE_URL` & `REDIS_URL`.
-
-4. **Migrasi & seed database (opsional)**
+3. **Setup Go API (sma-adp-api)** - repository terpisah
 
    ```bash
-   pnpm --filter @apps/api migrate:push
-   pnpm --filter @apps/api seed
+   cd ../sma-adp-api
+   # Start database
+   make docker-up
+   # Run migrations
+   migrate -path migrations -database "postgresql://postgres:postgres@localhost:5432/admin_panel_sma?sslmode=disable" up
+   # Seed data
+   psql "postgresql://postgres:postgres@localhost:5432/admin_panel_sma?sslmode=disable" -f scripts/seed.sql
+   # Start Go API server
+   make dev
    ```
 
-5. **Mulai pengembangan** `pnpm dev`.
+4. **Mulai pengembangan frontend** `pnpm dev`.
 
 ## MSW (Mock Service Worker) — Development & Tests
 
@@ -104,69 +109,43 @@ pnpm --filter @apps/admin exec msw init ./apps/admin/public --save
 
 ## Konfigurasi environment
 
-## Konfigurasi environment
+### Root `.env` (untuk frontend & worker)
 
-### Root `.env`
-
-| Variabel                  | Deskripsi                                            | Contoh                                       |
-| ------------------------- | ---------------------------------------------------- | -------------------------------------------- |
-| `NODE_ENV`                | Mode runtime (`development` / `production`)          | `development`                                |
-| `TZ`                      | Zona waktu default                                   | `Asia/Jakarta`                               |
-| `PORT`                    | Port API saat dev                                    | `3000`                                       |
-| `DATABASE_URL`            | URL Postgres (Drizzle + API + worker)                | `postgres://sma:sma@localhost:5432/sma_dev`  |
-| `REDIS_URL`               | URL Redis (BullMQ)                                   | `redis://default:password@localhost:6379`    |
-| `JWT_ACCESS_SECRET`       | Secret JWT access token                              | `super-secret-access`                        |
-| `JWT_REFRESH_SECRET`      | Secret JWT refresh token                             | `super-secret-refresh`                       |
-| `JWT_ACCESS_TTL`          | Masa berlaku access token (detik)                    | `900`                                        |
-| `JWT_REFRESH_TTL`         | Masa berlaku refresh token (detik)                   | `2592000`                                    |
-| `CORS_ALLOWED_ORIGINS`    | Daftar origin yang diizinkan (pisahkan dengan koma)  | `http://localhost:5173,https://admin.sch.id` |
-| `AUTH_MAX_LOGIN_ATTEMPTS` | Batas percobaan login per IP + email sebelum lockout | `5`                                          |
-| `AUTH_LOCKOUT_DURATION`   | Durasi lockout (detik) setelah melampaui batas       | `900`                                        |
-| `ARGON2_MEMORY_COST`      | Argon2 memory cost (KB)                              | `19456`                                      |
-| `ARGON2_TIME_COST`        | Argon2 time cost (iterasi)                           | `2`                                          |
-| `STORAGE_DRIVER`          | `supabase` atau `r2`                                 | `supabase`                                   |
-| `SUPABASE_URL`            | URL project Supabase                                 | `https://xyzcompany.supabase.co`             |
-| `SUPABASE_ANON_KEY`       | Public anon key                                      | `sb-anon-...`                                |
-| `SUPABASE_SERVICE_KEY`    | Service role key untuk worker                        | `sb-service-...`                             |
-| `SUPABASE_BUCKET`         | Bucket penyimpanan                                   | `public-assets`                              |
-| `R2_*`                    | Kredensial Cloudflare R2 (jika `STORAGE_DRIVER=r2`)  | `...`                                        |
-| `APP_BASE_URL`            | Origin aplikasi admin                                | `http://localhost:5173`                      |
-| `EMAIL_FROM`              | Email pengirim default                               | `no-reply@example.local`                     |
+| Variabel               | Deskripsi                                           | Contoh                                                        |
+| ---------------------- | --------------------------------------------------- | ------------------------------------------------------------- |
+| `NODE_ENV`             | Mode runtime (`development` / `production`)         | `development`                                                 |
+| `TZ`                   | Zona waktu default                                  | `Asia/Jakarta`                                                |
+| `DATABASE_URL`         | URL Postgres (Drizzle + worker)                     | `postgres://postgres:postgres@localhost:5432/admin_panel_sma` |
+| `REDIS_URL`            | URL Redis (BullMQ)                                  | `redis://localhost:6379`                                      |
+| `STORAGE_DRIVER`       | `supabase` atau `r2`                                | `supabase`                                                    |
+| `SUPABASE_URL`         | URL project Supabase                                | `https://xyzcompany.supabase.co`                              |
+| `SUPABASE_ANON_KEY`    | Public anon key                                     | `sb-anon-...`                                                 |
+| `SUPABASE_SERVICE_KEY` | Service role key untuk worker                       | `sb-service-...`                                              |
+| `SUPABASE_BUCKET`      | Bucket penyimpanan                                  | `public-assets`                                               |
+| `R2_*`                 | Kredensial Cloudflare R2 (jika `STORAGE_DRIVER=r2`) | `...`                                                         |
+| `APP_BASE_URL`         | Origin aplikasi admin                               | `http://localhost:5173`                                       |
+| `EMAIL_FROM`           | Email pengirim default                              | `no-reply@example.local`                                      |
 
 > Worker membaca environment dari root `.env` melalui `tsx --env-file`, jadi pastikan kredensial DB & Redis tersedia.
-
-### `apps/api/.env`
-
-Gunakan saat build/deploy terpisah di platform seperti Railway.
-
-| Variabel                  | Deskripsi                            | Contoh                                                 |
-| ------------------------- | ------------------------------------ | ------------------------------------------------------ |
-| `DATABASE_URL`            | URL Postgres produksi                | `postgres://user:pass@ep.example.aws.neon.tech/neondb` |
-| `REDIS_URL`               | URL Upstash Redis                    | `rediss://default:pass@global.upstash.io:6379`         |
-| `JWT_ACCESS_SECRET`       | Secret produksi                      | `prod-access-secret`                                   |
-| `JWT_REFRESH_SECRET`      | Secret produksi                      | `prod-refresh-secret`                                  |
-| `JWT_ACCESS_TTL`          | TTL access token                     | `900`                                                  |
-| `JWT_REFRESH_TTL`         | TTL refresh token                    | `2592000`                                              |
-| `CORS_ALLOWED_ORIGINS`    | Origin yang diizinkan untuk API      | `https://admin.example.sch.id`                         |
-| `AUTH_MAX_LOGIN_ATTEMPTS` | Batas percobaan login per IP + email | `5`                                                    |
-| `AUTH_LOCKOUT_DURATION`   | Durasi lockout (detik)               | `900`                                                  |
-| `ARGON2_MEMORY_COST`      | Argon2 memory cost (KB)              | `19456`                                                |
-| `ARGON2_TIME_COST`        | Argon2 time cost (iterasi)           | `2`                                                    |
-| `STORAGE_DRIVER`          | `supabase` / `r2`                    | `supabase`                                             |
-| `SUPABASE_*` / `R2_*`     | Kredensial storage sesuai driver     | —                                                      |
-| `APP_BASE_URL`            | URL deploy admin                     | `https://admin.example.sch.id`                         |
-| `EMAIL_FROM`              | Email notifikasi                     | `no-reply@example.sch.id`                              |
-
-### `apps/worker/.env`
-
-Worker juga membutuhkan `DATABASE_URL`, `REDIS_URL`, dan konfigurasi storage yang sama dengan API. Anda bisa menggunakan salinan `.env` root atau membuat file khusus dengan variabel identik.
 
 ### `apps/admin/.env`
 
 | Variabel       | Deskripsi                                                          | Contoh                         |
 | -------------- | ------------------------------------------------------------------ | ------------------------------ |
-| `VITE_API_URL` | Base URL API (termasuk prefix `/api/v1`)                           | `http://localhost:3000/api/v1` |
+| `VITE_API_URL` | Base URL Go API (termasuk prefix `/api/v1`)                        | `http://localhost:8081/api/v1` |
 | `VITE_USE_MSW` | Aktifkan Mock Service Worker (`true`/`false`) untuk dashboard baru | `true`                         |
+
+### Go API Environment (sma-adp-api)
+
+Go API menggunakan file `.env` di repository `sma-adp-api` dengan variabel seperti:
+
+- `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
+- `REDIS_HOST`, `REDIS_PORT`
+- `JWT_SECRET`, `JWT_EXPIRATION`, `REFRESH_TOKEN_EXPIRATION`
+- `ALLOWED_ORIGINS` (CORS)
+- Feature flags: `ENABLE_ANALYTICS`, `ENABLE_DASHBOARD`, `ENABLE_SCHEDULER`, `ENABLE_REPORTS`, `ENABLE_MUTATIONS`, `ENABLE_ARCHIVES`, `ENABLE_HOMEROOMS`, `ENABLE_CALENDAR_ALIAS`, `ENABLE_ATTENDANCE_ALIAS`, `ENABLE_CONFIGURATION_API`
+
+Lihat `sma-adp-api/.env.example` untuk daftar lengkap.
 
 ### Catatan keamanan
 
@@ -179,9 +158,9 @@ Worker juga membutuhkan `DATABASE_URL`, `REDIS_URL`, dan konfigurasi storage yan
 
 ## Menjalankan secara lokal
 
-### Mode pnpm dev (semua service)
+### Mode pnpm dev (frontend + worker)
 
-Perintah berikut menyalakan API (NestJS), worker BullMQ, dan aplikasi admin Vite secara paralel:
+Perintah berikut menyalakan worker BullMQ dan aplikasi admin Vite secara paralel:
 
 ```bash
 pnpm dev
@@ -189,15 +168,21 @@ pnpm dev
 
 Endpoint default:
 
-- API: http://localhost:3000/api/v1
+- Go API: http://localhost:8081/api/v1
 - Admin: http://localhost:5173
 
-### Docker Compose untuk dependency
+### Docker Compose untuk dependency (Postgres + Redis)
 
 File `docker-compose.dev.yml` menyiapkan Postgres dan Redis siap pakai. Jalankan:
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d
+```
+
+Atau gunakan Makefile di `sma-adp-api` yang sudah mengelola database untuk Go API:
+
+```bash
+cd ../sma-adp-api && make docker-up
 ```
 
 Gunakan `docker compose -f docker-compose.dev.yml down` untuk mematikannya. Data tersimpan di volume `postgres-data` dan `redis-data`.
@@ -240,7 +225,7 @@ Catatan: scripts `compose:*` tersedia di `package.json` pada root.
    - **Build Command**: `cd ../.. && pnpm --filter @apps/shared build && pnpm --filter @apps/admin build`
    - **Output Directory**: `dist`
 4. Di **Environment Variables**, tambahkan:
-   - `VITE_API_URL`: URL API produksi (mis. `https://api.example.sch.id/api/v1`)
+   - `VITE_API_URL`: URL Go API produksi (mis. `https://api.example.sch.id/api/v1`)
 5. Deploy; Vercel akan melayani aplikasi admin statis.
 
 > **Catatan Penting**:
@@ -249,31 +234,32 @@ Catatan: scripts `compose:*` tersedia di `package.json` pada root.
 > - Build command perlu `cd ../..` untuk kembali ke root agar pnpm workspace bekerja
 > - Shared package di-build terlebih dahulu sebelum admin
 
-### API & Worker (Railway)
+### Go API & Worker (Railway/Production)
 
-1. Buat dua service Railway dari repository yang sama (API dan worker) atau gunakan deploy manual dari artefak.
-2. Pada service API:
-   - Build command: `pnpm install --frozen-lockfile && pnpm --filter @apps/api build`
-   - Start command: `pnpm --filter @apps/api start:prod`
-   - Tambahkan semua variabel dari `apps/api/.env`.
-3. Pada service worker:
+Backend API sekarang menggunakan Go (sma-adp-api repository terpisah). Deploy mengikuti dokumentasi sma-adp-api.
+
+1. Deploy Go API dari repository `sma-adp-api` ke platform pilihan (Railway, Render, Fly.io, VPS, dll)
+   - Build: `go build -o api-gateway ./cmd/api-gateway`
+   - Start: `./api-gateway`
+   - Tambahkan semua variabel environment dari `sma-adp-api/.env.example`
+2. Worker BullMQ tetap berada di monorepo ini (`apps/worker`):
    - Build command: `pnpm install --frozen-lockfile && pnpm --filter @apps/worker build:railway`
    - Start command: `pnpm --filter @apps/worker start:prod`
-   - Gunakan variabel environment yang sama (DB, Redis, storage).
+   - Gunakan variabel environment yang sama (DB, Redis, storage)
    - **Penting**: Script `build:railway` otomatis build shared package terlebih dahulu
-4. Hubungkan Railway Postgres (atau Neon) dan Upstash Redis menggunakan variable `DATABASE_URL` & `REDIS_URL`.
+3. Hubungkan Database (Postgres/Neon/Supabase) dan Redis (Upstash) menggunakan `DATABASE_URL` & `REDIS_URL`.
 
 ### Database (Supabase atau Neon)
 
 - **Supabase**: buat project, aktifkan storage bucket & dapatkan `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_KEY`. String koneksi Postgres tersedia di pengaturan database.
 - **Neon**: buat branch produksi, ambil connection string Postgres, pastikan opsi `sslmode=require` untuk penggunaan produksi.
-- Jalankan migrasi via `pnpm --filter @apps/api migrate:push` setelah kredensial siap.
+- Jalankan migrasi via Go migrate tool di repository `sma-adp-api`.
 
 ### Redis (Upstash)
 
 1. Buat database baru (mode REST atau TLS) di Upstash.
 2. Catat URL `rediss://` beserta token.
-3. Set `REDIS_URL` pada API dan worker.
+3. Set `REDIS_URL` pada Go API dan worker.
 
 ## Troubleshooting
 
@@ -310,70 +296,66 @@ Catatan: scripts `compose:*` tersedia di `package.json` pada root.
 
 **Diagnosis**:
 
-1. **Test API Health Check**:
+1. **Test Go API Health Check**:
 
    ```bash
    # Endpoint yang benar
-   curl https://your-api.railway.app/api/v1/health
+   curl https://your-go-api.example.com/api/v1/health
 
-   # Should return: {"status":"ok","timestamp":"...","environment":"production"}
+   # Should return: {"status":"ok"}
    ```
 
 2. **Cek Console Browser** (F12 → Console):
 
-   - ❌ **CORS Error**: API belum include domain Vercel di `CORS_ALLOWED_ORIGINS`
-   - ❌ **404 Not Found**: `VITE_API_URL` salah atau API belum deploy
-   - ❌ **Network Error**: API down atau URL tidak valid
+   - ❌ **CORS Error**: Go API belum include domain Vercel di `ALLOWED_ORIGINS`
+   - ❌ **404 Not Found**: `VITE_API_URL` salah atau Go API belum deploy
+   - ❌ **Network Error**: Go API down atau URL tidak valid
 
 3. **Verifikasi Environment Variables**:
 
    **Di Vercel** (Admin):
 
    ```bash
-   VITE_API_URL=https://your-api.railway.app/api/v1
+   VITE_API_URL=https://your-go-api.example.com/api/v1
    ```
 
    ⚠️ Tanpa trailing slash! Setelah set, **REDEPLOY** aplikasi.
 
-   **Di Railway** (API):
+   **Di Go API** (sma-adp-api):
 
    ```bash
-   CORS_ALLOWED_ORIGINS=https://your-admin.vercel.app
-   APP_BASE_URL=https://your-admin.vercel.app
+   ALLOWED_ORIGINS=https://your-admin.vercel.app
    ```
 
-   Setelah set, **RESTART** service API.
+   Setelah set, **RESTART** Go API service.
 
 4. **Test Login API**:
 
    ```bash
-   curl -X POST https://your-api.railway.app/api/v1/auth/login \
+   curl -X POST https://your-go-api.example.com/api/v1/auth/login \
      -H "Content-Type: application/json" \
-     -d '{"email":"superadmin@example.com","password":"SuperSecure123!@#"}'
+     -d '{"email":"superadmin@sma.test","password":"admin123"}'
    ```
 
-   Jika berhasil, Anda akan dapat `accessToken`. Jika gagal:
+   Jika berhasil, Anda akan dapat `access_token`. Jika gagal:
 
    - **401**: Password salah atau user tidak ada (perlu seed database)
-   - **404**: Endpoint tidak ditemukan (API belum deploy dengan benar)
-   - **500**: Database error (check Railway logs)
+   - **404**: Endpoint tidak ditemukan (Go API belum deploy dengan benar)
+   - **500**: Database error (check logs)
 
 5. **Cek Database Seed**:
 
    ```bash
-   # Via Railway CLI
-   railway run pnpm --filter @apps/api seed
-
-   # Atau via SQL query di Supabase/Neon
+   # Via SQL query di database
    SELECT email, role FROM users WHERE role = 'SUPERADMIN';
    ```
 
 **Solusi**:
 
-- Pastikan API deployed dan accessible
+- Pastikan Go API deployed dan accessible
 - Set environment variables dengan benar
 - Redeploy Vercel setelah set `VITE_API_URL`
-- Restart Railway API setelah set `CORS_ALLOWED_ORIGINS`
+- Restart Go API setelah set `ALLOWED_ORIGINS`
 - Seed database jika belum ada user
 
 ### Development vs Production Build
@@ -457,10 +439,10 @@ Untuk types, gunakan `InstanceType<typeof Pool>` alih-alih `Pool` type langsung.
 Set variabel bantu:
 
 ```bash
-API_BASE=http://localhost:3000/api/v1
+API_BASE=http://localhost:8081/api/v1
 TOKEN="$(curl -s -X POST "$API_BASE/auth/login" \
 	-H "Content-Type: application/json" \
-	-d '{"email":"superadmin@example.com","password":"password"}' | jq -r '.accessToken')"
+	-d '{"email":"superadmin@sma.test","password":"admin123"}' | jq -r '.data.access_token')"
 ```
 
 > Ganti email/password sesuai data seed Anda. Semua permintaan terproteksi butuh header `Authorization: Bearer $TOKEN`.
@@ -470,7 +452,7 @@ TOKEN="$(curl -s -X POST "$API_BASE/auth/login" \
 ```bash
 curl -X POST "$API_BASE/auth/login" \
 	-H "Content-Type: application/json" \
-	-d '{"email":"superadmin@example.com","password":"password"}'
+	-d '{"email":"superadmin@sma.test","password":"admin123"}'
 ```
 
 ### 2. CRUD siswa (contoh: create)
@@ -481,62 +463,45 @@ curl -X POST "$API_BASE/students" \
 	-H "Authorization: Bearer $TOKEN" \
 	-d '{
 		"nis": "2025-0001",
-		"fullName": "Aisyah Pratama",
-		"birthDate": "2010-05-15",
+		"full_name": "Aisyah Pratama",
+		"birth_date": "2010-05-15",
 		"gender": "F",
-		"guardian": "Rudi (Ayah) - +628123456789"
+		"address": "Jl. Contoh No. 1",
+		"phone": "08123456789"
 	}'
 ```
 
-> **Catatan**: `gender` menggunakan `"M"` (Male) atau `"F"` (Female). Field `guardian` adalah string opsional berisi informasi wali.
+> **Catatan**: `gender` menggunakan `"M"` (Male) atau `"F"` (Female). Field `address` dan `phone` opsional.
 
-Untuk read/update/delete gunakan metode `GET /students/:id`, `PATCH /students/:id`, dan `DELETE /students/:id` dengan header yang sama.
+Untuk read/update/delete gunakan metode `GET /students/:id`, `PUT /students/:id`, dan `DELETE /students/:id` dengan header yang sama.
 
-### 3. Attendance bulk upsert
+### 3. Attendance summary (alias)
 
 ```bash
-curl -X POST "$API_BASE/attendance/bulk" \
-	-H "Content-Type: application/json" \
-	-H "Authorization: Bearer $TOKEN" \
-	-d '{
-		"classId": "cls_123",
-		"termId": "term_2024",
-		"records": [
-			{
-				"enrollmentId": "enr_001",
-				"date": "2025-01-15",
-				"sessionType": "Harian",
-				"status": "H"
-			},
-			{
-				"enrollmentId": "enr_002",
-				"date": "2025-01-15",
-				"sessionType": "Harian",
-				"status": "S"
-			}
-		]
-	}'
+curl -X GET "$API_BASE/attendance?termId=term-001&classId=cls-001" \
+	-H "Authorization: Bearer $TOKEN"
 ```
 
-> **Status Kehadiran**: `"H"` (Hadir), `"I"` (Izin), `"S"` (Sakit), `"A"` (Alpa/Tanpa Keterangan)  
-> **Session Type**: `"Harian"` (absensi harian) atau `"Mapel"` (per mata pelajaran)
+> **Parameter**: `termId` (required), `classId` (required untuk role TEACHER)  
+> **Response**: Ringkasan kehadiran per siswa
 
 ### 4. Query nilai
 
 ```bash
-curl "$API_BASE/grades?classId=cls_123&termId=term_2024" \
+curl "$API_BASE/grades?classId=cls-001&termId=term-001" \
 	-H "Authorization: Bearer $TOKEN"
 ```
 
-### 5. Request report rapor
+### 5. Request report rapor (async)
 
 ```bash
-curl -X POST "$API_BASE/reports" \
+curl -X POST "$API_BASE/reports/generate" \
 	-H "Content-Type: application/json" \
 	-H "Authorization: Bearer $TOKEN" \
 	-d '{
-		"enrollmentId": "enr_456"
+		"enrollment_id": "enr_456",
+		"template": "STANDARD"
 	}'
 ```
 
-Permintaan ini akan menambahkan job ke `REPORT_PDF_QUEUE`. Pantau log worker atau endpoint `GET /reports/:id` untuk memeriksa statusnya. Worker akan generate PDF rapor berdasarkan data enrollment (siswa, kelas, term, nilai, dan kehadiran).
+Permintaan ini akan menambahkan job ke report queue. Pantau log worker atau endpoint `GET /reports/status/:id` untuk memeriksa statusnya. Worker akan generate PDF rapor berdasarkan data enrollment (siswa, kelas, term, nilai, dan kehadiran).

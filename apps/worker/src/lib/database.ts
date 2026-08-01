@@ -1,9 +1,9 @@
 import pkg from "pg";
-const { Pool } = pkg;
+const { Pool: _Pool } = pkg;
 import { createDbClient, createDatabasePool, type Database } from "@shared/db/client";
 
 let dbInstance: Database | null = null;
-let poolInstance: InstanceType<typeof Pool> | null = null;
+let poolInstance: InstanceType<typeof _Pool> | null = null;
 
 export function getDatabase(): Database {
   if (dbInstance) {

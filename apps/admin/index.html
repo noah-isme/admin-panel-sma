@@ -4,10 +4,34 @@
     <meta charset="utf-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
     <title>Admin Panel SMA</title>
+    <style>
+      /* Prevent FOUC: keep body hidden until JS loads */
+      body { visibility: hidden; }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root" style="display:flex;align-items:center;justify-content:center;min-height:100vh;">
+      <div style="font-family:system-ui,sans-serif;color:#64748b;text-align:center;">
+        <h2>Loading…</h2>
+        <p>If this screen persists, please check the browser console for errors.</p>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Show body once the module bundle has been parsed and is ready to mount
+      document.addEventListener("vite:preloadError", () => {
+        document.getElementById("root").innerHTML =
+          '<div style="font-family:system-ui,sans-serif;color:#ef4444;text-align:center;padding:2rem;">' +
+          '<h2>Failed to load app assets. Please refresh.</h2></div>';
+      });
+      window.addEventListener("load", () => {
+        // Hide the loading state once the app has had time to mount
+        setTimeout(() => {
+          document.body.style.visibility = "visible";
+        }, 200);
+      });
+    </script>
   </body>
 </html>

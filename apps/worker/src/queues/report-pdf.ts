@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { Worker, Job } from "bullmq";
 import { eq } from "drizzle-orm";
 import { Redis } from "ioredis";

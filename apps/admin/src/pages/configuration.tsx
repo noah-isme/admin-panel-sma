@@ -14,7 +14,6 @@ import {
   Switch,
   FormControlLabel,
   Avatar,
-  IconButton,
   Snackbar,
   Alert,
 } from "@mui/material";
@@ -55,7 +54,7 @@ export const ConfigurationPage: React.FC = () => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) return JSON.parse(raw) as ConfigSchema;
-    } catch (e) {
+    } catch {
       // ignore
     }
     return DEFAULTS;
@@ -97,7 +96,7 @@ export const ConfigurationPage: React.FC = () => {
       const toSave = { ...values, logo: logoPreview };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
       setSnackbar({ open: true, message: "Pengaturan berhasil disimpan.", severity: "success" });
-    } catch (err) {
+    } catch {
       setSnackbar({ open: true, message: "Gagal menyimpan pengaturan.", severity: "error" });
     }
   };

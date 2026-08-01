@@ -117,13 +117,6 @@ type TeacherRowData = {
   phone: string;
 };
 
-type ClassRowData = {
-  name: string;
-  level: number;
-  homeroomId?: string;
-  termId?: string;
-};
-
 export type ClassSubjectRow = {
   id: string;
   classroomId: string;

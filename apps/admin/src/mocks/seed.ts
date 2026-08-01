@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
 type Track = "IPA" | "IPS";
 
 type TermRecord = {
@@ -208,12 +207,20 @@ type MutationRecord = {
   studentId: string;
   studentName: string;
   type: "IN" | "OUT" | "INTERNAL";
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  entity: string;
+  entityId: string;
   effectiveDate: string;
   fromClassId: string | null;
   fromClassName: string | null;
   toClassId: string | null;
   toClassName: string | null;
   reason: string;
+  requestedBy: string;
+  requestedAt: string;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  note: string | null;
   handledById: string;
   handledByName: string;
   auditTrail: Array<{
@@ -2192,12 +2199,22 @@ function createMutations(
     const handler = teacherById.get(currentClass?.homeroomId ?? teachers[0].id) ?? teachers[0];
     const type: MutationRecord["type"] =
       index % 3 === 0 ? "IN" : index % 3 === 1 ? "OUT" : "INTERNAL";
+    const status: MutationRecord["status"] =
+      index % 3 === 0 ? "APPROVED" : index % 3 === 1 ? "REJECTED" : "PENDING";
 
     return {
       id: `mut_${student.id}`,
       studentId: student.id,
       studentName: student.fullName,
       type,
+      status,
+      entity: "student",
+      entityId: student.id,
+      requestedBy: "user_superadmin",
+      requestedAt: `2024-08-${pad((index % 25) + 5, 2)}T02:00:00.000Z`,
+      reviewedBy: status === "PENDING" ? null : "user_superadmin",
+      reviewedAt: status === "PENDING" ? null : `2024-09-${pad((index % 20) + 1, 2)}T08:15:00.000Z`,
+      note: null,
       effectiveDate: `2024-09-${pad((index % 20) + 1, 2)}`,
       fromClassId: type === "IN" ? null : (currentClass?.id ?? null),
       fromClassName: type === "IN" ? null : (currentClass?.name ?? null),
@@ -2381,7 +2398,7 @@ function createDashboard(
   });
 
   const studentAverageMap = new Map<string, number>();
-  enrollments.forEach((enrollment, index) => {
+  enrollments.forEach((enrollment) => {
     const studentScores: number[] = [];
     classSubjects
       .filter((mapping) => mapping.classroomId === enrollment.classId)
@@ -2392,9 +2409,6 @@ function createDashboard(
         }
       });
     if (studentScores.length > 0) {
-      const baseAverage =
-        studentScores.reduce((acc, value) => acc + value, 0) / studentScores.length;
-
       // Create realistic distribution: Bell curve centered around 80
       // 15% excellent (90+), 35% good (80-89), 35% average (70-79), 12% below average (60-69), 3% poor (<60)
       const studentHash = deterministicRandom(`${enrollment.studentId}_perf`, 0, 100);
@@ -2522,46 +2536,42 @@ function createDashboard(
   // For 10 classes: 5 good (50%), 3 warning (30%), 2 danger (20%)
   const goodCount = Math.ceil(totalClasses * 0.5);
   const warningCount = Math.floor(totalClasses * 0.3);
-  const dangerCount = totalClasses - goodCount - warningCount;
 
-  const attendanceByClassArray = Array.from(attendanceByClass.entries()).map(
-    ([classId, stat], index) => {
-      const klass = classById.get(classId);
-      const basePercentage = stat.total > 0 ? (stat.present / stat.total) * 100 : 0;
+  const attendanceByClassArray = Array.from(attendanceByClass.entries()).map(([classId]) => {
+    const klass = classById.get(classId);
 
-      let targetPercentage: number;
+    let targetPercentage: number;
 
-      // Deterministic but varied category assignment
-      const categoryHash = deterministicRandom(`${classId}_hash`, 0, totalClasses);
-      const categoryIndex = Math.floor(categoryHash);
+    // Deterministic but varied category assignment
+    const categoryHash = deterministicRandom(`${classId}_hash`, 0, totalClasses);
+    const categoryIndex = Math.floor(categoryHash);
 
-      if (categoryIndex < goodCount) {
-        // Good performance (92-97%)
-        const variance = deterministicRandom(`${classId}_g`, 0, 5.5);
-        targetPercentage = 92 + variance;
-      } else if (categoryIndex < goodCount + warningCount) {
-        // Warning zone (86-91%)
-        const variance = deterministicRandom(`${classId}_w`, 0, 5.5);
-        targetPercentage = 86 + variance;
-      } else {
-        // Danger zone (78-85%)
-        const variance = deterministicRandom(`${classId}_d`, 0, 7.5);
-        targetPercentage = 78 + variance;
-      }
-
-      // Add small random fluctuation for realism
-      const fluctuation = deterministicRandom(`${classId}_flux`, -0.8, 0.8);
-      const percentage = Number(
-        Math.max(77, Math.min(97.8, targetPercentage + fluctuation)).toFixed(2)
-      );
-
-      return {
-        classId,
-        className: klass?.name ?? classId,
-        percentage,
-      };
+    if (categoryIndex < goodCount) {
+      // Good performance (92-97%)
+      const variance = deterministicRandom(`${classId}_g`, 0, 5.5);
+      targetPercentage = 92 + variance;
+    } else if (categoryIndex < goodCount + warningCount) {
+      // Warning zone (86-91%)
+      const variance = deterministicRandom(`${classId}_w`, 0, 5.5);
+      targetPercentage = 86 + variance;
+    } else {
+      // Danger zone (78-85%)
+      const variance = deterministicRandom(`${classId}_d`, 0, 7.5);
+      targetPercentage = 78 + variance;
     }
-  );
+
+    // Add small random fluctuation for realism
+    const fluctuation = deterministicRandom(`${classId}_flux`, -0.8, 0.8);
+    const percentage = Number(
+      Math.max(77, Math.min(97.8, targetPercentage + fluctuation)).toFixed(2)
+    );
+
+    return {
+      classId,
+      className: klass?.name ?? classId,
+      percentage,
+    };
+  });
 
   const generateTrend = (base: number, seed: number) =>
     Array.from({ length: 6 }, (_, index) => {

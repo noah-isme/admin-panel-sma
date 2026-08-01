@@ -12,58 +12,48 @@ import {
   Space,
   Table,
   Tag,
-  Tooltip,
   Typography,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { DownloadOutlined, PrinterOutlined, TrophyOutlined } from "@ant-design/icons";
+import { DownloadOutlined, PrinterOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
-import {
-  useAttendanceAnalytics,
-  type AttendanceStatus,
-  type StudentAttendanceSummary,
-} from "../hooks/use-attendance-analytics";
+import { useAttendanceAnalytics, type AttendanceStatus } from "../hooks/use-attendance-analytics";
 
 const { RangePicker } = DatePicker;
 
-const STATUS_META: Record<
-  AttendanceStatus,
-  { label: string; color: string; icon: string; description: string }
-> = {
-  H: {
-    label: "Hadir",
-    color: "#16a34a",
-    icon: "✅",
-    description: "Kehadiran penuh pada hari tersebut.",
-  },
-  I: {
-    label: "Izin",
-    color: "#facc15",
-    icon: "📨",
-    description: "Izin resmi dengan keterangan tertulis.",
-  },
-  S: {
-    label: "Sakit",
-    color: "#fb923c",
-    icon: "💊",
-    description: "Sakit disertai surat atau catatan orang tua.",
-  },
-  A: {
-    label: "Alfa",
-    color: "#ef4444",
-    icon: "❌",
-    description: "Tidak hadir tanpa keterangan resmi.",
-  },
+const cardStyle: React.CSSProperties = {
+  borderRadius: 6,
+  boxShadow: "none",
+  border: "1px solid #e5e7eb",
 };
+
+const STATUS_META: Record<AttendanceStatus, { label: string; color: string; description: string }> =
+  {
+    H: {
+      label: "Hadir",
+      color: "success",
+      description: "Kehadiran penuh pada hari tersebut.",
+    },
+    I: {
+      label: "Izin",
+      color: "warning",
+      description: "Izin resmi dengan keterangan tertulis.",
+    },
+    S: {
+      label: "Sakit",
+      color: "processing",
+      description: "Sakit disertai surat atau catatan orang tua.",
+    },
+    A: {
+      label: "Alfa",
+      color: "error",
+      description: "Tidak hadir tanpa keterangan resmi.",
+    },
+  };
 
 const STATUS_OPTIONS = Object.entries(STATUS_META).map(([value, meta]) => ({
   value,
-  label: (
-    <Space>
-      <span aria-hidden>{meta.icon}</span>
-      {meta.label}
-    </Space>
-  ),
+  label: meta.label,
 }));
 
 const formatPercentage = (value: number) => `${value.toFixed(1)}%`;
@@ -72,7 +62,10 @@ const DEFAULT_DATE_FORMAT = "YYYY-MM-DD";
 
 type ChartPoint = { label: string; value: number };
 
-const SimpleBarChart: React.FC<{ data: ChartPoint[]; color?: string }> = ({ data, color }) => {
+const SimpleBarChart: React.FC<{ data: ChartPoint[]; color?: string }> = ({
+  data,
+  color = "#4f46e5",
+}) => {
   const max = Math.max(...data.map((point) => point.value), 1);
 
   return (
@@ -81,8 +74,8 @@ const SimpleBarChart: React.FC<{ data: ChartPoint[]; color?: string }> = ({ data
         display: "flex",
         alignItems: "flex-end",
         gap: 16,
-        height: 220,
-        padding: "8px 4px",
+        height: 200,
+        padding: "16px 8px 8px 8px",
       }}
     >
       {data.map((point) => {
@@ -96,21 +89,25 @@ const SimpleBarChart: React.FC<{ data: ChartPoint[]; color?: string }> = ({ data
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              gap: 8,
+              gap: 6,
             }}
           >
             <div
               style={{
-                width: "60%",
-                minWidth: 28,
-                borderRadius: 6,
-                background: color ?? "#ef4444",
-                transition: "height 0.3s ease",
+                width: "45%",
+                minWidth: 20,
+                borderRadius: "2px 2px 0 0",
+                background: color,
+                transition: "height 0.2s ease-in-out",
                 height: barHeight,
               }}
             />
-            <Typography.Text strong>{point.value}</Typography.Text>
-            <Typography.Text type="secondary">{point.label}</Typography.Text>
+            <Typography.Text strong style={{ fontSize: 12 }}>
+              {point.value}
+            </Typography.Text>
+            <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+              {point.label}
+            </Typography.Text>
           </div>
         );
       })}
@@ -118,7 +115,10 @@ const SimpleBarChart: React.FC<{ data: ChartPoint[]; color?: string }> = ({ data
   );
 };
 
-const SimpleLineChart: React.FC<{ data: ChartPoint[]; color?: string }> = ({ data, color }) => {
+const SimpleLineChart: React.FC<{ data: ChartPoint[]; color?: string }> = ({
+  data,
+  color = "#4f46e5",
+}) => {
   const max = Math.max(...data.map((point) => point.value), 100);
   const min = 0;
   const range = Math.max(max - min, 1);
@@ -131,23 +131,27 @@ const SimpleLineChart: React.FC<{ data: ChartPoint[]; color?: string }> = ({ dat
     .join(" ");
 
   return (
-    <div style={{ width: "100%", height: 240, padding: "0 4px" }}>
+    <div style={{ width: "100%", height: 200, padding: "8px 4px 0 4px" }}>
       <svg
         viewBox="0 0 100 100"
         preserveAspectRatio="none"
-        style={{ width: "100%", height: "180px" }}
+        style={{ width: "100%", height: "155px" }}
       >
+        <line x1="0" y1="25" x2="100" y2="25" stroke="#f3f4f6" strokeDasharray="3 3" />
+        <line x1="0" y1="50" x2="100" y2="50" stroke="#f3f4f6" strokeDasharray="3 3" />
+        <line x1="0" y1="75" x2="100" y2="75" stroke="#f3f4f6" strokeDasharray="3 3" />
         <polyline
           points={points}
           fill="none"
-          stroke={color ?? "#2563eb"}
-          strokeWidth={2}
+          stroke={color}
+          strokeWidth={1.5}
           strokeLinecap="round"
+          strokeLinejoin="round"
         />
         {data.map((point, index) => {
           const x = (index / Math.max(data.length - 1, 1)) * 100;
           const y = 100 - ((point.value - min) / range) * 100;
-          return <circle key={point.label} cx={x} cy={y} r={2.5} fill={color ?? "#2563eb"} />;
+          return <circle key={point.label} cx={x} cy={y} r={2} fill={color} />;
         })}
       </svg>
       <div
@@ -155,11 +159,11 @@ const SimpleLineChart: React.FC<{ data: ChartPoint[]; color?: string }> = ({ dat
           display: "flex",
           justifyContent: "space-between",
           width: "100%",
-          padding: "0 4px",
+          padding: "4px 0 0 0",
         }}
       >
         {data.map((point) => (
-          <Typography.Text key={point.label} type="secondary">
+          <Typography.Text key={point.label} type="secondary" style={{ fontSize: 11 }}>
             {point.label}
           </Typography.Text>
         ))}
@@ -223,9 +227,15 @@ export const AttendanceAnalyticsPage: React.FC = () => {
         render: (value: string, record) => (
           <Space direction="vertical" size={0}>
             <Typography.Text strong>{value}</Typography.Text>
-            <Typography.Text type="secondary">{`NIS: ${record.nis}`}</Typography.Text>
+            <Typography.Text
+              type="secondary"
+              style={{ fontSize: 12 }}
+            >{`NIS: ${record.nis}`}</Typography.Text>
             {record.behaviorNotes ? (
-              <Tag color="volcano">{`${record.behaviorNotes} catatan perilaku`}</Tag>
+              <Tag
+                color="warning"
+                style={{ fontSize: 11, borderRadius: 2 }}
+              >{`${record.behaviorNotes} catatan`}</Tag>
             ) : null}
           </Space>
         ),
@@ -236,7 +246,7 @@ export const AttendanceAnalyticsPage: React.FC = () => {
         align: "center" as const,
         width: 80,
         render: (value: number) => (
-          <Tag color={STATUS_META[status].color} style={{ margin: 0 }}>
+          <Tag color={STATUS_META[status].color} style={{ margin: 0, borderRadius: 2 }}>
             {value}
           </Tag>
         ),
@@ -246,14 +256,16 @@ export const AttendanceAnalyticsPage: React.FC = () => {
         dataIndex: "percentage",
         width: 160,
         render: (value: number) => (
-          <Space direction="vertical" size={4} style={{ width: "100%" }}>
+          <Space direction="vertical" size={2} style={{ width: "100%" }}>
             <Progress
               percent={Number(value.toFixed(1))}
               size="small"
-              strokeColor="#16a34a"
+              strokeColor="#10b981"
               showInfo={false}
             />
-            <Typography.Text type="secondary">{formatPercentage(value)}</Typography.Text>
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              {formatPercentage(value)}
+            </Typography.Text>
           </Space>
         ),
       },
@@ -322,23 +334,25 @@ export const AttendanceAnalyticsPage: React.FC = () => {
   }, []);
 
   return (
-    <Space direction="vertical" size="large" style={{ width: "100%" }}>
-      <Space direction="vertical" size={4} style={{ width: "100%" }}>
-        <Typography.Title level={3} style={{ margin: 0 }}>
+    <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+      <Space direction="vertical" size={2} style={{ width: "100%" }}>
+        <Typography.Title level={4} style={{ margin: 0, fontWeight: 700 }}>
           Rekap Kehadiran {analytics.selectedTerm ? `- ${analytics.selectedTerm.name}` : ""}
         </Typography.Title>
-        <Typography.Text type="secondary">
+        <Typography.Text type="secondary" style={{ fontSize: 13 }}>
           Analitik kehadiran terintegrasi untuk monitoring wali kelas, TU, dan kepala sekolah.
         </Typography.Text>
       </Space>
 
-      <Card>
+      <Card style={cardStyle} bodyStyle={{ padding: 16 }}>
         <Row gutter={[16, 16]}>
           <Col xs={24} sm={12} md={6}>
-            <Typography.Text type="secondary">Tahun Ajar</Typography.Text>
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              Tahun Ajar
+            </Typography.Text>
             <Select
               placeholder="Pilih tahun ajar"
-              style={{ width: "100%", marginTop: 8 }}
+              style={{ width: "100%", marginTop: 4 }}
               value={termId}
               onChange={(value) => setTermId(value)}
               options={analytics.terms.map((term) => ({
@@ -348,10 +362,12 @@ export const AttendanceAnalyticsPage: React.FC = () => {
             />
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Typography.Text type="secondary">Kelas</Typography.Text>
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              Kelas
+            </Typography.Text>
             <Select
               placeholder="Pilih kelas"
-              style={{ width: "100%", marginTop: 8 }}
+              style={{ width: "100%", marginTop: 4 }}
               value={classId}
               onChange={(value) => setClassId(value)}
               options={analytics.classes.map((klass) => ({
@@ -361,9 +377,11 @@ export const AttendanceAnalyticsPage: React.FC = () => {
             />
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Typography.Text type="secondary">Rentang tanggal</Typography.Text>
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              Rentang tanggal
+            </Typography.Text>
             <RangePicker
-              style={{ width: "100%", marginTop: 8 }}
+              style={{ width: "100%", marginTop: 4 }}
               value={rangeValue}
               onChange={(value) => setRangeValue(value as [Dayjs, Dayjs] | null)}
               format="DD MMM YYYY"
@@ -371,10 +389,12 @@ export const AttendanceAnalyticsPage: React.FC = () => {
             />
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Typography.Text type="secondary">Status kehadiran</Typography.Text>
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              Status kehadiran
+            </Typography.Text>
             <Select
               mode="multiple"
-              style={{ width: "100%", marginTop: 8 }}
+              style={{ width: "100%", marginTop: 4 }}
               value={statusFilter}
               onChange={(value) => setStatusFilter(value as AttendanceStatus[])}
               options={STATUS_OPTIONS}
@@ -386,52 +406,68 @@ export const AttendanceAnalyticsPage: React.FC = () => {
 
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={12}>
-          <Card>
-            <Space direction="vertical" size={16} style={{ width: "100%" }}>
+          <Card style={cardStyle} bodyStyle={{ padding: 16 }}>
+            <Space direction="vertical" size="middle" style={{ width: "100%" }}>
               <Space align="baseline" style={{ justifyContent: "space-between", width: "100%" }}>
                 <div>
-                  <Typography.Title level={4} style={{ margin: 0 }}>
+                  <Typography.Text strong style={{ fontSize: 15 }}>
                     Statistik Semester
-                  </Typography.Title>
-                  <Typography.Text type="secondary">
-                    Rata-rata kehadiran {analytics.selectedClass?.name ?? "kelas"}:{" "}
-                    <Typography.Text strong>
-                      {formatPercentage(analytics.stats.averageAttendance)}
-                    </Typography.Text>
                   </Typography.Text>
+                  <div>
+                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                      Rata-rata kehadiran {analytics.selectedClass?.name ?? "kelas"}:{" "}
+                      <Typography.Text strong>
+                        {formatPercentage(analytics.stats.averageAttendance)}
+                      </Typography.Text>
+                    </Typography.Text>
+                  </div>
                 </div>
                 <Space>
-                  <Button icon={<DownloadOutlined />} onClick={handleExportCsv}>
+                  <Button size="small" icon={<DownloadOutlined />} onClick={handleExportCsv}>
                     Export CSV
                   </Button>
-                  <Button icon={<PrinterOutlined />} onClick={handlePrint}>
+                  <Button size="small" icon={<PrinterOutlined />} onClick={handlePrint}>
                     Cetak PDF
                   </Button>
                 </Space>
               </Space>
 
-              <Row gutter={[16, 16]}>
+              <Row gutter={[12, 12]}>
                 <Col span={12}>
-                  <Card size="small" bordered={false} style={{ background: "#ecfdf5" }}>
-                    <Typography.Text type="secondary">Total Sesi</Typography.Text>
-                    <Typography.Title level={3} style={{ margin: "4px 0" }}>
+                  <Card
+                    size="small"
+                    bordered
+                    style={{ background: "#fafafa", borderColor: "#e5e7eb", borderRadius: 4 }}
+                  >
+                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                      Total Sesi
+                    </Typography.Text>
+                    <Typography.Title level={4} style={{ margin: "2px 0 0 0", fontWeight: 700 }}>
                       {analytics.stats.totalSessions}
                     </Typography.Title>
-                    <Typography.Text>Tercatat dalam rentang ini</Typography.Text>
+                    <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+                      Tercatat dalam rentang ini
+                    </Typography.Text>
                   </Card>
                 </Col>
                 <Col span={12}>
-                  <Card size="small" bordered={false} style={{ background: "#fef2f2" }}>
-                    <Typography.Text type="secondary">Total Alfa</Typography.Text>
-                    <Typography.Title level={3} style={{ margin: "4px 0" }}>
+                  <Card
+                    size="small"
+                    bordered
+                    style={{ background: "#fafafa", borderColor: "#e5e7eb", borderRadius: 4 }}
+                  >
+                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                      Total Alfa
+                    </Typography.Text>
+                    <Typography.Title level={4} style={{ margin: "2px 0 0 0", fontWeight: 700 }}>
                       {analytics.stats.alphaTotal}
                     </Typography.Title>
-                    <Typography.Text>
+                    <Typography.Text type="secondary" style={{ fontSize: 11 }}>
                       {analytics.stats.latestAbsenceCount > 0 && analytics.stats.latestAbsenceDate
-                        ? `Terbaru: ${analytics.stats.latestAbsenceCount} siswa pada ${dayjs(
+                        ? `Terbaru: ${analytics.stats.latestAbsenceCount} siswa (${dayjs(
                             analytics.stats.latestAbsenceDate,
                             DEFAULT_DATE_FORMAT
-                          ).format("DD MMM YYYY")}`
+                          ).format("DD MMM")})`
                         : "Tidak ada alfa terbaru"}
                     </Typography.Text>
                   </Card>
@@ -439,32 +475,43 @@ export const AttendanceAnalyticsPage: React.FC = () => {
               </Row>
 
               <Card
-                type="inner"
+                size="small"
+                style={{ borderRadius: 4, borderColor: "#e5e7eb" }}
                 title={
-                  <Space>
-                    <TrophyOutlined />
-                    Top 3 siswa paling rajin hadir
-                  </Space>
+                  <Typography.Text strong style={{ fontSize: 13 }}>
+                    Top 3 Siswa Kehadiran Tertinggi
+                  </Typography.Text>
                 }
               >
                 {analytics.stats.topStudents.length === 0 ? (
-                  <Empty description="Belum ada data kehadiran" />
+                  <Empty
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    description="Belum ada data kehadiran"
+                  />
                 ) : (
                   <List
+                    size="small"
                     dataSource={analytics.stats.topStudents}
                     renderItem={(item, index) => (
-                      <List.Item>
+                      <List.Item style={{ padding: "6px 0" }}>
                         <List.Item.Meta
                           title={
-                            <Space>
-                              <Tag color="gold">{index + 1}</Tag>
-                              <Typography.Text strong>{item.studentName}</Typography.Text>
+                            <Space size={8}>
+                              <Tag style={{ margin: 0, borderRadius: 2 }}>#{index + 1}</Tag>
+                              <Typography.Text strong style={{ fontSize: 13 }}>
+                                {item.studentName}
+                              </Typography.Text>
                             </Space>
                           }
                           description={
-                            <Space size={8} wrap>
-                              <Typography.Text type="secondary">NIS {item.nis}</Typography.Text>
-                              <Tag color="#16a34a">
+                            <Space size={8} wrap style={{ marginTop: 2 }}>
+                              <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+                                NIS {item.nis}
+                              </Typography.Text>
+                              <Tag
+                                color="success"
+                                style={{ margin: 0, borderRadius: 2, fontSize: 11 }}
+                              >
                                 Hadir {item.counts.H} kali ({formatPercentage(item.percentage)})
                               </Tag>
                             </Space>
@@ -480,11 +527,22 @@ export const AttendanceAnalyticsPage: React.FC = () => {
         </Col>
 
         <Col xs={24} lg={12}>
-          <Card title="Grafik Tren Kehadiran">
+          <Card
+            style={cardStyle}
+            bodyStyle={{ padding: 16 }}
+            title={
+              <Typography.Text strong style={{ fontSize: 15 }}>
+                Grafik Tren Kehadiran
+              </Typography.Text>
+            }
+          >
             {attendanceChartData.length > 0 ? (
               <SimpleLineChart data={attendanceChartData} />
             ) : (
-              <Empty description="Belum ada data tren kehadiran" />
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="Belum ada data tren kehadiran"
+              />
             )}
           </Card>
         </Col>
@@ -492,41 +550,71 @@ export const AttendanceAnalyticsPage: React.FC = () => {
 
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={12}>
-          <Card title="Diagram Alfa Mingguan">
+          <Card
+            style={cardStyle}
+            bodyStyle={{ padding: 16 }}
+            title={
+              <Typography.Text strong style={{ fontSize: 15 }}>
+                Diagram Alfa Mingguan
+              </Typography.Text>
+            }
+          >
             {alphaChartData.length > 0 ? (
-              <SimpleBarChart data={alphaChartData} />
+              <SimpleBarChart data={alphaChartData} color="#ef4444" />
             ) : (
-              <Empty description="Belum ada data alfa mingguan" />
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="Belum ada data alfa mingguan"
+              />
             )}
           </Card>
         </Col>
         <Col xs={24} lg={12}>
-          <Card title="Catatan Status">
+          <Card
+            style={cardStyle}
+            bodyStyle={{ padding: 16 }}
+            title={
+              <Typography.Text strong style={{ fontSize: 15 }}>
+                Catatan Status Kehadiran
+              </Typography.Text>
+            }
+          >
             <List
+              size="small"
               dataSource={
                 Object.entries(STATUS_META) as Array<[AttendanceStatus, typeof STATUS_META.H]>
               }
               renderItem={([value, meta]) => (
-                <List.Item>
+                <List.Item style={{ padding: "8px 0" }}>
                   <List.Item.Meta
                     avatar={
-                      <Tag color={meta.color} style={{ marginRight: 12 }}>
-                        {meta.icon}
+                      <Tag
+                        color={meta.color}
+                        style={{ marginRight: 8, borderRadius: 2, fontWeight: 600 }}
+                      >
+                        {value}
                       </Tag>
                     }
                     title={
-                      <Space>
-                        <Typography.Text strong>{meta.label}</Typography.Text>
-                        <Tag>
+                      <Space size={8}>
+                        <Typography.Text strong style={{ fontSize: 13 }}>
+                          {meta.label}
+                        </Typography.Text>
+                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                          (
                           {analytics.studentSummaries.reduce(
                             (acc, summary) => acc + summary.counts[value],
                             0
                           )}{" "}
-                          kali
-                        </Tag>
+                          kali)
+                        </Typography.Text>
                       </Space>
                     }
-                    description={meta.description}
+                    description={
+                      <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+                        {meta.description}
+                      </Typography.Text>
+                    }
                   />
                 </List.Item>
               )}
@@ -535,22 +623,23 @@ export const AttendanceAnalyticsPage: React.FC = () => {
         </Col>
       </Row>
 
-      <Card>
-        <Space direction="vertical" size={16} style={{ width: "100%" }}>
+      <Card style={cardStyle} bodyStyle={{ padding: 16 }}>
+        <Space direction="vertical" size="middle" style={{ width: "100%" }}>
           <Space align="baseline" style={{ width: "100%", justifyContent: "space-between" }}>
-            <Typography.Title level={4} style={{ margin: 0 }}>
+            <Typography.Text strong style={{ fontSize: 15 }}>
               Tabel Rekap Kehadiran Siswa
-            </Typography.Title>
-            <Typography.Text type="secondary">
+            </Typography.Text>
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
               {`Data ${analytics.dateRange.start} s/d ${analytics.dateRange.end}`}
             </Typography.Text>
           </Space>
 
           <Table
+            size="small"
             dataSource={tableData}
             columns={columns}
             loading={analytics.isFetching && tableData.length === 0}
-            pagination={{ pageSize: 10 }}
+            pagination={{ pageSize: 10, size: "small" }}
             locale={{
               emptyText: analytics.isLoading ? "Memuat data..." : "Belum ada data kehadiran",
             }}

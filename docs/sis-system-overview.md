@@ -1,3 +1,19 @@
+> ⚠️ **Historical document — superseded by the Go backend migration.**
+>
+> This blueprint was written **before** the backend was migrated from **NestJS → Go**. It still references NestJS, Prisma, BullMQ-in-API, and an `apps/api` workspace that have since been **removed**. The backend now lives in the separate repository **`sma-adp-api`** (Go/Gin).
+>
+> For the current, authoritative documentation use:
+>
+> - `../sma-adp-api/docs/PROJECT_STATUS.md` — per-phase progress & active blockers
+> - `../sma-adp-api/docs/FE_BE_MAPPING.md` — frontend ↔ backend endpoint map
+> - `../sma-adp-api/docs/BACKEND_MIGRATION_PLAN.md` — migration strategy
+> - `../sma-adp-api/docs/operations.md` & `decommission.md` — cutover/rollback runbooks
+> - Root `README.md` — current setup & architecture
+>
+> Keep this file only as historical design context. Do **not** follow its NestJS-specific instructions.
+
+---
+
 # Admin Panel Sekolah – Gambaran Umum
 
 ## 1. Konteks & Batasan Sistem

@@ -1,3 +1,19 @@
+> ⚠️ **Historical document — superseded by the Go backend migration.**
+>
+> This blueprint was written **before** the backend was migrated from **NestJS → Go**. It describes a NestJS + Fastify + Prisma + BullMQ architecture under `apps/api/` that has since been **removed**. The backend now lives in the separate repository **`sma-adp-api`** (Go/Gin + pgx + Redis). The BullMQ worker that remains in this monorepo (`apps/worker`) only implements the `REPORT_PDF_QUEUE`.
+>
+> For the current, authoritative documentation use:
+>
+> - `../sma-adp-api/docs/PROJECT_STATUS.md` — per-phase progress & active blockers
+> - `../sma-adp-api/docs/FE_BE_MAPPING.md` — frontend ↔ backend endpoint map
+> - `../sma-adp-api/docs/BACKEND_MIGRATION_PLAN.md` — migration strategy
+> - `../sma-adp-api/docs/GO_BACKEND_API_SPECIFICATION.md` — Go API contract
+> - Root `README.md` — current setup & architecture
+>
+> Keep this file only as historical design context. Do **not** follow its NestJS-specific instructions.
+
+---
+
 # Backend Architecture – Admin Panel Sekolah
 
 ## 1. Stack & Modul

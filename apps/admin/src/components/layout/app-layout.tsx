@@ -7,7 +7,6 @@ import {
   Box,
   Chip,
   Collapse,
-  Container,
   Divider,
   Drawer,
   IconButton,
@@ -31,9 +30,10 @@ import {
   CalendarRange,
   CalendarDays,
   CalendarClock,
-  Sparkles,
+  CalendarPlus,
   SlidersHorizontal,
   BookOpen,
+  UserPlus,
   FileBarChart,
   ListChecks,
   Gauge,
@@ -49,6 +49,7 @@ import {
   Shield,
   Settings2,
   RotateCcw,
+  Wrench,
   Megaphone,
   NotebookPen,
   LogOut,
@@ -104,28 +105,28 @@ const NAV_ITEMS = (logout: () => void): NavNode[] => [
   {
     key: "dashboard",
     label: "Dashboard",
-    icon: <LayoutDashboard size={18} aria-label="Dashboard" />,
+    icon: <LayoutDashboard size={16} aria-label="Dashboard" />,
     ariaLabel: "Menu Dashboard",
     path: "/dashboard",
   },
   {
     key: "akademik",
     label: "Akademik",
-    icon: <GraduationCap size={18} aria-label="Menu Akademik" />,
+    icon: <GraduationCap size={16} aria-label="Menu Akademik" />,
     ariaLabel: "Kelompok menu Akademik",
     defaultOpen: true,
     children: [
       {
         key: "akademik-terms",
         label: "Tahun Ajar / Semester",
-        icon: <CalendarRange size={18} aria-label="Tahun ajar" />,
+        icon: <CalendarRange size={16} aria-label="Tahun ajar" />,
         ariaLabel: "Tahun Ajar / Semester",
         resource: "terms",
       },
       {
         key: "akademik-calendar",
         label: "Kalender Akademik",
-        icon: <CalendarClock size={18} aria-label="Kalender akademik" />,
+        icon: <CalendarClock size={16} aria-label="Kalender akademik" />,
         ariaLabel: "Kalender Akademik",
         path: "/calendar",
         resource: "calendar",
@@ -133,42 +134,42 @@ const NAV_ITEMS = (logout: () => void): NavNode[] => [
       {
         key: "akademik-classes",
         label: "Kelas",
-        icon: <GraduationCap size={18} aria-label="Kelas" />,
+        icon: <GraduationCap size={16} aria-label="Kelas" />,
         ariaLabel: "Kelas",
         resource: "classes",
       },
       {
         key: "akademik-schedules",
         label: "Jadwal",
-        icon: <CalendarDays size={18} aria-label="Jadwal" />,
+        icon: <CalendarDays size={16} aria-label="Jadwal" />,
         ariaLabel: "Jadwal",
         resource: "schedules",
       },
       {
         key: "akademik-schedule-generator",
         label: "Generator Jadwal",
-        icon: <Sparkles size={18} aria-label="Generator jadwal" />,
+        icon: <CalendarPlus size={16} aria-label="Generator jadwal" />,
         ariaLabel: "Generator Jadwal",
         path: "/schedules/generator",
       },
       {
         key: "akademik-teacher-preferences",
         label: "Preferensi Guru",
-        icon: <SlidersHorizontal size={18} aria-label="Preferensi guru" />,
+        icon: <SlidersHorizontal size={16} aria-label="Preferensi guru" />,
         ariaLabel: "Preferensi Guru",
         path: "/schedules/preferences",
       },
       {
         key: "akademik-subjects",
         label: "Mapel",
-        icon: <BookOpen size={18} aria-label="Mata pelajaran" />,
+        icon: <BookOpen size={16} aria-label="Mata pelajaran" />,
         ariaLabel: "Mapel",
         resource: "subjects",
       },
       {
         key: "akademik-enrollments",
         label: "Penempatan",
-        icon: <DeploymentUnitOutlined size={18} aria-label="Penempatan" />,
+        icon: <UserPlus size={16} aria-label="Penempatan" />,
         ariaLabel: "Penempatan",
         resource: "enrollments",
       },
@@ -177,28 +178,28 @@ const NAV_ITEMS = (logout: () => void): NavNode[] => [
   {
     key: "penilaian",
     label: "Penilaian",
-    icon: <FileBarChart size={18} aria-label="Menu penilaian" />,
+    icon: <FileBarChart size={16} aria-label="Menu penilaian" />,
     ariaLabel: "Kelompok menu Penilaian",
     defaultOpen: true,
     children: [
       {
         key: "penilaian-grade-components",
         label: "Komponen Penilaian",
-        icon: <ListChecks size={18} aria-label="Komponen penilaian" />,
+        icon: <ListChecks size={16} aria-label="Komponen penilaian" />,
         ariaLabel: "Komponen Penilaian",
         resource: "grade-components",
       },
       {
         key: "penilaian-grade-configs",
         label: "Bobot / KKM",
-        icon: <Gauge size={18} aria-label="Bobot dan KKM" />,
+        icon: <Gauge size={16} aria-label="Bobot dan KKM" />,
         ariaLabel: "Bobot dan KKM",
         resource: "grade-configs",
       },
       {
         key: "penilaian-grades",
         label: "Nilai & Rapor",
-        icon: <FileText size={18} aria-label="Nilai dan rapor" />,
+        icon: <FileText size={16} aria-label="Nilai dan rapor" />,
         ariaLabel: "Nilai dan Rapor",
         resource: "grades",
       },
@@ -207,28 +208,28 @@ const NAV_ITEMS = (logout: () => void): NavNode[] => [
   {
     key: "resources",
     label: "Data Sumber Daya",
-    icon: <Users size={18} aria-label="Data sumber daya" />,
+    icon: <Users size={16} aria-label="Data sumber daya" />,
     ariaLabel: "Kelompok menu Data Sumber Daya",
     defaultOpen: true,
     children: [
       {
         key: "resources-students",
         label: "Siswa",
-        icon: <UserRound size={18} aria-label="Data siswa" />,
+        icon: <UserRound size={16} aria-label="Data siswa" />,
         ariaLabel: "Siswa",
         resource: "students",
       },
       {
         key: "resources-teachers",
         label: "Guru",
-        icon: <UserCheck size={18} aria-label="Data guru" />,
+        icon: <UserCheck size={16} aria-label="Data guru" />,
         ariaLabel: "Guru",
         resource: "teachers",
       },
       {
         key: "resources-homerooms",
         label: "Wali Kelas",
-        icon: <UserCircle size={18} aria-label="Wali kelas" />,
+        icon: <UserCircle size={16} aria-label="Wali kelas" />,
         ariaLabel: "Wali Kelas",
         path: "/homerooms",
       },
@@ -237,21 +238,21 @@ const NAV_ITEMS = (logout: () => void): NavNode[] => [
   {
     key: "attendance",
     label: "Kehadiran",
-    icon: <ClipboardList size={18} aria-label="Menu kehadiran" />,
+    icon: <ClipboardList size={16} aria-label="Menu kehadiran" />,
     ariaLabel: "Kelompok menu Kehadiran",
     defaultOpen: true,
     children: [
       {
         key: "attendance-daily",
         label: "Absensi Harian",
-        icon: <CalendarCheck size={18} aria-label="Absensi harian" />,
+        icon: <CalendarCheck size={16} aria-label="Absensi harian" />,
         ariaLabel: "Absensi Harian",
         path: "/attendance/daily",
       },
       {
         key: "attendance-summary",
         label: "Rekap Kehadiran",
-        icon: <BarChart3 size={18} aria-label="Rekap kehadiran" />,
+        icon: <BarChart3 size={16} aria-label="Rekap kehadiran" />,
         ariaLabel: "Rekap Kehadiran",
         resource: "attendance",
       },
@@ -260,21 +261,21 @@ const NAV_ITEMS = (logout: () => void): NavNode[] => [
   {
     key: "administrasi",
     label: "Administrasi",
-    icon: <ShieldCheck size={18} aria-label="Menu administrasi" />,
+    icon: <ShieldCheck size={16} aria-label="Menu administrasi" />,
     ariaLabel: "Kelompok menu Administrasi",
     defaultOpen: true,
     children: [
       {
         key: "administrasi-users",
         label: "Users & Roles",
-        icon: <Shield size={18} aria-label="Users dan roles" />,
+        icon: <Shield size={16} aria-label="Users dan roles" />,
         ariaLabel: "Users & Roles",
         resource: "users",
       },
       {
         key: "administrasi-configuration",
         label: "Konfigurasi",
-        icon: <Settings2 size={18} aria-label="Konfigurasi" />,
+        icon: <Settings2 size={16} aria-label="Konfigurasi" />,
         ariaLabel: "Konfigurasi",
         path: "/configuration",
         resource: "settings",
@@ -282,7 +283,7 @@ const NAV_ITEMS = (logout: () => void): NavNode[] => [
       {
         key: "administrasi-backup",
         label: "Backup / Restore",
-        icon: <RotateCcw size={18} aria-label="Backup dan restore" />,
+        icon: <RotateCcw size={16} aria-label="Backup dan restore" />,
         ariaLabel: "Backup dan Restore",
         disabled: true,
       },
@@ -291,35 +292,35 @@ const NAV_ITEMS = (logout: () => void): NavNode[] => [
   {
     key: "setup",
     label: "Setup Pra-Semester",
-    icon: <Sparkles size={18} aria-label="Setup pra-semester" />,
+    icon: <Wrench size={16} aria-label="Setup pra-semester" />,
     ariaLabel: "Setup pra-semester",
     path: "/setup",
   },
   {
     key: "import-status",
     label: "Status Import",
-    icon: <ListChecks size={18} aria-label="Status import" />,
+    icon: <ListChecks size={16} aria-label="Status import" />,
     ariaLabel: "Status import",
     path: "/setup/import-status",
   },
   {
     key: "announcements",
     label: "Pengumuman",
-    icon: <Megaphone size={18} aria-label="Pengumuman" />,
+    icon: <Megaphone size={16} aria-label="Pengumuman" />,
     ariaLabel: "Pengumuman",
     resource: "announcements",
   },
   {
     key: "notes",
     label: "Catatan",
-    icon: <NotebookPen size={18} aria-label="Catatan" />,
+    icon: <NotebookPen size={16} aria-label="Catatan" />,
     ariaLabel: "Catatan",
     resource: "behavior-notes",
   },
   {
     key: "logout",
     label: "Keluar",
-    icon: <LogOut size={18} aria-label="Keluar" />,
+    icon: <LogOut size={16} aria-label="Keluar" />,
     ariaLabel: "Keluar",
     danger: true,
     onClick: logout,
@@ -388,36 +389,43 @@ const NavListItem: React.FC<{
 }) => {
   const theme = useTheme();
   const background = isActive
-    ? alpha(theme.palette.primary.main, theme.palette.mode === "dark" ? 0.22 : 0.12)
+    ? alpha(theme.palette.primary.main, theme.palette.mode === "dark" ? 0.18 : 0.08)
     : isAncestor
-      ? alpha(theme.palette.primary.main, theme.palette.mode === "dark" ? 0.16 : 0.08)
+      ? alpha(theme.palette.primary.main, theme.palette.mode === "dark" ? 0.12 : 0.04)
       : "transparent";
+
   const textColor = item.danger
     ? theme.palette.error.main
-    : theme.palette.mode === "dark"
-      ? theme.palette.grey[100]
+    : isActive
+      ? theme.palette.primary.main
       : theme.palette.text.primary;
 
   return (
-    <ListItem disablePadding sx={{ mb: 0.5 }}>
+    <ListItem disablePadding sx={{ mb: 0.25 }}>
       <ListItemButton
         onClick={onClick}
         disabled={item.disabled}
         selected={isActive}
         aria-expanded={hasChildren ? isOpen : undefined}
         sx={{
-          pl: depth * 2 + 2,
-          pr: hasChildren ? 1.5 : 2,
-          borderRadius: 12,
+          pl: depth * 1.5 + 1.5,
+          pr: hasChildren ? 1 : 1.5,
+          py: 0.75,
+          borderRadius: "6px",
           alignItems: "center",
-          borderLeft: `3px solid ${isActive ? theme.palette.primary.main : "transparent"}`,
+          borderLeft: isActive
+            ? `3px solid ${theme.palette.primary.main}`
+            : "3px solid transparent",
           backgroundColor: background,
-          transition: "background-color 0.2s ease, border-color 0.2s ease",
+          transition: "all 0.15s ease",
           "&:hover": {
-            backgroundColor: alpha(theme.palette.primary.main, 0.12),
+            backgroundColor: alpha(
+              theme.palette.primary.main,
+              theme.palette.mode === "dark" ? 0.12 : 0.06
+            ),
           },
           "&.Mui-disabled": {
-            opacity: 0.5,
+            opacity: 0.4,
             cursor: "not-allowed",
           },
         }}
@@ -425,14 +433,12 @@ const NavListItem: React.FC<{
         <ListItemIcon
           aria-label={item.ariaLabel}
           sx={{
-            minWidth: 36,
+            minWidth: 28,
             color: isActive
               ? theme.palette.primary.main
-              : theme.palette.mode === "dark"
-                ? theme.palette.grey[300]
-                : item.danger
-                  ? theme.palette.error.main
-                  : theme.palette.text.secondary,
+              : item.danger
+                ? theme.palette.error.main
+                : theme.palette.text.secondary,
           }}
         >
           {item.icon}
@@ -443,9 +449,10 @@ const NavListItem: React.FC<{
               <Typography
                 component="span"
                 sx={{
-                  fontWeight: isActive ? 700 : 500,
-                  fontSize: depth > 0 ? 14 : 15,
+                  fontWeight: isActive ? 600 : 500,
+                  fontSize: depth > 0 ? 13 : 13.5,
                   color: textColor,
+                  lineHeight: 1.4,
                 }}
               >
                 {item.label}
@@ -453,24 +460,20 @@ const NavListItem: React.FC<{
             }
           />
         )}
-        {hasChildren ? (
+        {hasChildren && !sidebarCollapsed ? (
           <Box
             component="span"
             sx={{
               display: "flex",
               alignItems: "center",
               color:
-                isActive || isAncestor
-                  ? theme.palette.primary.main
-                  : theme.palette.mode === "dark"
-                    ? theme.palette.grey[400]
-                    : theme.palette.text.secondary,
+                isActive || isAncestor ? theme.palette.primary.main : theme.palette.text.secondary,
               transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)",
-              transition: "transform 0.2s ease",
+              transition: "transform 0.15s ease",
             }}
             aria-label={isOpen ? "Tutup grup" : "Buka grup"}
           >
-            <ChevronDown size={16} aria-hidden="true" focusable="false" />
+            <ChevronDown size={14} aria-hidden="true" focusable="false" />
           </Box>
         ) : null}
       </ListItemButton>
@@ -613,7 +616,7 @@ export const AppLayout: React.FC = () => {
       const isOpen = openGroups.includes(item.key);
 
       return (
-        <Box key={item.key} sx={{ mb: 1 }}>
+        <Box key={item.key} sx={{ mb: 0.5 }}>
           <NavListItem
             item={item}
             isActive={isActive}
@@ -631,7 +634,7 @@ export const AppLayout: React.FC = () => {
             sidebarCollapsed={sidebarCollapsed}
           />
           <Collapse in={isOpen} timeout="auto" unmountOnExit>
-            <Box sx={{ pl: 1.5 }}>{renderNavItems(item.children ?? [], depth + 1)}</Box>
+            <Box sx={{ pl: 0.5 }}>{renderNavItems(item.children ?? [], depth + 1)}</Box>
           </Collapse>
         </Box>
       );
@@ -681,46 +684,45 @@ export const AppLayout: React.FC = () => {
     setBottomValue(value);
   };
 
-  // Sidebar/drawer content untuk desktop dan mobile
   const sidebarContent = (
     <Box
       sx={{
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        px: sidebarCollapsed ? 1 : 3,
-        py: 3,
+        px: sidebarCollapsed ? 1 : 2,
+        py: 2,
       }}
     >
-      <Box sx={{ flex: 1, maxHeight: "calc(100vh - 200px)", overflowY: "auto", pr: 1 }}>
+      <Box sx={{ flex: 1, overflowY: "auto", pr: 0.5 }}>
         <List disablePadding>{renderNavItems(navItems)}</List>
       </Box>
       <Box
         sx={{
           mt: "auto",
-          pt: 2,
-          borderTop: `1px solid ${alpha(theme.palette.text.secondary, 0.08)}`,
+          pt: 1.5,
+          borderTop: "1px solid",
+          borderColor: "divider",
         }}
       >
         <Tooltip title={sidebarCollapsed ? "Perluas sidebar" : "Minimalkan sidebar"}>
           <IconButton
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            color="primary"
+            color="default"
             aria-label={sidebarCollapsed ? "Perluas sidebar" : "Minimalkan sidebar"}
             size="small"
             sx={{
               width: "100%",
-              borderRadius: 2,
-              py: 1,
-              "&:hover": {
-                backgroundColor: alpha(theme.palette.primary.main, 0.1),
-              },
+              borderRadius: "6px",
+              py: 0.75,
+              border: "1px solid",
+              borderColor: "divider",
             }}
           >
             {sidebarCollapsed ? (
-              <ChevronRight size={18} aria-label="Perluas sidebar" />
+              <ChevronRight size={16} aria-label="Perluas sidebar" />
             ) : (
-              <ChevronLeft size={18} aria-label="Minimalkan sidebar" />
+              <ChevronLeft size={16} aria-label="Minimalkan sidebar" />
             )}
           </IconButton>
         </Tooltip>
@@ -743,160 +745,194 @@ export const AppLayout: React.FC = () => {
           color: theme.palette.primary.contrastText,
           px: 2,
           py: 1,
-          borderRadius: 999,
+          borderRadius: 2,
           zIndex: theme.zIndex.tooltip,
-          transition: "top 0.3s",
+          fontSize: 13,
+          fontWeight: 600,
+          transition: "top 0.2s ease",
           "&:focus": {
-            top: 16,
+            top: 12,
           },
         }}
       >
         Lewati ke konten utama
       </Box>
 
-      {/* Header - tampil berbeda untuk desktop dan mobile */}
+      {/* Header - desktop dan mobile */}
       {isMdUp ? (
-        // Desktop header (pertahankan layout lama)
         <Box
           component="header"
           sx={{
-            px: 4,
-            py: 2.5,
+            px: { xs: 2, md: 3 },
+            py: 1.25,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            gap: 3,
-            borderBottom: `1px solid ${alpha(theme.palette.text.secondary, 0.12)}`,
+            gap: 2,
+            borderBottom: "1px solid",
+            borderColor: "divider",
             position: "sticky",
             top: 0,
-            zIndex: 10,
-            backdropFilter: "blur(12px)",
-            backgroundColor: alpha(theme.palette.background.default, 0.9),
+            zIndex: theme.zIndex.appBar,
+            backgroundColor: theme.palette.background.paper,
           }}
         >
-          <Stack direction="row" spacing={2} alignItems="center">
+          <Stack direction="row" spacing={1.5} alignItems="center">
             <Box
               sx={{
-                width: 44,
-                height: 44,
-                borderRadius: 14,
+                width: 34,
+                height: 34,
+                borderRadius: "6px",
                 bgcolor: themeTokens.primary,
                 color: "#ffffff",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 fontWeight: 700,
-                fontSize: 18,
+                fontSize: 14,
+                letterSpacing: "-0.02em",
               }}
               aria-label="Logo sekolah"
             >
               HN
             </Box>
             <Box>
-              <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: -0.3 }}>
+              <Typography
+                variant="subtitle1"
+                sx={{ fontWeight: 600, fontSize: 15, lineHeight: 1.2 }}
+              >
                 SMA Harapan Nusantara
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="caption" sx={{ color: "text.secondary", fontSize: 11.5 }}>
                 Panel Administrasi Akademik
               </Typography>
             </Box>
           </Stack>
 
           <Stack direction="row" spacing={2} alignItems="center">
-            <Typography variant="body2" color="text.secondary">
-              Tahun Ajar Aktif
+            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500 }}>
+              Tahun Ajar:
             </Typography>
             {isLoadingTerms ? (
-              <Skeleton variant="rounded" width={120} height={28} aria-label="Memuat tahun ajar" />
+              <Skeleton variant="rounded" width={100} height={24} aria-label="Memuat tahun ajar" />
             ) : (
               <Chip
                 label={activeTerm?.name ?? "Belum dipilih"}
                 color={activeTerm ? "primary" : "default"}
                 size="small"
-                sx={{ fontWeight: 600 }}
+                variant="outlined"
+                sx={{
+                  fontWeight: 600,
+                  fontSize: 12,
+                  height: 24,
+                  borderRadius: "4px",
+                }}
               />
             )}
           </Stack>
 
-          <Stack direction="row" spacing={2} alignItems="center">
+          <Stack direction="row" spacing={1.5} alignItems="center">
             <Tooltip title={mode === "dark" ? "Matikan mode gelap" : "Aktifkan mode gelap"}>
               <IconButton
                 onClick={toggleMode}
-                color="primary"
+                color="default"
                 aria-label={mode === "dark" ? "Matikan mode gelap" : "Aktifkan mode gelap"}
                 size="small"
+                sx={{
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: "6px",
+                  p: 0.75,
+                }}
               >
                 {mode === "dark" ? (
-                  <Sun size={18} aria-label="Ikon mode terang" />
+                  <Sun size={16} aria-label="Ikon mode terang" />
                 ) : (
-                  <Moon size={18} aria-label="Ikon mode gelap" />
+                  <Moon size={16} aria-label="Ikon mode gelap" />
                 )}
               </IconButton>
             </Tooltip>
-            <Divider orientation="vertical" flexItem sx={{ height: 36 }} />
-            <Avatar
-              sx={{
-                bgcolor: alpha(theme.palette.primary.main, 0.12),
-                color: theme.palette.primary.main,
-              }}
-            >
-              {identity?.name?.[0] ?? "P"}
-            </Avatar>
-            <Box>
-              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                {identity?.name ?? "Pengguna"}
-              </Typography>
-              {identity?.email ? (
-                <Typography variant="body2" color="text.secondary">
-                  {identity.email}
+
+            <Divider orientation="vertical" flexItem sx={{ my: 0.5 }} />
+
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Avatar
+                sx={{
+                  bgcolor: alpha(theme.palette.primary.main, 0.1),
+                  color: theme.palette.primary.main,
+                  width: 32,
+                  height: 32,
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+              >
+                {identity?.name?.[0] ?? "P"}
+              </Avatar>
+              <Box>
+                <Typography variant="body2" sx={{ fontWeight: 600, fontSize: 13, lineHeight: 1.2 }}>
+                  {identity?.name ?? "Pengguna"}
                 </Typography>
-              ) : null}
-            </Box>
+                {identity?.email ? (
+                  <Typography
+                    variant="caption"
+                    sx={{ color: "text.secondary", fontSize: 11, display: "block" }}
+                  >
+                    {identity.email}
+                  </Typography>
+                ) : null}
+              </Box>
+            </Stack>
           </Stack>
         </Box>
       ) : (
-        // Mobile header - AppBar simpel
         <AppBar
           position="sticky"
           color="default"
           elevation={0}
-          sx={{ borderBottom: 1, borderColor: "divider" }}
+          sx={{
+            borderBottom: "1px solid",
+            borderColor: "divider",
+            backgroundColor: theme.palette.background.paper,
+          }}
         >
-          <Toolbar sx={{ gap: 1, justifyContent: "space-between" }}>
+          <Toolbar sx={{ gap: 1, justifyContent: "space-between", minHeight: 48, px: 2 }}>
             <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flex: 1 }}>
               <IconButton
-                color="primary"
+                color="default"
                 aria-label={mobileNavOpen ? "Tutup navigasi" : "Buka navigasi"}
                 onClick={() => setMobileNavOpen((prev) => !prev)}
+                size="small"
               >
-                <Menu size={20} />
+                <Menu size={18} />
               </IconButton>
-              <Typography variant="h6" component="h1" sx={{ fontWeight: 700, fontSize: 16 }}>
+              <Typography variant="h6" component="h1" sx={{ fontWeight: 600, fontSize: 15 }}>
                 {pageTitle}
               </Typography>
             </Stack>
             <Stack direction="row" spacing={1} alignItems="center">
               <Tooltip title="Cari">
-                <IconButton color="primary" aria-label="Buka pencarian" size="small">
-                  <Search size={18} />
+                <IconButton color="default" aria-label="Buka pencarian" size="small">
+                  <Search size={16} />
                 </IconButton>
               </Tooltip>
               <Tooltip title={mode === "dark" ? "Matikan mode gelap" : "Aktifkan mode gelap"}>
                 <IconButton
                   onClick={toggleMode}
-                  color="primary"
+                  color="default"
                   aria-label={mode === "dark" ? "Matikan mode gelap" : "Aktifkan mode gelap"}
                   size="small"
                 >
-                  {mode === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+                  {mode === "dark" ? <Sun size={16} /> : <Moon size={16} />}
                 </IconButton>
               </Tooltip>
               <Avatar
                 sx={{
-                  bgcolor: alpha(theme.palette.primary.main, 0.12),
+                  bgcolor: alpha(theme.palette.primary.main, 0.1),
                   color: theme.palette.primary.main,
-                  width: 32,
-                  height: 32,
+                  width: 28,
+                  height: 28,
+                  fontSize: 12,
+                  fontWeight: 600,
                 }}
               >
                 {identity?.name?.[0] ?? "P"}
@@ -907,19 +943,17 @@ export const AppLayout: React.FC = () => {
       )}
 
       {/* Main layout */}
-      <Box sx={{ display: "flex", minHeight: "calc(100vh - 80px)" }}>
+      <Box sx={{ display: "flex", minHeight: "calc(100vh - 56px)" }}>
         {/* Sidebar - desktop fixed, mobile drawer */}
         {isMdUp ? (
-          // Desktop sidebar (pertahankan tampilan lama)
           <Box
             component="aside"
             sx={{
-              width: sidebarCollapsed ? 100 : 292,
-              px: sidebarCollapsed ? 1 : 3,
-              py: 4,
-              borderRight: `1px solid ${alpha(theme.palette.text.secondary, 0.12)}`,
-              backgroundColor: theme.palette.mode === "dark" ? "#0b1220" : "#ffffff",
-              transition: "width 0.3s ease, padding 0.3s ease",
+              width: sidebarCollapsed ? 68 : 250,
+              borderRight: "1px solid",
+              borderColor: "divider",
+              backgroundColor: theme.palette.background.paper,
+              transition: "width 0.2s ease",
               overflow: "hidden",
               display: "flex",
               flexDirection: "column",
@@ -928,7 +962,6 @@ export const AppLayout: React.FC = () => {
             {sidebarContent}
           </Box>
         ) : (
-          // Mobile drawer
           <Drawer
             anchor="left"
             open={mobileNavOpen}
@@ -937,31 +970,31 @@ export const AppLayout: React.FC = () => {
             PaperProps={{
               sx: {
                 width: "85%",
-                maxWidth: 360,
-                backgroundColor: theme.palette.mode === "dark" ? "#0b1220" : "#ffffff",
+                maxWidth: 320,
+                backgroundColor: theme.palette.background.paper,
               },
             }}
           >
-            <Box sx={{ px: 3, py: 3 }}>
-              <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
+            <Box sx={{ px: 2.5, py: 2.5 }}>
+              <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
                 <Box
                   sx={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 12,
+                    width: 34,
+                    height: 34,
+                    borderRadius: "6px",
                     bgcolor: themeTokens.primary,
                     color: "#ffffff",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     fontWeight: 700,
-                    fontSize: 16,
+                    fontSize: 14,
                   }}
                 >
                   HN
                 </Box>
                 <Box>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600, fontSize: 14 }}>
                     SMA Harapan Nusantara
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
@@ -970,7 +1003,7 @@ export const AppLayout: React.FC = () => {
                 </Box>
               </Stack>
 
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
                 <Typography variant="caption" color="text.secondary">
                   Tahun Ajar:
                 </Typography>
@@ -981,41 +1014,45 @@ export const AppLayout: React.FC = () => {
                     label={activeTerm?.name ?? "Belum dipilih"}
                     color={activeTerm ? "primary" : "default"}
                     size="small"
-                    sx={{ fontWeight: 600, height: 24 }}
+                    variant="outlined"
+                    sx={{ fontWeight: 600, height: 22, fontSize: 11 }}
                   />
                 )}
               </Stack>
-              <Divider sx={{ mb: 2 }} />
+              <Divider sx={{ my: 1.5 }} />
             </Box>
 
-            <Box sx={{ flex: 1, overflowY: "auto", px: 2 }}>
+            <Box sx={{ flex: 1, overflowY: "auto", px: 1.5 }}>
               <List disablePadding>{renderNavItems(navItems)}</List>
             </Box>
 
             <Box
               sx={{
-                px: 3,
+                px: 2.5,
                 py: 2,
-                borderTop: `1px solid ${alpha(theme.palette.text.secondary, 0.08)}`,
+                borderTop: "1px solid",
+                borderColor: "divider",
               }}
             >
-              <Stack direction="row" spacing={2} alignItems="center">
+              <Stack direction="row" spacing={1.5} alignItems="center">
                 <Avatar
                   sx={{
-                    bgcolor: alpha(theme.palette.primary.main, 0.12),
+                    bgcolor: alpha(theme.palette.primary.main, 0.1),
                     color: theme.palette.primary.main,
-                    width: 36,
-                    height: 36,
+                    width: 32,
+                    height: 32,
+                    fontSize: 13,
+                    fontWeight: 600,
                   }}
                 >
                   {identity?.name?.[0] ?? "P"}
                 </Avatar>
                 <Box sx={{ flex: 1 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: 14 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: 13 }}>
                     {identity?.name ?? "Pengguna"}
                   </Typography>
                   {identity?.email ? (
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: 11 }}>
                       {identity.email}
                     </Typography>
                   ) : null}
@@ -1034,24 +1071,26 @@ export const AppLayout: React.FC = () => {
             justifyContent: "center",
             backgroundColor: theme.palette.background.default,
             overflow: "auto",
-            pb: isMdUp ? 0 : 7, // padding bottom untuk bottom nav di mobile
+            pb: isMdUp ? 0 : 7,
           }}
         >
           <Box
             sx={{
               width: "100%",
               px: { xs: 1.5, sm: 2, md: 2.5 },
-              py: { xs: 2, md: 3 },
+              py: { xs: 2, md: 2.5 },
             }}
           >
             <Box
               id={SKIP_LINK_ID}
               sx={{
                 bgcolor: theme.palette.background.paper,
-                borderRadius: 2,
-                boxShadow: "0 4px 20px rgba(0, 0, 0, 0.05)",
-                p: { xs: 2, sm: 3, md: 4 },
-                minHeight: "calc(100vh - 160px)",
+                borderRadius: `${themeTokens.cardBorderRadius}px`,
+                border: "1px solid",
+                borderColor: "divider",
+                boxShadow: mode === "dark" ? "none" : themeTokens.cardShadow,
+                p: { xs: 2, sm: 2.5, md: 3.5 },
+                minHeight: "calc(100vh - 120px)",
                 overflow: "visible",
               }}
             >
@@ -1073,7 +1112,7 @@ export const AppLayout: React.FC = () => {
             bottom: 0,
             left: 0,
             right: 0,
-            borderTop: 1,
+            borderTop: "1px solid",
             borderColor: "divider",
             backgroundColor: theme.palette.background.paper,
             zIndex: theme.zIndex.appBar,

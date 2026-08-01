@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   GraduationCap,
   CheckCircle2,
@@ -7,7 +7,6 @@ import {
   BarChart3,
   Calendar,
   ShieldCheck,
-  ChevronRight,
   Menu,
   X,
   ArrowRight,

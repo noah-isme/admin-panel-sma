@@ -423,11 +423,6 @@ export const ScheduleGeneratorPage: React.FC = () => {
                         </td>
                         {daySchedules.map((day) => {
                           const slot = day.slots.find((item) => item.slot === slotValue)!;
-                          const preference = slot.teacherId
-                            ? preferenceLookup.get(slot.teacherId)
-                            : hoveredTeacherId
-                              ? preferenceLookup.get(hoveredTeacherId)
-                              : undefined;
                           const highlightTeacherId =
                             hoveredTeacherId ?? slot.teacherId ?? undefined;
                           const match = highlightTeacherId

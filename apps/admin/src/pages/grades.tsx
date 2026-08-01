@@ -573,6 +573,12 @@ export const GradesPage: React.FC = () => {
     message.info(`Fitur ekspor ${kind.toUpperCase()} akan terhubung ke API backend.`);
   }, []);
 
+  const enterpriseCardStyle: React.CSSProperties = {
+    border: "1px solid #e2e8f0",
+    boxShadow: "none",
+    borderRadius: 6,
+  };
+
   const renderMobileCards = useCallback(
     () =>
       rows.length === 0 ? (
@@ -582,7 +588,7 @@ export const GradesPage: React.FC = () => {
           dataSource={rows}
           renderItem={(record) => (
             <List.Item key={record.id}>
-              <Card style={{ width: "100%" }}>
+              <Card style={{ width: "100%", ...enterpriseCardStyle }}>
                 <Space direction="vertical" size="small" style={{ width: "100%" }}>
                   <Space direction="vertical" size={2} style={{ width: "100%" }}>
                     <Typography.Text strong>{record.studentName}</Typography.Text>
@@ -640,6 +646,7 @@ export const GradesPage: React.FC = () => {
     return (
       <Table<GradeReportRow>
         rowKey="id"
+        size="small"
         columns={columns}
         dataSource={rows}
         loading={isFetching && rows.length === 0}
@@ -672,7 +679,7 @@ export const GradesPage: React.FC = () => {
             <Col xs={24} sm={12} md={12} lg={6} key={card.key}>
               <Card
                 bordered
-                style={{ borderTop: `3px solid ${card.tone}` }}
+                style={{ ...enterpriseCardStyle, borderTop: `3px solid ${card.tone}` }}
                 bodyStyle={{ minHeight: 112 }}
               >
                 <Space direction="vertical" size={4} style={{ width: "100%" }}>
@@ -692,7 +699,7 @@ export const GradesPage: React.FC = () => {
           ))}
         </Row>
 
-        <Card>
+        <Card style={enterpriseCardStyle}>
           <Space
             direction={isMobile ? "vertical" : "horizontal"}
             size={isMobile ? 12 : 16}
@@ -851,7 +858,7 @@ export const GradesPage: React.FC = () => {
         />
 
         {view === "distribution" ? (
-          <Card title="Distribusi nilai">
+          <Card title="Distribusi nilai" style={enterpriseCardStyle}>
             {distribution.length === 0 ? (
               <Empty description="Belum ada data distribusi" />
             ) : (
@@ -880,7 +887,7 @@ export const GradesPage: React.FC = () => {
             )}
           </Card>
         ) : view === "export" ? (
-          <Card title="Cetak dan ekspor laporan">
+          <Card title="Cetak dan ekspor laporan" style={enterpriseCardStyle}>
             <Space direction="vertical" size="large" style={{ width: "100%" }}>
               <Typography.Paragraph>
                 Ekspor laporan nilai berbasis filter aktif untuk dibagikan ke TU atau kepala
@@ -904,7 +911,7 @@ export const GradesPage: React.FC = () => {
             </Space>
           </Card>
         ) : (
-          <Card title="Daftar nilai">
+          <Card title="Daftar nilai" style={enterpriseCardStyle}>
             {rows.length === 0 ? (
               <Empty description="Belum ada nilai untuk filter ini" />
             ) : (

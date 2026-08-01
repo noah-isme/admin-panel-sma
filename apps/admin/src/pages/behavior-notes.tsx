@@ -42,19 +42,6 @@ export const BehaviorNotesPage: React.FC = () => {
   const students = (studentsQuery.data?.data as Record<string, any>[]) ?? [];
   const behaviorNotes = (behaviorNotesQuery.data?.data as Record<string, any>[]) ?? [];
 
-  const studentsPerClass = useMemo(() => {
-    const map = new Map<string, Record<string, any>[]>();
-    behaviorNotes.forEach((note) => {
-      const list = map.get(note.classroomId) ?? [];
-      const student = students.find((item) => item.id === note.studentId);
-      if (student && !list.some((item) => item.id === student.id)) {
-        list.push(student);
-        map.set(note.classroomId, list);
-      }
-    });
-    return map;
-  }, [behaviorNotes, students]);
-
   const filteredNotes = useMemo(() => {
     if (!classFilter) return behaviorNotes;
     return behaviorNotes.filter((note) => note.classroomId === classFilter);

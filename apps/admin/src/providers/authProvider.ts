@@ -16,7 +16,7 @@ const sanitizeBaseUrl = (rawUrl?: string) => {
   }
 
   // Fallback for build-time / non-browser environments
-  return "http://localhost:3000/api/v1";
+  return "http://localhost:8081/api/v1";
 };
 
 const ENABLE_MSW = (import.meta.env.VITE_USE_MSW ?? import.meta.env.VITE_ENABLE_MSW) === "true";
@@ -142,7 +142,9 @@ export const authProvider: AuthProvider = {
       // Accept any credentials in dev, but log the attempt.
       try {
         console.info("[authProvider][dev] mock login", { email, password: "••••" });
-      } catch {}
+      } catch {
+        // ignore
+      }
 
       const accessToken = "mock-access-token";
       const refreshToken = "mock-refresh-token";
@@ -165,7 +167,9 @@ export const authProvider: AuthProvider = {
       // Log the outgoing login attempt (mask password)
       try {
         console.info("[authProvider] POST", url, { email, password: "••••" });
-      } catch {}
+      } catch {
+        // ignore
+      }
 
       const response = await fetch(url, {
         method: "POST",
@@ -197,7 +201,9 @@ export const authProvider: AuthProvider = {
             Boolean(body && (body as any).access_token),
         };
         console.info("[authProvider] login response summary:", preview);
-      } catch {}
+      } catch {
+        // ignore
+      }
       const normalizedTokens = normalizeTokens(body ?? null);
 
       if (!normalizedTokens) {

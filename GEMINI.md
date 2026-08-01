@@ -2,51 +2,62 @@
 
 ## Project Overview
 
-This is a pnpm monorepo for a student attendance and grading management platform. It consists of three main applications:
+This is a **pnpm monorepo** for a student attendance & grading management platform (Admin Panel SMA). The backend was migrated from NestJS to **Go** and now lives in a separate repository, `sma-adp-api` (sibling at `../sma-adp-api`). This repo contains only the **frontend, shared types/schemas, and a BullMQ worker**.
 
-- **`@apps/api`**: A NestJS-based API that serves as the central backend for the platform. It uses Drizzle ORM for database access, BullMQ for background job processing, and Passport for authentication.
-- **`@apps/worker`**: A Node.js application that processes background jobs from a BullMQ queue.
-- **`@apps/admin`**: A Vite-based admin panel built with React and `@refinedev/antd`. It provides a user interface for managing the platform's data.
+### Workspaces
 
-The project uses a PostgreSQL database and Redis for the message queue.
+- **`@apps/admin`** — Admin panel built with **React 18 + Vite + Refine (`@refinedev/antd`)** + Ant Design + React Router v6. Data/auth/access-control providers live in `src/providers`. Data fetching via `@tanstack/react-query`. Mocks via **MSW** for frontend-only development.
+- **`@apps/shared`** — Shared Zod schemas, Drizzle ORM schema (`db/schema`), typed DB client (`db/client`), and constants (roles, queue names, security). ESM package, built to `output/` (`pnpm --filter @apps/shared build`).
+- **`@apps/worker`** — Node BullMQ worker. Currently implements only the `REPORT_PDF_QUEUE` (PDF rapor generation). ESM, reads the root `.env` via `tsx --env-file`.
+- **`@apps/landing`** — Public marketing/landing page (React + Vite + Tailwind).
+
+Backend API: **Go (Gin)** in `../sma-adp-api`, served at `http://localhost:8081/api/v1` (prefix `/api/v1`). Health at `/health`, Swagger at `/docs` (dev). Feature-flagged modules and endpoint availability are documented in `../sma-adp-api/docs/PROJECT_STATUS.md` and `../sma-adp-api/docs/FE_BE_MAPPING.md`.
 
 ## Building and Running
 
+### Prerequisites
+
+- Node.js 20+ and pnpm 9+ (`packageManager: pnpm@9.7.1`)
+- The Go backend from `../sma-adp-api` (run `make dev` there)
+- Postgres + Redis (Docker: `cd ../sma-adp-api && make docker-up`)
+
 ### Development
 
-To run all services in development mode, use the following command:
+From the repo root:
 
 ```bash
-pnpm dev
+pnpm install
+pnpm dev          # runs @apps/admin + @apps/landing concurrently
+pnpm --filter @apps/worker dev   # BullMQ worker (needs Postgres + Redis from root .env)
 ```
 
-This will start the API, worker, and admin panel in parallel.
-
-- API: `http://localhost:3000/api/v1`
-- Admin: `http://localhost:5173`
-
-### Build
-
-To build all applications, run:
+Start the Go API in a separate terminal:
 
 ```bash
-pnpm build
+cd ../sma-adp-api && make dev   # http://localhost:8081/api/v1
 ```
 
-### Testing
+- Admin UI: `http://localhost:5173`
+- API base resolved by the admin from `VITE_API_URL` (default `http://localhost:8081/api/v1`); in MSW/dev it falls back to same-origin `/api`.
 
-To run all tests, run:
+### Build & Test
 
 ```bash
-pnpm test
+pnpm build        # builds all workspaces (pnpm -r build)
+pnpm test         # vitest across workspaces
+pnpm --filter @apps/admin test:e2e   # Playwright e2e
+pnpm lint         # ESLint (v9 flat config)
+pnpm typecheck    # tsc -b
+pnpm format       # Prettier across workspaces
 ```
 
 ## Development Conventions
 
-- **Linting**: ESLint is used for linting. To run the linter, use `pnpm lint`.
-- **Formatting**: Prettier is used for code formatting. To format the code, use `pnpm format`.
-- **Git Hooks**: Husky is used to run pre-commit hooks.
-- **Database Migrations**: `drizzle-kit` is used for database migrations.
-  - `pnpm --filter @apps/api migrate:generate`: Generate a new migration.
-  - `pnpm --filter @apps/api migrate:push`: Apply migrations.
-- **Database Seeding**: `pnpm --filter @apps/api seed` to seed the database.
+- **Linting/formatting**: ESLint v9 flat config (`eslint.config.js`); Prettier; Husky `pre-commit` runs `lint-staged` → `prettier --write`.
+- **Shared package**: ESM (`"type": "module"`); all relative imports need `.js` extensions; build to `output/` before the worker can compile. When adding a domain contract, add a Zod schema in `apps/shared/src/schemas/` and export it from `schemas/index.ts`.
+- **Path aliases** (admin): `@/*` → `src/*`, `@shared/*` → `../shared/src/*` (defined in `apps/admin/tsconfig.json` and `vite.config.ts`). Do not use `@api/*` (the NestJS app is gone).
+- **Admin data flow**: `dataProvider.ts` (axios) maps Refine resources to REST endpoints (GET list/get, POST create, PATCH update, DELETE). Auth tokens stored in `localStorage` under `access_token`/`refresh_token`; a Bearer header is added by an axios interceptor. `authProvider.ts` posts to `/auth/login`, unwraps the `{ data: {...} }` envelope and accepts both snake_case and camelCase token fields. RBAC is client-side via `accessControlProvider.ts` (roles: SUPERADMIN, ADMIN_TU, WALI_KELAS, GURU_MAPEL, KEPALA_SEKOLAH, SISWA, ORTU).
+- **API contract**: the Go backend returns **snake_case** JSON wrapped in `{ "data": ... }` (see `pkg/response/response.go` in the API repo). Login returns `access_token`, `refresh_token`, `expires_in`, `user`, `issued_at`.
+- **Worker (ESM gotchas)**: `pg` is CommonJS — import default then destructure (`import pkg from "pg"; const { Pool } = pkg`); use `InstanceType<typeof Pool>` for types. `bullmq`/`ioredis` support named ESM imports.
+
+> Source of truth for the backend is `../sma-adp-api/docs/PROJECT_STATUS.md`. For the frontend↔backend endpoint map, see `../sma-adp-api/docs/FE_BE_MAPPING.md`.

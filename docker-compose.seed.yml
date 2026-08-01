@@ -20,9 +20,8 @@ services:
       - |
         # ensure pnpm is available (some node images don't include corepack)
         npm install -g pnpm@latest && \
-        cd /workspace/apps/api && \
-        pnpm install --frozen-lockfile --filter @apps/api... || pnpm install --filter @apps/api... && \
-        pnpm run seed
+        cd /workspace/apps/admin && \
+        pnpm install --frozen-lockfile --filter @apps/admin... || pnpm install --filter @apps/admin...
 
 # Note: this file is intended to be used together with docker-compose.dev.yml:
 # docker compose -f docker-compose.dev.yml -f docker-compose.seed.yml up --abort-on-container-exit --exit-code-from seed

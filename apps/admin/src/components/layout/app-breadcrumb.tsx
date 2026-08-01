@@ -82,12 +82,22 @@ const isIdLike = (segment: string) => {
 const buildBreadcrumbItems = (pathname: string, navigateTo: (path: string) => void): ItemType[] => {
   const segments = pathname.split("/").filter(Boolean);
   if (segments.length === 0) {
-    return [{ title: <Typography.Text strong>Dashboard</Typography.Text> }];
+    return [
+      {
+        title: (
+          <Typography.Text style={{ fontSize: 13, fontWeight: 600 }}>Dashboard</Typography.Text>
+        ),
+      },
+    ];
   }
 
   const items: ItemType[] = [
     {
-      title: <Typography.Link onClick={() => navigateTo("/")}>Dashboard</Typography.Link>,
+      title: (
+        <Typography.Link onClick={() => navigateTo("/")} style={{ fontSize: 13 }}>
+          Dashboard
+        </Typography.Link>
+      ),
     },
   ];
 
@@ -106,12 +116,16 @@ const buildBreadcrumbItems = (pathname: string, navigateTo: (path: string) => vo
 
     if (isLast || isButtonRoute || isParam || index >= clickableUntil) {
       items.push({
-        title: <Typography.Text strong>{label}</Typography.Text>,
+        title: <Typography.Text style={{ fontSize: 13, fontWeight: 600 }}>{label}</Typography.Text>,
       });
     } else {
       const targetPath = accumulatedPath;
       items.push({
-        title: <Typography.Link onClick={() => navigateTo(targetPath)}>{label}</Typography.Link>,
+        title: (
+          <Typography.Link onClick={() => navigateTo(targetPath)} style={{ fontSize: 13 }}>
+            {label}
+          </Typography.Link>
+        ),
       });
     }
   });
@@ -141,5 +155,5 @@ export const AppBreadcrumb: React.FC = () => {
     return null;
   }
 
-  return <Breadcrumb style={{ marginBottom: 16 }} items={items} separator=">" />;
+  return <Breadcrumb style={{ marginBottom: 12 }} items={items} separator="/" />;
 };

@@ -1,3 +1,15 @@
+> ⚠️ **Historical document — partially superseded by the Go backend migration.**
+>
+> This frontend plan was written **before** the backend was migrated from **NestJS → Go**. References to `@nestjs/swagger`, `/docs` on the NestJS API, and an `apps/web/` structure are outdated. The implemented frontend now lives in `apps/admin/` (React + Vite + **Refine/AntD**), the API is Go at `../sma-adp-api` (`/api/v1`, Swagger at `/docs`), and API mocking uses **MSW**.
+>
+> The persona UX flows and delivery roadmap below are still useful as product context. For the current technical contract, see:
+>
+> - `../sma-adp-api/docs/FE_BE_MAPPING.md` — frontend ↔ backend endpoint map
+> - `../sma-adp-api/docs/PROJECT_STATUS.md` — per-phase progress & active blockers
+> - Root `README.md` — current setup & architecture
+
+---
+
 # Frontend & Delivery Plan – Admin Panel Sekolah
 
 ## 1. Stack & Struktur

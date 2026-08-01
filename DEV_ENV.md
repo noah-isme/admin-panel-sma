@@ -1,26 +1,35 @@
-Local dev stack (Postgres + Redis) and seeding
+Local dev stack (Postgres + Redis) for Go API and Admin Frontend
 
-This repository includes a small Docker Compose setup for running a local Postgres + Redis stack and a helper service to run the API seed script inside a Node container.
+This repository includes a Docker Compose setup for running a local Postgres + Redis stack, with the Go API (sma-adp-api) and Admin frontend.
 
-Start the database and redis services:
+Start the database and redis services (for Go API):
 
-docker compose -f docker-compose.dev.yml up -d
+```bash
+cd /home/noah/project/sma/sma-adp-api && make docker-up
+```
 
-Run the seeder (uses the project's pnpm lock to install only the API package deps and run the seed script):
+Run database migrations and seed data for Go API:
 
-docker compose -f docker-compose.dev.yml -f docker-compose.seed.yml up --abort-on-container-exit --exit-code-from seed
+```bash
+cd /home/noah/project/sma/sma-adp-api
+migrate -path migrations -database "postgresql://postgres:postgres@localhost:5432/admin_panel_sma?sslmode=disable" up
+psql "postgresql://postgres:postgres@localhost:5432/admin_panel_sma?sslmode=disable" -f scripts/seed.sql
+```
 
-This will:
+Start Go API server:
 
-- Start Postgres and Redis defined in docker-compose.dev.yml
-- Launch a Node container to run the seed script (apps/api/src/db/seed.ts)
-- Exit with the seed service's exit code (0 for success)
+```bash
+cd /home/noah/project/sma/sma-adp-api && make dev
+```
+
+Start Admin frontend:
+
+```bash
+cd /home/noah/project/sma/admin-panel-sma/apps/admin && pnpm dev
+```
 
 Notes:
 
-- The seed uses DATABASE_URL=postgres://sma:sma@postgres:5432/sma_dev and REDIS_URL=redis://redis:6379 inside the seed container (these point to the docker service names).
-- If you prefer to run the seed locally without Docker:
-  - Ensure Postgres and Redis are running and set DATABASE_URL and REDIS_URL accordingly
-  - Run: pnpm --filter @apps/api run seed
-
-If you want, I can also add a compose target to run the API server and the admin frontend in dev mode.
+- The Go API (sma-adp-api) uses DATABASE_URL=postgres://postgres:postgres@localhost:5432/admin_panel_sma and REDIS_URL=redis://localhost:6379
+- The Admin frontend connects to Go API at http://localhost:8081/api/v1 (configured via VITE_API_URL)
+- NestJS backend has been removed; backend is now Go-based

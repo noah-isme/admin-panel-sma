@@ -404,7 +404,7 @@ export const CalendarPage: React.FC = () => {
     const termStart = dayjs(selectedTerm.startDate).startOf("day");
     const termEnd = dayjs(selectedTerm.endDate).endOf("day");
 
-    let clampedStart = start.isBefore(termStart) ? termStart : start;
+    const clampedStart = start.isBefore(termStart) ? termStart : start;
     let clampedEnd = end.isAfter(termEnd) ? termEnd : end;
 
     if (clampedEnd.isBefore(clampedStart)) {
@@ -429,8 +429,6 @@ export const CalendarPage: React.FC = () => {
     useCreate<CreateCalendarEventPayload>();
 
   const filteredEvents = eventsQuery.filteredEvents;
-  const allEvents = eventsQuery.events;
-
   const searchMatches = useMemo(() => {
     const normalized = searchValue.trim().toLowerCase();
     if (!normalized) {
@@ -738,6 +736,12 @@ export const CalendarPage: React.FC = () => {
     }
   }, [createEvent, eventsQuery, form, notify, selectedTermId]);
 
+  const enterpriseCardStyle: React.CSSProperties = {
+    border: "1px solid #e2e8f0",
+    boxShadow: "none",
+    borderRadius: 6,
+  };
+
   const listView = useMemo(() => {
     if (!listDays.length) {
       return (
@@ -754,7 +758,7 @@ export const CalendarPage: React.FC = () => {
           const key = day.format("YYYY-MM-DD");
           const dayEvents = eventsByDate[key] ?? [];
           return (
-            <Card key={key} size="small" bodyStyle={{ padding: 16 }}>
+            <Card key={key} size="small" bodyStyle={{ padding: 16 }} style={enterpriseCardStyle}>
               <Space
                 align="center"
                 style={{ justifyContent: "space-between", width: "100%", flexWrap: "wrap" }}
@@ -779,6 +783,7 @@ export const CalendarPage: React.FC = () => {
                         size="small"
                         hoverable
                         onClick={() => setSelectedEvent(event)}
+                        style={enterpriseCardStyle}
                         bodyStyle={{
                           padding: 12,
                           borderLeft: `4px solid ${event.color}`,
@@ -843,7 +848,7 @@ export const CalendarPage: React.FC = () => {
         </Typography.Text>
       </Space>
 
-      <Card>
+      <Card style={enterpriseCardStyle}>
         <Space
           direction={isMobile ? "vertical" : "horizontal"}
           size={isMobile ? 12 : 16}
@@ -893,7 +898,7 @@ export const CalendarPage: React.FC = () => {
         </Space>
       </Card>
 
-      <Card>
+      <Card style={enterpriseCardStyle}>
         <Space
           direction={isMobile ? "vertical" : "horizontal"}
           size={16}

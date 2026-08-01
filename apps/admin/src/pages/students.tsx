@@ -101,6 +101,12 @@ const formatBirthYearRange = (range: [number | undefined, number | undefined]) =
   return undefined;
 };
 
+const enterpriseCardStyle: React.CSSProperties = {
+  border: "1px solid #e2e8f0",
+  boxShadow: "none",
+  borderRadius: 6,
+};
+
 export const StudentsPage: React.FC = () => {
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
@@ -408,7 +414,7 @@ export const StudentsPage: React.FC = () => {
         dataSource={rows}
         renderItem={(record) => (
           <List.Item key={record.id}>
-            <Card style={{ width: "100%" }}>
+            <Card style={{ width: "100%", ...enterpriseCardStyle }}>
               <Space direction="vertical" size="small" style={{ width: "100%" }}>
                 <Space direction="vertical" size={2}>
                   <Typography.Text strong>{record.fullName}</Typography.Text>
@@ -462,6 +468,7 @@ export const StudentsPage: React.FC = () => {
     return (
       <Table<StudentRosterRow>
         rowKey="id"
+        size="small"
         columns={columns}
         dataSource={rows}
         loading={isFetching && rows.length === 0}
@@ -486,7 +493,7 @@ export const StudentsPage: React.FC = () => {
 
         <Row gutter={[16, 16]}>
           <Col xs={24} sm={12} md={8}>
-            <Card>
+            <Card style={enterpriseCardStyle}>
               <Statistic
                 title="Total siswa"
                 value={summary?.totalStudents ?? 0}
@@ -498,7 +505,7 @@ export const StudentsPage: React.FC = () => {
             </Card>
           </Col>
           <Col xs={24} sm={12} md={8}>
-            <Card>
+            <Card style={enterpriseCardStyle}>
               <Statistic
                 title="Tingkat keaktifan"
                 suffix="%"
@@ -516,7 +523,7 @@ export const StudentsPage: React.FC = () => {
             </Card>
           </Col>
           <Col xs={24} sm={12} md={8}>
-            <Card>
+            <Card style={enterpriseCardStyle}>
               <Typography.Text strong>Distribusi gender</Typography.Text>
               <Space direction="vertical" style={{ width: "100%", marginTop: 8 }}>
                 {summary?.genderBreakdown.map((entry) => (
@@ -532,7 +539,7 @@ export const StudentsPage: React.FC = () => {
           </Col>
         </Row>
 
-        <Card>
+        <Card style={enterpriseCardStyle}>
           <Row
             gutter={[16, 16]}
             justify="space-between"
@@ -683,7 +690,7 @@ export const StudentsPage: React.FC = () => {
 
         {view === "insights" ? (
           <Space direction="vertical" size="large" style={{ width: "100%" }}>
-            <Card title="Sebaran kelas">
+            <Card title="Sebaran kelas" style={enterpriseCardStyle}>
               {summary?.classDistribution.length ? (
                 <List
                   dataSource={summary.classDistribution}
@@ -700,11 +707,11 @@ export const StudentsPage: React.FC = () => {
                 <Empty description="Belum ada data sebaran kelas" />
               )}
             </Card>
-            <Card title="Status siswa">
+            <Card title="Status siswa" style={enterpriseCardStyle}>
               <Row gutter={[16, 16]}>
                 {summary?.statusBreakdown.map((status) => (
                   <Col xs={24} sm={12} md={6} key={status.status}>
-                    <Card>
+                    <Card style={enterpriseCardStyle}>
                       <Statistic
                         title={status.label}
                         value={status.count}
@@ -721,7 +728,9 @@ export const StudentsPage: React.FC = () => {
             </Card>
           </Space>
         ) : (
-          <Card title="Daftar siswa">{renderTable}</Card>
+          <Card title="Daftar siswa" style={enterpriseCardStyle}>
+            {renderTable}
+          </Card>
         )}
       </Space>
     </Spin>

@@ -44,11 +44,14 @@ import {
   ContainerOutlined,
   DashboardOutlined,
   DeploymentUnitOutlined,
+  ExportOutlined,
   FileDoneOutlined,
+  FolderOpenOutlined,
   NotificationOutlined,
   ReadOutlined,
   ScheduleOutlined,
   SolutionOutlined,
+  SwapOutlined,
   TeamOutlined,
   UserOutlined,
 } from "@ant-design/icons";
@@ -72,6 +75,9 @@ import { ScheduleGeneratorPage } from "./pages/schedule-generator";
 import { TeacherPreferencesPage } from "./pages/teacher-preferences";
 import { CalendarPage } from "./pages/calendar";
 import { UsersPage } from "./pages/users";
+import { MutationsPage } from "./pages/mutations";
+import { ArchivesPage } from "./pages/archives";
+import { ReportsPage } from "./pages/reports";
 import { HomeroomAssignmentsPage } from "./pages/homeroom-assignments";
 import ConfigurationPage from "./pages/configuration";
 import { StudentsPage } from "./pages/students";
@@ -81,6 +87,7 @@ import "@refinedev/antd/dist/reset.css";
 import "antd/dist/reset.css";
 
 import { ThemeProvider } from "./theme/theme-provider";
+import { ErrorBoundary } from "./components/error-boundary";
 
 // render app after optional mock bootstrap (below)
 
@@ -352,6 +359,42 @@ const resources = [
       icon: <DeploymentUnitOutlined />,
     },
   },
+  {
+    name: "mutations",
+    list: "/mutations",
+    meta: {
+      label: "Mutasi",
+      canCreate: true,
+      canEdit: false,
+      canDelete: false,
+      canShow: false,
+      icon: <SwapOutlined />,
+    },
+  },
+  {
+    name: "archives",
+    list: "/archives",
+    meta: {
+      label: "Arsip",
+      canCreate: true,
+      canEdit: false,
+      canDelete: true,
+      canShow: false,
+      icon: <FolderOpenOutlined />,
+    },
+  },
+  {
+    name: "reports",
+    list: "/reports",
+    meta: {
+      label: "Laporan",
+      canCreate: true,
+      canEdit: false,
+      canDelete: false,
+      canShow: false,
+      icon: <ExportOutlined />,
+    },
+  },
 ] as const;
 
 const resourceRouteConfig: Record<
@@ -406,11 +449,22 @@ const resourceRouteConfig: Record<
   },
   homerooms: {},
   users: {},
+  dashboard: {},
+  settings: {},
+  "teacher-preferences": {},
+  mutations: {},
+  archives: {},
+  reports: {},
 };
 
 const dataProvider = resolveDataProvider();
-const ENABLE_MSW = (import.meta.env.VITE_USE_MSW ?? import.meta.env.VITE_ENABLE_MSW) === "true";
-const shouldStartMSW = import.meta.env.DEV || ENABLE_MSW;
+// In production, MSW must NEVER be active — it can crash the app when
+// importing ./mocks/browser in a bundled context.  Only enable when
+// explicitly running in dev mode or when the flag is truthy AND we are
+// actually in dev.
+const ENABLE_MSW =
+  (import.meta.env.VITE_USE_MSW ?? import.meta.env.VITE_ENABLE_MSW) === "true" &&
+  import.meta.env.DEV;
 
 // Feature flag untuk mematikan layout kustom via env
 const disableCustomLayout = import.meta.env.VITE_DISABLE_CUSTOM_LAYOUT === "true";
@@ -422,10 +476,9 @@ if (disableCustomLayout) {
 const LayoutWrapper: React.FC = () => (disableCustomLayout ? <Outlet /> : <AppLayout />);
 
 async function bootstrap() {
-  if (shouldStartMSW) {
+  if (ENABLE_MSW) {
     try {
       // prefer a start helper if present, otherwise call worker.start()
-      // @ts-ignore
       const mswMod = await import("./mocks/browser");
       if (typeof (mswMod as any).startWorker === "function") {
         await (mswMod as any).startWorker({ onUnhandledRequest: "bypass" });
@@ -437,173 +490,187 @@ async function bootstrap() {
       ) {
         await (mswMod as any).default.worker.start({ onUnhandledRequest: "bypass" });
       } else {
-        // eslint-disable-next-line no-console
         console.warn("MSW: couldn't find a start entry on ./mocks/browser", Object.keys(mswMod));
       }
-      // eslint-disable-next-line no-console
       console.info(`MSW bootstrap complete (${import.meta.env.DEV ? "dev" : "env flag"})`);
     } catch (err) {
-      // eslint-disable-next-line no-console
       console.warn("MSW failed to start:", err instanceof Error ? err.message : String(err));
     }
   }
 
   ReactDOM.createRoot(document.getElementById("root")!).render(
     <React.StrictMode>
-      <BrowserRouter basename="/admin">
-        <QueryClientProvider client={queryClient}>
-          <ThemeProvider>
-            <Refine
-              dataProvider={dataProvider}
-              authProvider={authProvider}
-              accessControlProvider={accessControlProvider}
-              notificationProvider={notificationProvider}
-              routerProvider={routerProvider}
-              resources={resources.map(({ name, list, create, edit, show, meta }) => ({
-                name,
-                list,
-                create,
-                edit,
-                show,
-                meta,
-              }))}
-              options={{
-                syncWithLocation: true,
-                warnWhenUnsavedChanges: false,
-              }}
-            >
-              <Routes>
-                <Route
-                  element={
-                    <Authenticated key="authenticated-routes" fallback={<LoginPage />}>
-                      <LayoutWrapper />
-                    </Authenticated>
-                  }
-                >
-                  <Route index element={<NavigateToResource resource={resources[0].name} />} />
-                  {resources.map((resource) => (
-                    <Route key={resource.name} path={resource.name}>
-                      <Route
-                        index
-                        element={
-                          resource.name === "dashboard" ? (
-                            <DashboardPage />
-                          ) : resource.name === "students" ? (
-                            <StudentsPage />
-                          ) : resource.name === "teachers" ? (
-                            <TeachersPage />
-                          ) : resource.name === "users" ? (
-                            <UsersPage />
-                          ) : resource.name === "homerooms" ? (
-                            <HomeroomAssignmentsPage />
-                          ) : resource.name === "grade-configs" ? (
-                            <GradeConfigPage />
-                          ) : resource.name === "announcements" ? (
-                            <AnnouncementsPage />
-                          ) : resource.name === "behavior-notes" ? (
-                            <BehaviorNotesPage />
-                          ) : resource.name === "calendar" ? (
-                            <CalendarPage />
-                          ) : resource.name === "attendance" ? (
-                            <AttendanceAnalyticsPage />
-                          ) : resource.name === "schedules" ? (
-                            <SchedulesPage />
-                          ) : resource.name === "grades" ? (
-                            <GradesPage />
-                          ) : resource.name === "classes" ? (
-                            <ClassesPage />
-                          ) : (
-                            <ResourceList />
-                          )
-                        }
-                      />
-                      {resourceRouteConfig[resource.name]?.create ? (
-                        <Route path="create" element={resourceRouteConfig[resource.name]!.create} />
-                      ) : null}
-                      {resourceRouteConfig[resource.name]?.edit ? (
-                        <Route path="edit/:id" element={resourceRouteConfig[resource.name]!.edit} />
-                      ) : null}
-                      {resource.name === "classes" ? (
-                        <Route path="show/:id" element={<ClassesShow />} />
-                      ) : null}
-                      {resource.name === "attendance" ? (
-                        <>
+      <ErrorBoundary>
+        <BrowserRouter basename="/admin">
+          <QueryClientProvider client={queryClient}>
+            <ThemeProvider>
+              <Refine
+                dataProvider={dataProvider}
+                authProvider={authProvider}
+                accessControlProvider={accessControlProvider}
+                notificationProvider={notificationProvider}
+                routerProvider={routerProvider}
+                resources={resources.map(({ name, list, create, edit, show, meta }) => ({
+                  name,
+                  list,
+                  create,
+                  edit,
+                  show,
+                  meta,
+                }))}
+                options={{
+                  syncWithLocation: true,
+                  warnWhenUnsavedChanges: false,
+                }}
+              >
+                <Routes>
+                  <Route
+                    element={
+                      <Authenticated key="authenticated-routes" fallback={<LoginPage />}>
+                        <LayoutWrapper />
+                      </Authenticated>
+                    }
+                  >
+                    <Route index element={<NavigateToResource resource={resources[0].name} />} />
+                    {resources.map((resource) => (
+                      <Route key={resource.name} path={resource.name}>
+                        <Route
+                          index
+                          element={
+                            resource.name === "dashboard" ? (
+                              <DashboardPage />
+                            ) : resource.name === "students" ? (
+                              <StudentsPage />
+                            ) : resource.name === "teachers" ? (
+                              <TeachersPage />
+                            ) : resource.name === "users" ? (
+                              <UsersPage />
+                            ) : resource.name === "homerooms" ? (
+                              <HomeroomAssignmentsPage />
+                            ) : resource.name === "grade-configs" ? (
+                              <GradeConfigPage />
+                            ) : resource.name === "announcements" ? (
+                              <AnnouncementsPage />
+                            ) : resource.name === "behavior-notes" ? (
+                              <BehaviorNotesPage />
+                            ) : resource.name === "calendar" ? (
+                              <CalendarPage />
+                            ) : resource.name === "attendance" ? (
+                              <AttendanceAnalyticsPage />
+                            ) : resource.name === "schedules" ? (
+                              <SchedulesPage />
+                            ) : resource.name === "grades" ? (
+                              <GradesPage />
+                            ) : resource.name === "classes" ? (
+                              <ClassesPage />
+                            ) : resource.name === "mutations" ? (
+                              <MutationsPage />
+                            ) : resource.name === "archives" ? (
+                              <ArchivesPage />
+                            ) : resource.name === "reports" ? (
+                              <ReportsPage />
+                            ) : (
+                              <ResourceList />
+                            )
+                          }
+                        />
+                        {resourceRouteConfig[resource.name]?.create ? (
                           <Route
-                            path="daily"
-                            element={
-                              <ResourceActionGuard action="create" resourceName="attendance">
-                                <AttendanceDailyPage />
-                              </ResourceActionGuard>
-                            }
+                            path="create"
+                            element={resourceRouteConfig[resource.name]!.create}
                           />
+                        ) : null}
+                        {resourceRouteConfig[resource.name]?.edit ? (
                           <Route
-                            path="lesson"
-                            element={
-                              <ResourceActionGuard action="create" resourceName="attendance">
-                                <AttendanceLessonPage />
-                              </ResourceActionGuard>
-                            }
+                            path="edit/:id"
+                            element={resourceRouteConfig[resource.name]!.edit}
                           />
-                        </>
-                      ) : resource.name === "schedules" ? (
-                        <>
-                          <Route
-                            path="generator"
-                            element={
-                              <ResourceActionGuard action="edit" resourceName="schedules">
-                                <ScheduleGeneratorPage />
-                              </ResourceActionGuard>
-                            }
-                          />
+                        ) : null}
+                        {resource.name === "classes" ? (
+                          <Route path="show/:id" element={<ClassesShow />} />
+                        ) : null}
+                        {resource.name === "attendance" ? (
+                          <>
+                            <Route
+                              path="daily"
+                              element={
+                                <ResourceActionGuard action="create" resourceName="attendance">
+                                  <AttendanceDailyPage />
+                                </ResourceActionGuard>
+                              }
+                            />
+                            <Route
+                              path="lesson"
+                              element={
+                                <ResourceActionGuard action="create" resourceName="attendance">
+                                  <AttendanceLessonPage />
+                                </ResourceActionGuard>
+                              }
+                            />
+                          </>
+                        ) : resource.name === "schedules" ? (
+                          <>
+                            <Route
+                              path="generator"
+                              element={
+                                <ResourceActionGuard action="edit" resourceName="schedules">
+                                  <ScheduleGeneratorPage />
+                                </ResourceActionGuard>
+                              }
+                            />
 
-                          <Route
-                            path="preferences"
-                            element={
-                              <ResourceActionGuard action="edit" resourceName="teacher-preferences">
-                                <TeacherPreferencesPage />
-                              </ResourceActionGuard>
-                            }
-                          />
-                        </>
-                      ) : null}
-                    </Route>
-                  ))}
-                  <Route
-                    path="setup"
-                    element={
-                      <ResourceActionGuard action="create" resourceName="terms">
-                        <SetupWizard />
-                      </ResourceActionGuard>
-                    }
-                  />
-                  <Route
-                    path="setup/import-status"
-                    element={
-                      <ResourceActionGuard action="list" resourceName="students">
-                        <ImportStatusPage />
-                      </ResourceActionGuard>
-                    }
-                  />
-                  <Route
-                    path="configuration"
-                    element={
-                      <ResourceActionGuard action="edit" resourceName="settings">
-                        <ConfigurationPage />
-                      </ResourceActionGuard>
-                    }
-                  />
-                </Route>
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="*" element={<ErrorComponent />} />
-              </Routes>
+                            <Route
+                              path="preferences"
+                              element={
+                                <ResourceActionGuard
+                                  action="edit"
+                                  resourceName="teacher-preferences"
+                                >
+                                  <TeacherPreferencesPage />
+                                </ResourceActionGuard>
+                              }
+                            />
+                          </>
+                        ) : null}
+                      </Route>
+                    ))}
+                    <Route
+                      path="setup"
+                      element={
+                        <ResourceActionGuard action="create" resourceName="terms">
+                          <SetupWizard />
+                        </ResourceActionGuard>
+                      }
+                    />
+                    <Route
+                      path="setup/import-status"
+                      element={
+                        <ResourceActionGuard action="list" resourceName="students">
+                          <ImportStatusPage />
+                        </ResourceActionGuard>
+                      }
+                    />
+                    <Route
+                      path="configuration"
+                      element={
+                        <ResourceActionGuard action="edit" resourceName="settings">
+                          <ConfigurationPage />
+                        </ResourceActionGuard>
+                      }
+                    />
+                  </Route>
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="*" element={<ErrorComponent />} />
+                </Routes>
 
-              <DocumentTitleHandler />
-              <UnsavedChangesNotifier />
-              <RouteDebugger />
-            </Refine>
-          </ThemeProvider>
-        </QueryClientProvider>
-      </BrowserRouter>
+                <DocumentTitleHandler />
+                <UnsavedChangesNotifier />
+                <RouteDebugger />
+              </Refine>
+            </ThemeProvider>
+          </QueryClientProvider>
+        </BrowserRouter>
+      </ErrorBoundary>
     </React.StrictMode>
   );
 }

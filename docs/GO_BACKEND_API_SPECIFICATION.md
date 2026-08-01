@@ -28,6 +28,38 @@
 
 ---
 
+## 📦 Response Envelope & Field Naming (IMPORTANT)
+
+The implemented Go backend (`sma-adp-api`) wraps **every** JSON success response in a common envelope and uses **snake_case** field names throughout. The per-endpoint examples below were written before the NestJS → Go migration and show **camelCase** fields at the top level — treat them as illustrative of the payload shape only. The actual contract is:
+
+- **Success:** `{ "data": <resource or array>, "pagination": {...}, "meta": {...} }` (see `pkg/response/response.go`).
+- **Error:** `{ "error": { "code": "...", "message": "...", ... } }`.
+- Field names are **snake_case**: `access_token`, `refresh_token`, `expires_in`, `full_name`, `created_at`, etc.
+- `POST`/`PUT`/`PATCH` create/update return `201`/`200` with the resource inside `data`; `DELETE` and password changes return `204 No Content` (empty body).
+
+Example — `POST /api/v1/auth/login` actual response:
+
+```json
+{
+  "data": {
+    "access_token": "eyJhbGciOiJIUzI1NiIs...",
+    "refresh_token": "eyJhbGciOiJIUzI1NiIs...",
+    "expires_in": 3600,
+    "issued_at": "2026-07-12T00:00:00Z",
+    "user": {
+      "id": "user_123",
+      "email": "admin@harapannusantara.sch.id",
+      "full_name": "Admin Tata Usaha",
+      "role": "ADMIN_TU"
+    }
+  }
+}
+```
+
+Canonical live examples are in the repository root `README.md` ("Contoh curl endpoint utama") and the generated Swagger served at `/docs`.
+
+---
+
 ## 🔐 1. Authentication & Authorization
 
 ### POST /api/v1/auth/login
@@ -47,19 +79,17 @@
 
 ```json
 {
-  "accessToken": "eyJhbGciOiJIUzI1NiIs...",
-  "refreshToken": "eyJhbGciOiJIUzI1NiIs...",
-  "expiresIn": 3600,
-  "refreshExpiresIn": 86400,
-  "tokenType": "Bearer",
-  "user": {
-    "id": "user_123",
-    "email": "admin@harapannusantara.sch.id",
-    "fullName": "Admin Tata Usaha",
-    "role": "ADMIN_TU",
-    "teacherId": null,
-    "studentId": null,
-    "classId": null
+  "data": {
+    "access_token": "eyJhbGciOiJIUzI1NiIs...",
+    "refresh_token": "eyJhbGciOiJIUzI1NiIs...",
+    "expires_in": 3600,
+    "issued_at": "2026-07-12T00:00:00Z",
+    "user": {
+      "id": "user_123",
+      "email": "admin@harapannusantara.sch.id",
+      "full_name": "Admin Tata Usaha",
+      "role": "ADMIN_TU"
+    }
   }
 }
 ```
@@ -85,13 +115,12 @@ Authorization: Bearer {accessToken}
 
 ```json
 {
-  "id": "user_123",
-  "email": "admin@harapannusantara.sch.id",
-  "fullName": "Admin Tata Usaha",
-  "role": "ADMIN_TU",
-  "teacherId": null,
-  "studentId": null,
-  "classId": null
+  "data": {
+    "id": "user_123",
+    "email": "admin@harapannusantara.sch.id",
+    "full_name": "Admin Tata Usaha",
+    "role": "ADMIN_TU"
+  }
 }
 ```
 
@@ -105,7 +134,7 @@ Authorization: Bearer {accessToken}
 
 ```json
 {
-  "refreshToken": "eyJhbGciOiJIUzI1NiIs..."
+  "refresh_token": "eyJhbGciOiJIUzI1NiIs..."
 }
 ```
 
@@ -113,9 +142,12 @@ Authorization: Bearer {accessToken}
 
 ```json
 {
-  "accessToken": "eyJhbGciOiJIUzI1NiIs...",
-  "refreshToken": "eyJhbGciOiJIUzI1NiIs...",
-  "expiresIn": 3600
+  "data": {
+    "access_token": "eyJhbGciOiJIUzI1NiIs...",
+    "refresh_token": "eyJhbGciOiJIUzI1NiIs...",
+    "expires_in": 3600,
+    "issued_at": "2026-07-12T00:00:00Z"
+  }
 }
 ```
 

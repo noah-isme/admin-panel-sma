@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  useDataProvider,
-  useList,
-  useNotification,
-  type BaseRecord,
-  type HttpError,
-} from "@refinedev/core";
-import dayjs from "dayjs";
-
+import { useDataProvider, useList, useNotification, type HttpError } from "@refinedev/core";
 const DAYS = [
   { value: 1, label: "Senin" },
   { value: 2, label: "Selasa" },
@@ -147,13 +139,6 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
     resource: "semester-schedule",
     pagination: { current: 1, pageSize: 5000 },
   });
-
-  const selectedClass = useMemo(() => {
-    if (!filters.classId) {
-      return null;
-    }
-    return classesQuery.data?.data?.find((klass) => klass.id === filters.classId) ?? null;
-  }, [classesQuery.data?.data, filters.classId]);
 
   const teacherPreferences = useMemo(
     () => preferencesQuery.data?.data ?? [],

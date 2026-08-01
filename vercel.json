@@ -8,6 +8,9 @@
     { "source": "/admin/(.*)", "destination": "/admin/index.html" },
     { "source": "/((?!admin/).*)", "destination": "/index.html" }
   ],
+  "env": {
+    "VITE_BASE_PATH": "/admin/"
+  },
   "preview": {
     "env": {
       "VITE_ENABLE_MSW": "true",

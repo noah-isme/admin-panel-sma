@@ -2,38 +2,39 @@
 
 ## Architecture snapshot
 
-- pnpm workspace with `apps/api` (NestJS backend), `apps/shared` (Zod schemas/constants), plus `apps/worker` and `apps/admin` placeholders. Type aliases live in `tsconfig.base.json`.
-- The API follows Nest modules per domain (`modules/*`) and central infrastructure layers (`infrastructure/database|redis|queue`). `AppModule` wires everything; every new module must be imported there.
-- Database access goes through Drizzle ORM tables defined in `apps/api/src/db/schema.ts` and the typed client in `db/client.ts`. Queue work uses BullMQ queues provided by `QueueModule`.
-- Shared validation contracts live in `apps/shared/src/schemas`. Controllers run all payloads through `ZodValidationPipe`, so reuse those schemas instead of redefining DTOs.
-- Authorization combines JWT + role guard + ownership guard. Ownership checks rely on `OwnershipService` and the `@Ownership()` decorator metadata—set the right resource/param when adding privileged routes.
+- pnpm workspace. The backend was migrated from NestJS to **Go** and now lives in a separate repo at `../sma-adp-api` (Gin, `pgx`, Redis). This repo no longer contains a backend app — there is **no `apps/api`**.
+- Workspaces: `apps/admin` (React + Vite + Refine/AntD), `apps/shared` (Zod schemas, Drizzle schema, constants), `apps/worker` (BullMQ `REPORT_PDF_QUEUE`), `apps/landing` (public site). Type aliases live in `tsconfig.base.json` + each app's `tsconfig.json`.
+- Admin app uses Refine (`@refinedev/core` + `@refinedev/react-router-v6` + `@refinedev/antd`). Data/auth/access-control providers are in `apps/admin/src/providers/`. API base comes from `VITE_API_URL` (default `http://localhost:8081/api/v1`); axios client with `withCredentials` + Bearer token from `localStorage`.
+- Shared validation contracts live in `apps/shared/src/schemas/` (Zod). The admin imports them as `@shared/schemas` (alias `@shared/*` → `../shared/src/*`). Reuse these instead of redefining DTOs.
+- Authorization is client-side RBAC via `accessControlProvider.ts` (roles: SUPERADMIN, ADMIN_TU, WALI_KELAS, GURU_MAPEL, KEPALA_SEKOLAH, SISWA, ORTU) **plus** server-side JWT/RBAC enforced in the Go API. Never rely on the client check alone for security.
 
 ## Coding patterns to follow
 
-- Prefer repositories/services for data access; controllers are thin and return service results.
-- Use `nanoid()` for IDs and Drizzle `onConflictDoUpdate`/`onConflictDoNothing` for upserts.
-- Inject the typed `Database` via `@Inject(DRIZZLE_CLIENT)`; avoid creating raw `Pool` instances in modules.
-- When adding domain logic that needs cross-module helpers, add providers to `CommonModule` so guards/services can reuse them.
-- Response shapes often include combined records (e.g., attendance returns joined student/class info); check neighboring services before introducing new projections.
+- Frontend pages are React components under `apps/admin/src/pages/` and registered as Refine resources in `apps/admin/src/main.tsx` (`resources` array). Add new CRUD pages there and wire their routes in the resource loop.
+- Data access goes through the Refine `dataProvider` (axios → Go API). Use `useList`/`useOne`/`useCreate`/`useUpdate`/`useDelete` from Refine; do not hand-roll fetch calls in components.
+- Use `nanoid()` for client-generated IDs where needed. Shared constants (roles, queue names) come from `@apps/shared` (`@shared/constants`).
+- The Go API returns **snake_case** JSON wrapped in `{ "data": ... }` (envelope in `pkg/response/response.go` in the API repo). The auth provider already unwraps the envelope and tolerates snake_case/camelCase token fields.
+- When adding a domain contract: add the Zod schema under `apps/shared/src/schemas/`, export it from `schemas/index.ts`, and keep the Drizzle schema in `apps/shared/src/db/schema.ts` consistent.
 
 ## Commands & workflows
 
-- Install deps with `pnpm install`. Use filters for subprojects, e.g. `pnpm --filter @apps/api dev|build|test`.
-- Tests: `pnpm --filter @apps/api test` (Jest unit), `pnpm --filter @apps/api test:e2e` for e2e; shared package uses Vitest via `pnpm --filter @apps/shared test`.
-- Build currently fails (`nest build`) until missing deps (`dotenv`, `date-fns`, `@types/pg`, `@types/passport-jwt`, etc.) and config issues (`drizzle.config.ts` credentials, `Ownership` decorator typing) are resolved—fix these before relying on CI success.
-- Lint script expects ESLint v9 flat config; converting `.eslintrc.cjs` to `eslint.config.js` is pending. Until then, lint runs will error.
+- Install: `pnpm install`. Use filters for subprojects: `pnpm --filter @apps/admin dev|build|test`, `pnpm --filter @apps/worker dev|build`, `pnpm --filter @apps/shared build`.
+- Tests: `pnpm --filter @apps/admin test` (Vitest), `pnpm --filter @apps/admin test:e2e` (Playwright); shared uses Vitest via `pnpm --filter @apps/shared test`.
+- Root scripts: `pnpm dev` (admin+landing), `pnpm build` (`pnpm -r build`), `pnpm test`, `pnpm lint` (ESLint v9 flat), `pnpm typecheck` (`tsc -b`), `pnpm format` (Prettier).
+- Lint uses ESLint v9 flat config (`eslint.config.js`). Husky `pre-commit` runs `lint-staged` → `prettier --write`.
+- The shared package is ESM and must be built (`output/`) before the worker compiles: run `pnpm --filter @apps/shared build` first if the worker build fails with "cannot find @apps/shared".
 
 ## Environment & external services
 
-- Root `.env.example` plus `apps/api/.env.example` describe required variables. Set database, Redis, JWT secrets, and storage driver (`supabase` or `r2`). Supabase requires URL + keys + bucket; R2 needs account, key pair, bucket, and optional public base URL.
-- Storage service (new module) presigns uploads via Supabase signed uploads or Cloudflare R2 presigned PUTs. When switching drivers, ensure corresponding env vars are populated.
-- Queue operations require Redis; the report generation flow enqueues jobs on `REPORT_PDF_QUEUE` for a future worker in `apps/worker`.
+- Root `.env` (read by the worker via `tsx --env-file`): `DATABASE_URL`, `REDIS_URL`, storage driver (`supabase` or `r2`) + keys. JWT/secrets/argon2 now live in **`../sma-adp-api/.env`** (the Go repo), not here.
+- Admin env goes in `apps/admin/.env`: `VITE_API_URL` (Go API base), `VITE_USE_MSW` (enable MSW mocks). See root `README.md` for the full table.
+- Worker storage uses Supabase signed uploads or Cloudflare R2 presigned PUTs; report generation enqueues on `REPORT_PDF_QUEUE` (see `@shared/constants/queues`).
 
 ## Common gotchas
 
-- Whenever you add a new domain schema, update both Drizzle schema and the matching Zod schema under `apps/shared/src/schemas`; keep names consistent so DTO inference stays correct.
-- Remember to export new shared schemas/types via `apps/shared/src/schemas/index.ts` and `types/index.ts` if needed.
-- Guards require both role metadata (`@Roles(...)`) and, for fine-grained checks, `@Ownership`. Forgetting either will bypass desired protections.
-- Use path aliases (`@shared/*`, `@api/*`) rather than long relative imports.
+- This repo is fully **ESM** (`"type": "module"`). Relative imports must include `.js` extensions; barrel `index.ts` re-exports need `.js` too.
+- `pg` is CommonJS: `import pkg from "pg"; const { Pool } = pkg;` (not `import { Pool }`). Use `InstanceType<typeof Pool>` for types.
+- Import the shared package as `@shared/*` (admin alias) — not `@api/*` (that NestJS app was removed).
+- The Go backend is the source of truth for endpoints/contract: check `../sma-adp-api/cmd/api-gateway/main.go` (routes), `../sma-adp-api/api/swagger` (public contract), and `../sma-adp-api/docs/FE_BE_MAPPING.md` (FE↔BE map) before adding API calls.
 
 If anything here is unclear or missing, let me know so we can refine this guide.

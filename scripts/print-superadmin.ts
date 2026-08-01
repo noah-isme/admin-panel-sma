@@ -1,6 +1,6 @@
 import "dotenv/config";
-import { createDatabasePool, createDbClient } from "../apps/api/src/db/client";
-import { users } from "../apps/api/src/db/schema";
+import { createDatabasePool, createDbClient } from "@apps/shared/db/client";
+import { users } from "@apps/shared/db/schema";
 import { eq } from "drizzle-orm";
 
 async function main() {

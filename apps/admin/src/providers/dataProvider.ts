@@ -85,7 +85,9 @@ try {
   if (typeof window !== "undefined") {
     console.info("[dataProvider] Resolved API base:", API_BASE_URL);
   }
-} catch {}
+} catch {
+  // ignore
+}
 
 // Add request interceptor to include auth token
 api.interceptors.request.use(
@@ -105,7 +107,9 @@ api.interceptors.request.use(
           { params: config.params, headers: maskedHeaders }
         );
       }
-    } catch {}
+    } catch {
+      // ignore
+    }
     const token = localStorage.getItem("access_token");
     if (token) {
       if (config.headers instanceof AxiosHeaders) {

@@ -56,7 +56,7 @@ export const ThemeProvider: React.FC<React.PropsWithChildren> = ({ children }) =
           main: themeTokens.primary,
         },
         secondary: {
-          main: mode === "dark" ? "#38bdf8" : "#0ea5e9",
+          main: mode === "dark" ? "#38bdf8" : "#0284c7",
         },
         success: {
           main: themeTokens.accentGreen,
@@ -64,27 +64,52 @@ export const ThemeProvider: React.FC<React.PropsWithChildren> = ({ children }) =
         warning: {
           main: themeTokens.accentOrange,
         },
+        error: {
+          main: themeTokens.attendanceDanger,
+        },
+        divider: mode === "dark" ? themeTokens.borderDark : themeTokens.borderLight,
         background: {
           default: mode === "dark" ? "#0f172a" : "#f8fafc",
-          paper: mode === "dark" ? "#111827" : "#ffffff",
+          paper: mode === "dark" ? "#1e293b" : "#ffffff",
         },
         text: {
-          primary: mode === "dark" ? "#e2e8f0" : "#0f172a",
+          primary: mode === "dark" ? "#f8fafc" : "#0f172a",
           secondary:
             mode === "dark" ? themeTokens.secondaryTextDark : themeTokens.secondaryTextLight,
         },
       },
       typography: {
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
         h5: {
           fontWeight: 600,
-          letterSpacing: -0.2,
+          letterSpacing: "-0.01em",
+        },
+        h6: {
+          fontWeight: 600,
+          letterSpacing: "-0.01em",
+        },
+        subtitle1: {
+          fontWeight: 600,
+          fontSize: "0.9375rem",
         },
         subtitle2: {
+          fontWeight: 500,
+          fontSize: "0.875rem",
           color: mode === "dark" ? themeTokens.secondaryTextDark : themeTokens.secondaryTextLight,
+        },
+        body1: {
+          fontSize: "0.875rem",
+        },
+        body2: {
+          fontSize: "0.8125rem",
+        },
+        button: {
+          textTransform: "none",
+          fontWeight: 600,
         },
       },
       shape: {
-        borderRadius: 16,
+        borderRadius: themeTokens.cardBorderRadius,
       },
       components: {
         MuiButton: {
@@ -92,8 +117,12 @@ export const ThemeProvider: React.FC<React.PropsWithChildren> = ({ children }) =
             root: {
               textTransform: "none",
               fontWeight: 600,
-              borderRadius: 12,
+              borderRadius: 6,
               boxShadow: "none",
+              padding: "6px 14px",
+              "&:hover": {
+                boxShadow: "none",
+              },
               "&:focus-visible": {
                 boxShadow: themeTokens.focusRing,
                 outline: "none",
@@ -104,7 +133,7 @@ export const ThemeProvider: React.FC<React.PropsWithChildren> = ({ children }) =
         MuiIconButton: {
           styleOverrides: {
             root: {
-              borderRadius: 12,
+              borderRadius: 6,
               "&:focus-visible": {
                 boxShadow: themeTokens.focusRing,
                 outline: "none",
@@ -116,18 +145,45 @@ export const ThemeProvider: React.FC<React.PropsWithChildren> = ({ children }) =
           styleOverrides: {
             root: {
               borderRadius: themeTokens.cardBorderRadius,
-              boxShadow:
-                mode === "dark" ? "0 12px 40px rgba(15, 23, 42, 0.45)" : themeTokens.cardShadow,
+              border: "1px solid",
+              borderColor: mode === "dark" ? themeTokens.borderDark : themeTokens.borderLight,
+              boxShadow: mode === "dark" ? "none" : themeTokens.cardShadow,
+              backgroundImage: "none",
+            },
+          },
+        },
+        MuiCard: {
+          styleOverrides: {
+            root: {
+              borderRadius: themeTokens.cardBorderRadius,
+              border: "1px solid",
+              borderColor: mode === "dark" ? themeTokens.borderDark : themeTokens.borderLight,
+              boxShadow: mode === "dark" ? "none" : themeTokens.cardShadow,
+              backgroundImage: "none",
             },
           },
         },
         MuiListItemButton: {
           styleOverrides: {
             root: {
-              borderRadius: 12,
+              borderRadius: 6,
+              paddingTop: 6,
+              paddingBottom: 6,
               "&.Mui-focusVisible": {
                 boxShadow: themeTokens.focusRing,
               },
+            },
+          },
+        },
+        MuiTableCell: {
+          styleOverrides: {
+            root: {
+              padding: "8px 12px",
+              borderColor: mode === "dark" ? themeTokens.borderDark : themeTokens.borderLight,
+            },
+            head: {
+              fontWeight: 600,
+              backgroundColor: mode === "dark" ? "#1e293b" : "#f8fafc",
             },
           },
         },
@@ -143,11 +199,14 @@ export const ThemeProvider: React.FC<React.PropsWithChildren> = ({ children }) =
       token: {
         colorPrimary: themeTokens.primary,
         colorInfo: themeTokens.primary,
-        controlHeight: 44,
-        borderRadius: 12,
+        controlHeight: 36,
+        borderRadius: 6,
+        colorBorder: mode === "dark" ? themeTokens.borderDark : themeTokens.borderLight,
+        colorBgContainer: mode === "dark" ? "#1e293b" : "#ffffff",
+        colorBgLayout: mode === "dark" ? "#0f172a" : "#f8fafc",
         colorTextSecondary:
           mode === "dark" ? themeTokens.secondaryTextDark : themeTokens.secondaryTextLight,
-        fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif",
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
       },
     }),
     [mode]

@@ -1,17 +1,19 @@
 export const themeTokens = {
-  primary: "#2f6fed",
+  primary: "#2563eb",
   accentBlue: "#2563eb",
   accentGreen: "#16a34a",
-  accentOrange: "#f97316",
-  accentYellow: "#eab308",
-  secondaryTextLight: "#6b7280",
+  accentOrange: "#ea580c",
+  accentYellow: "#ca8a04",
+  secondaryTextLight: "#475569",
   secondaryTextDark: "#94a3b8",
-  cardShadow: "0 4px 20px rgba(0, 0, 0, 0.05)",
-  cardBorderRadius: 16,
-  focusRing: "0 0 0 3px rgba(47, 111, 237, 0.35)",
+  borderLight: "#e2e8f0",
+  borderDark: "#334155",
+  cardShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+  cardBorderRadius: 8,
+  focusRing: "0 0 0 2px rgba(37, 99, 235, 0.4)",
   // Attendance color system (3-tier)
   attendanceGood: "#16a34a", // >92% - Green
-  attendanceWarning: "#f59e0b", // 86-92% - Amber
+  attendanceWarning: "#d97706", // 86-92% - Amber
   attendanceDanger: "#dc2626", // <86% - Red
 } as const;
 

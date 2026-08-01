@@ -1,24 +1,4 @@
 services:
-  api:
-    image: node:20-bullseye
-    working_dir: /workspace/apps/api
-    volumes:
-      - ./:/workspace:cached
-      - /workspace/node_modules
-    env_file:
-      - ./.env
-    environment:
-      - DATABASE_URL=postgres://sma:sma@postgres:5432/sma_dev
-      - REDIS_URL=redis://redis:6379
-      - NODE_ENV=development
-    ports:
-      - "3000:3000"
-    depends_on:
-      - postgres
-      - redis
-    command: >
-      bash -lc "npm install -g pnpm@latest && pnpm --filter @apps/api install && pnpm --filter @apps/api exec -- ts-node -r tsconfig-paths/register src/main.ts"
-
   admin:
     image: node:20-bullseye
     working_dir: /workspace/apps/admin
@@ -26,14 +6,12 @@ services:
       - ./:/workspace:cached
       - /workspace/node_modules
     environment:
-      - VITE_API_URL=http://localhost:3000/api/v1
+      - VITE_API_URL=http://host.docker.internal:8081/api/v1
     ports:
       - "5173:5173"
-    depends_on:
-      - api
     command: >
       bash -lc "npm install -g pnpm@latest && pnpm --filter @apps/admin install && pnpm --filter @apps/admin dev"
 
 # Usage:
 # docker compose -f docker-compose.dev.yml -f docker-compose.dev.override.yml up --build
-# This will build the api service if a Dockerfile exists under apps/api and run the api dev server and the admin dev server.
+# This will run the admin dev server. Backend is now provided by sma-adp-api (Go) on port 8081.

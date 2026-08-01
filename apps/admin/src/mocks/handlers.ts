@@ -59,6 +59,7 @@ const announcements = [...seed.announcements];
 const behaviorNotes = [...seed.behaviorNotes];
 const mutations = [...seed.mutations];
 const archives = [...seed.archives];
+const reportJobs: Record<string, any>[] = [];
 const principalDashboard = { ...seed.dashboard };
 
 const termById = new Map(terms.map((term) => [term.id, term]));
@@ -212,7 +213,7 @@ const findUserByRole = (role: string | null | undefined) => {
   return mockUsers.find((user) => user.role === normalized);
 };
 
-const resourceKeys = [
+const _resourceKeys = [
   "users",
   "students",
   "teachers",
@@ -237,7 +238,7 @@ const resourceKeys = [
   "dashboard",
 ] as const;
 
-export type ResourceKey = (typeof resourceKeys)[number];
+export type ResourceKey = (typeof _resourceKeys)[number];
 
 const stores: Record<ResourceKey, Record<string, any>[]> = {
   users: mockUsers.map((user) => sanitizeUser(user)),
@@ -2195,6 +2196,123 @@ export async function createHandlers() {
       const payload = buildTeacherRosterResponse(url);
       return HttpResponse.json(payload, { status: 200 });
     }),
+
+    http.post(/\/api(?:\/v1)?\/mutations\/([^/?]+)\/review$/, async ({ request }) => {
+      const match = new URL(request.url).pathname.match(/\/mutations\/([^/?]+)\/review$/);
+      const id = match?.[1] ?? "";
+      const body = (await request.json().catch(() => ({}))) as Record<string, any>;
+      const status = String(body.status ?? "").toUpperCase();
+      if (status !== "APPROVED" && status !== "REJECTED") {
+        return HttpResponse.json(
+          { message: "status must be APPROVED or REJECTED" },
+          { status: 400 }
+        );
+      }
+      const existing = findRecord("mutations", id);
+      if (!existing) {
+        return HttpResponse.json({ message: "Not found" }, { status: 404 });
+      }
+      const updated = updateRecord("mutations", id, {
+        status,
+        note: body.note ?? null,
+        reviewedBy: "user_superadmin",
+        reviewedAt: new Date().toISOString(),
+      });
+      return HttpResponse.json(updated, { status: 200 });
+    }),
+
+    http.post(/\/api(?:\/v1)?\/archives$/, async ({ request }) => {
+      const formData = await request.formData().catch(() => null);
+      if (!formData) {
+        return HttpResponse.json({ message: "invalid upload" }, { status: 400 });
+      }
+      const file = formData.get("file") as File | null;
+      const record = createRecord("archives", {
+        title: String(formData.get("title") ?? "") || file?.name || "Untitled",
+        category: String(formData.get("category") ?? ""),
+        scope: String(formData.get("scope") ?? "GLOBAL").toUpperCase(),
+        refTermId: (formData.get("refTermId") as string) || null,
+        refClassId: (formData.get("refClassId") as string) || null,
+        refStudentId: (formData.get("refStudentId") as string) || null,
+        filePath: file?.name ?? "",
+        fileName: file?.name ?? "",
+        mimeType: file?.type ?? "application/octet-stream",
+        sizeBytes: file?.size ?? 0,
+        fileSize: file?.size ?? 0,
+        uploadedBy: "user_admin_tu",
+        generatedBy: "user_admin_tu",
+        uploadedAt: new Date().toISOString(),
+        generatedAt: new Date().toISOString(),
+        downloadUrl: `https://example-cdn.local/files/${file?.name ?? "archive"}`,
+      });
+      return HttpResponse.json(record, { status: 201 });
+    }),
+
+    http.get(/\/api(?:\/v1)?\/archives\/([^/?]+)\/download$/, ({ request }) => {
+      const token = new URL(request.url).searchParams.get("token");
+      if (!token) {
+        return HttpResponse.json({ message: "token required" }, { status: 400 });
+      }
+      return HttpResponse.text("mock archive content", {
+        status: 200,
+        headers: { "Content-Disposition": 'attachment; filename="archive.csv"' },
+      });
+    }),
+
+    http.post(/\/api(?:\/v1)?\/reports\/generate$/, async ({ request }) => {
+      const body = (await request.json().catch(() => ({}))) as Record<string, any>;
+      const job = {
+        id: generateId("report"),
+        type: String(body.type ?? "summary"),
+        termId: String(body.termId ?? ""),
+        classId: body.classId ?? null,
+        format: String(body.format ?? "csv"),
+        status: "QUEUED",
+        progress: 0,
+        resultUrl: null,
+        error: null,
+        createdAt: new Date().toISOString(),
+      };
+      reportJobs.push(job);
+      return HttpResponse.json(
+        { id: job.id, status: job.status, progress: job.progress },
+        { status: 202 }
+      );
+    }),
+
+    http.get(/\/api(?:\/v1)?\/reports\/status\/([^/?]+)$/, ({ request }) => {
+      const match = new URL(request.url).pathname.match(/\/reports\/status\/([^/?]+)$/);
+      const id = match?.[1] ?? "";
+      const job = reportJobs.find((j) => j.id === id);
+      if (!job) {
+        return HttpResponse.json({ message: "Not found" }, { status: 404 });
+      }
+      if (job.status === "QUEUED" || job.status === "PROCESSING") {
+        job.status = "PROCESSING";
+        job.progress = Math.min(100, job.progress + 25);
+        if (job.progress >= 100) {
+          job.status = "FINISHED";
+          job.resultUrl = `https://example-cdn.local/exports/${job.id}.${job.format}`;
+        }
+      }
+      return HttpResponse.json(
+        {
+          id: job.id,
+          status: job.status,
+          progress: job.progress,
+          resultUrl: job.resultUrl,
+          error: job.error,
+        },
+        { status: 200 }
+      );
+    }),
+
+    http.get(/\/api(?:\/v1)?\/export\/([^/?]+)$/, () =>
+      HttpResponse.text("mock exported report", {
+        status: 200,
+        headers: { "Content-Disposition": 'attachment; filename="report.csv"' },
+      })
+    ),
 
     http.get(resourcePathRegex, ({ request }) => {
       const parsed = parseResourceRequest(request);
