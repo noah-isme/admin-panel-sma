@@ -696,7 +696,7 @@ Authorization: Bearer {accessToken}
 
 ### GET /api/v1/class-subjects
 
-**Get class-subject mappings**
+**Get class-subject mappings (standalone list with filters)**
 
 **Query Parameters:**
 
@@ -704,6 +704,30 @@ Authorization: Bearer {accessToken}
 - `subjectId` (string)
 - `teacherId` (string)
 - `termId` (string)
+- `page` (int): default 1
+- `perPage` (int): default 20, max 100
+
+**Response (200):**
+
+```json
+{
+  "data": [
+    {
+      "classId": "class_x_ipa_1",
+      "className": "Kelas X IPA-1",
+      "subjectId": "subject_mat",
+      "subjectName": "Matematika",
+      "subjectCode": "MAT",
+      "teacherId": "teacher_001",
+      "teacherName": "Pak Budi Santoso",
+      "termId": "term_2024_1"
+    }
+  ],
+  "total": 50,
+  "page": 1,
+  "perPage": 20
+}
+```
 
 ---
 
@@ -937,7 +961,7 @@ Authorization: Bearer {accessToken}
 
 ### GET /api/v1/attendance
 
-**List attendance records**
+**List attendance records (alias)**
 
 **Query Parameters:**
 
@@ -978,9 +1002,139 @@ Authorization: Bearer {accessToken}
 
 ---
 
-### POST /api/v1/attendance
+### GET /api/v1/attendance/daily
 
-**Record attendance**
+**Get daily attendance records (alias)**
+
+**Query Parameters:**
+
+- `classId` (string, required for teachers)
+- `date` (string, required): YYYY-MM-DD
+- `termId` (string, optional)
+- `page`, `perPage`
+
+**Response (200):**
+
+```json
+{
+  "data": [
+    {
+      "id": "att_001",
+      "studentId": "stu_aditya_wijaya",
+      "studentName": "Aditya Wijaya",
+      "studentNis": "20240001",
+      "classId": "class_x_ipa_1",
+      "date": "2024-11-09",
+      "status": "H",
+      "notes": null,
+      "recordedAt": "2024-11-09T07:30:00Z",
+      "recordedBy": "teacher_001"
+    }
+  ],
+  "total": 40,
+  "page": 1,
+  "perPage": 20
+}
+```
+
+---
+
+### POST /api/v1/attendance/daily
+
+**Mark daily attendance for a student**
+
+**Request:**
+
+```json
+{
+  "studentId": "stu_aditya_wijaya",
+  "classId": "class_x_ipa_1",
+  "date": "2024-11-09",
+  "status": "H",
+  "notes": ""
+}
+```
+
+**Response (201):**
+
+```json
+{
+  "id": "att_001",
+  "studentId": "stu_aditya_wijaya",
+  "classId": "class_x_ipa_1",
+  "date": "2024-11-09",
+  "status": "H",
+  "notes": "",
+  "recordedAt": "2024-11-09T07:30:00Z",
+  "recordedBy": "teacher_001"
+}
+```
+
+---
+
+### POST /api/v1/attendance/daily/bulk
+
+**Mark daily attendance for multiple students**
+
+**Request:**
+
+```json
+{
+  "classId": "class_x_ipa_1",
+  "date": "2024-11-09",
+  "records": [
+    { "studentId": "stu_001", "status": "H" },
+    { "studentId": "stu_002", "status": "H" },
+    { "studentId": "stu_003", "status": "I", "notes": "Sakit" }
+  ]
+}
+```
+
+**Response (201):**
+
+```json
+{
+  "created": 3,
+  "data": [
+    {
+      "id": "att_001",
+      "studentId": "stu_001",
+      "classId": "class_x_ipa_1",
+      "date": "2024-11-09",
+      "status": "H",
+      "notes": "",
+      "recordedAt": "2024-11-09T07:30:00Z",
+      "recordedBy": "teacher_001"
+    },
+    {
+      "id": "att_002",
+      "studentId": "stu_002",
+      "classId": "class_x_ipa_1",
+      "date": "2024-11-09",
+      "status": "H",
+      "notes": "",
+      "recordedAt": "2024-11-09T07:30:00Z",
+      "recordedBy": "teacher_001"
+    },
+    {
+      "id": "att_003",
+      "studentId": "stu_003",
+      "classId": "class_x_ipa_1",
+      "date": "2024-11-09",
+      "status": "I",
+      "notes": "Sakit",
+      "recordedAt": "2024-11-09T07:30:00Z",
+      "recordedBy": "teacher_001"
+    }
+  ]
+}
+```
+
+---
+
+### POST /api/v1/attendance/subject
+
+**Mark subject attendance for a student**
 
 **Request:**
 
@@ -989,7 +1143,6 @@ Authorization: Bearer {accessToken}
   "studentId": "stu_aditya_wijaya",
   "classId": "class_x_ipa_1",
   "subjectId": "subject_mat",
-  "teacherId": "teacher_001",
   "date": "2024-11-09",
   "slot": 1,
   "status": "H",
@@ -997,11 +1150,28 @@ Authorization: Bearer {accessToken}
 }
 ```
 
+**Response (201):**
+
+```json
+{
+  "id": "att_001",
+  "studentId": "stu_aditya_wijaya",
+  "classId": "class_x_ipa_1",
+  "subjectId": "subject_mat",
+  "date": "2024-11-09",
+  "slot": 1,
+  "status": "H",
+  "notes": "",
+  "recordedAt": "2024-11-09T07:30:00Z",
+  "recordedBy": "teacher_001"
+}
+```
+
 ---
 
-### POST /api/v1/attendance/bulk
+### POST /api/v1/attendance/subject/bulk
 
-**Record attendance for multiple students**
+**Mark subject attendance for multiple students**
 
 **Request:**
 
@@ -1009,13 +1179,58 @@ Authorization: Bearer {accessToken}
 {
   "classId": "class_x_ipa_1",
   "subjectId": "subject_mat",
-  "teacherId": "teacher_001",
   "date": "2024-11-09",
   "slot": 1,
   "records": [
     { "studentId": "stu_001", "status": "H" },
     { "studentId": "stu_002", "status": "H" },
     { "studentId": "stu_003", "status": "I", "notes": "Sakit" }
+  ]
+}
+```
+
+**Response (201):**
+
+```json
+{
+  "created": 3,
+  "data": [
+    {
+      "id": "att_001",
+      "studentId": "stu_001",
+      "classId": "class_x_ipa_1",
+      "subjectId": "subject_mat",
+      "date": "2024-11-09",
+      "slot": 1,
+      "status": "H",
+      "notes": "",
+      "recordedAt": "2024-11-09T07:30:00Z",
+      "recordedBy": "teacher_001"
+    },
+    {
+      "id": "att_002",
+      "studentId": "stu_002",
+      "classId": "class_x_ipa_1",
+      "subjectId": "subject_mat",
+      "date": "2024-11-09",
+      "slot": 1,
+      "status": "H",
+      "notes": "",
+      "recordedAt": "2024-11-09T07:30:00Z",
+      "recordedBy": "teacher_001"
+    },
+    {
+      "id": "att_003",
+      "studentId": "stu_003",
+      "classId": "class_x_ipa_1",
+      "subjectId": "subject_mat",
+      "date": "2024-11-09",
+      "slot": 1,
+      "status": "I",
+      "notes": "Sakit",
+      "recordedAt": "2024-11-09T07:30:00Z",
+      "recordedBy": "teacher_001"
+    }
   ]
 }
 ```
@@ -1174,23 +1389,15 @@ Authorization: Bearer {accessToken}
 
 ---
 
-### GET /api/v1/teacher-preferences/:teacherId
-
-**Get teacher scheduling preferences**
-
----
-
-### POST /api/v1/teacher-preferences
-
-**Create/Update teacher preferences**
-
----
-
 ## 📊 11. Dashboard & Analytics
 
 ### GET /api/v1/dashboard
 
 **Get principal dashboard data**
+
+**Query Parameters:**
+
+- `termId` (string, required): Active term ID
 
 **Response (200):**
 
