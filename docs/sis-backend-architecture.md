@@ -247,11 +247,17 @@ Constraints kunci:
 
 ## 4. API Surface (Ringkasan)
 
+> **Dokumen historis:** daftar di bawah adalah rancangan arsitektur lama, bukan
+> kontrak gateway saat ini. Import yang berjalan sekarang menggunakan
+> `POST /students/import` dan `POST /teachers/import` secara sinkron; tidak ada
+> `GET /imports/:id` job-polling endpoint. Lihat
+> [`sma-adp-api/docs/GO_BACKEND_API_SPECIFICATION.md`](../../sma-adp-api/docs/GO_BACKEND_API_SPECIFICATION.md)
+> untuk kontrak kanonik.
+
 - `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`.
 - `POST /academic-years`, `PATCH /academic-years/:id/status`, `GET /academic-years`.
 - `POST /terms`, `PATCH /terms/:id/status`, `GET /terms`.
-- `POST /imports/students`, `GET /imports/:id`.
-- `POST /imports/teachers`.
+- `POST /students/import`, `POST /teachers/import` (sinkron, dengan ringkasan validasi baris).
 - `POST /classrooms`, `PATCH /classrooms/:id/homeroom`, `POST /classrooms/:id/enroll`.
 - `POST /subjects`, `POST /class-subjects`.
 - `POST /schedules`, `GET /schedules/conflicts`, `POST /schedule/generate`.

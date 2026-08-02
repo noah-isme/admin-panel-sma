@@ -139,18 +139,19 @@ pnpm --filter @apps/admin exec msw init ./apps/admin/public --save
 
 Resource dan route opsional di admin harus mengikuti feature flag API yang sama. Nilai default semua flag adalah `false`; aktifkan pasangan berikut bersama-sama agar halaman tidak memanggil endpoint yang tidak terdaftar:
 
-| Go API (`sma-adp-api/.env`) | Admin (`apps/admin/.env`)       | Cakupan                              |
-| --------------------------- | ------------------------------- | ------------------------------------ |
-| `ENABLE_DASHBOARD`          | `VITE_ENABLE_DASHBOARD`         | Dashboard dan analytics              |
-| `ENABLE_ANALYTICS`          | `VITE_ENABLE_ANALYTICS`         | Endpoint analytics tanpa dashboard   |
-| `ENABLE_SCHEDULER`          | `VITE_ENABLE_SCHEDULER`         | Generator jadwal dan preferensi guru |
-| `ENABLE_REPORTS`            | `VITE_ENABLE_REPORTS`           | Pembuatan dan unduhan laporan        |
-| `ENABLE_MUTATIONS`          | `VITE_ENABLE_MUTATIONS`         | Alur mutasi siswa                    |
-| `ENABLE_ARCHIVES`           | `VITE_ENABLE_ARCHIVES`          | Arsip dan unduhan berkas             |
-| `ENABLE_HOMEROOMS`          | `VITE_ENABLE_HOMEROOMS`         | Data wali kelas                      |
-| `ENABLE_CONFIGURATION_API`  | `VITE_ENABLE_CONFIGURATION_API` | Konfigurasi aplikasi                 |
-| `ENABLE_CALENDAR_ALIAS`     | `VITE_ENABLE_CALENDAR_ALIAS`    | Alias `/calendar`                    |
-| `ENABLE_ATTENDANCE_ALIAS`   | `VITE_ENABLE_ATTENDANCE_ALIAS`  | Ringkasan alias attendance           |
+| Go API (`sma-adp-api/.env`) | Admin (`apps/admin/.env`)       | Cakupan                                                                      |
+| --------------------------- | ------------------------------- | ---------------------------------------------------------------------------- |
+| `ENABLE_DASHBOARD`          | `VITE_ENABLE_DASHBOARD`         | Dashboard dan analytics                                                      |
+| `ENABLE_SCHEDULER`          | `VITE_ENABLE_SCHEDULER`         | Generator jadwal dan preferensi guru                                         |
+| `ENABLE_REPORTS`            | `VITE_ENABLE_REPORTS`           | Pembuatan dan unduhan laporan                                                |
+| `ENABLE_MUTATIONS`          | `VITE_ENABLE_MUTATIONS`         | Alur mutasi siswa                                                            |
+| `ENABLE_ARCHIVES`           | `VITE_ENABLE_ARCHIVES`          | Arsip dan unduhan berkas                                                     |
+| `ENABLE_HOMEROOMS`          | `VITE_ENABLE_HOMEROOMS`         | Data wali kelas                                                              |
+| `ENABLE_CONFIGURATION_API`  | `VITE_ENABLE_CONFIGURATION_API` | Konfigurasi aplikasi                                                         |
+| `ENABLE_CALENDAR_ALIAS`     | `VITE_ENABLE_CALENDAR_ALIAS`    | Alias `/calendar`                                                            |
+| `ENABLE_ATTENDANCE_ALIAS`   | `VITE_ENABLE_ATTENDANCE_ALIAS`  | Rute attendance dan compatibility aliases (daily, subject, generic, summary) |
+
+`ENABLE_ANALYTICS` tidak memiliki flag Vite terpisah: analytics API adalah dependensi backend untuk dashboard (`ENABLE_DASHBOARD`/`VITE_ENABLE_DASHBOARD`). Layar analytics kehadiran menggunakan resource attendance dan mengikuti `ENABLE_ATTENDANCE_ALIAS`/`VITE_ENABLE_ATTENDANCE_ALIAS`.
 
 Flag API dan Vite dibaca saat proses masing-masing dijalankan. Setelah mengubahnya, restart Go API dan dev server/build admin. Resource inti seperti `/schedules` tetap tersedia terlepas dari flag opsional.
 
@@ -496,7 +497,7 @@ curl -X POST "$API_BASE/students" \
 
 Untuk read/update/delete gunakan metode `GET /students/:id`, `PUT /students/:id`, dan `DELETE /students/:id` dengan header yang sama.
 
-### 3. Attendance summary (alias)
+### 3. Attendance routes and compatibility aliases
 
 ```bash
 curl -X GET "$API_BASE/attendance?termId=term-001&classId=cls-001" \
@@ -504,7 +505,7 @@ curl -X GET "$API_BASE/attendance?termId=term-001&classId=cls-001" \
 ```
 
 > **Parameter**: `termId` (required), `classId` (required untuk role TEACHER)  
-> **Response**: Ringkasan kehadiran per siswa
+> **Response**: Ringkasan kehadiran per siswa. Endpoint ini dan rute attendance daily/subject serta compatibility writes (`POST /attendance`, `PUT/PATCH /attendance/:id`) memerlukan `ENABLE_ATTENDANCE_ALIAS=true`.
 
 ### 4. Query nilai
 
@@ -526,3 +527,5 @@ curl -X POST "$API_BASE/reports/generate" \
 ```
 
 Permintaan ini akan menambahkan job ke report queue. Pantau log worker atau endpoint `GET /reports/status/:id` untuk memeriksa statusnya. Worker akan generate PDF rapor berdasarkan data enrollment (siswa, kelas, term, nilai, dan kehadiran).
+
+> **Catatan ekspor:** halaman **Laporan** menggunakan server-side report jobs (`/reports/generate` → `/reports/status/:id` → `/export/:token`). Tombol **Export CSV** pada analytics kehadiran berbeda: browser membuat CSV dari baris yang sudah dimuat dan tidak membuat request report job atau export API.

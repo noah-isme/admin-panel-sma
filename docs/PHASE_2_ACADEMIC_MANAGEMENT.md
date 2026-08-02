@@ -1,5 +1,7 @@
 # Phase 2: Academic Management APIs (Week 6-8)
 
+> **Historical design — status moved to `sma-adp-api/docs/CONTRACT_MATRIX.md` and `sma-adp-api/docs/PROJECT_STATUS.md`.** This document preserves the original plan and checklist; unchecked items do not indicate current implementation status.
+
 ## 🎯 Objectives
 
 - Implement Terms (Semester) management

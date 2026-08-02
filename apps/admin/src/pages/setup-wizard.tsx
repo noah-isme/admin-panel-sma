@@ -1963,7 +1963,7 @@ const SummaryStep: React.FC<{
               Buka Data Semester
             </Button>
             <Button onClick={() => onFinish("/students")}>Kelola Data Siswa</Button>
-            <Button onClick={onOpenStatus}>Lihat Status Import</Button>
+            <Button onClick={onOpenStatus}>Lihat Snapshot Pra-Semester</Button>
           </Space>
         }
       />
@@ -2314,7 +2314,7 @@ export const SetupWizard: React.FC = () => {
         mappings={(classSubjectsQuery.data?.data as ClassSubjectRow[]) ?? []}
         schedules={(schedulesQuery.data?.data as ScheduleRow[]) ?? []}
         onFinish={handleSummaryNavigate}
-        onOpenStatus={() => navigate("/setup/import-status")}
+        onOpenStatus={() => navigate("/setup/pre-semester-snapshot")}
       />
     );
   };

@@ -297,11 +297,11 @@ const NAV_ITEMS = (logout: () => void): NavNode[] => [
     path: "/setup",
   },
   {
-    key: "import-status",
-    label: "Status Import",
-    icon: <ListChecks size={16} aria-label="Status import" />,
-    ariaLabel: "Status import",
-    path: "/setup/import-status",
+    key: "pre-semester-snapshot",
+    label: "Snapshot Pra-Semester",
+    icon: <ListChecks size={16} aria-label="Snapshot pra-semester" />,
+    ariaLabel: "Snapshot pra-semester",
+    path: "/setup/pre-semester-snapshot",
   },
   {
     key: "announcements",

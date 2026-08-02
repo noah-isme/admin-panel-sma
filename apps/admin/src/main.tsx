@@ -64,7 +64,7 @@ import { AttendanceDailyPage } from "./pages/attendance-daily";
 import { AttendanceLessonPage } from "./pages/attendance-lesson";
 import { AttendanceAnalyticsPage } from "./pages/attendance-analytics";
 import { SetupWizard } from "./pages/setup-wizard";
-import { ImportStatusPage } from "./pages/import-status";
+import { PreSemesterSnapshotPage } from "./pages/import-status";
 import { AnnouncementsPage } from "./pages/announcements";
 import { BehaviorNotesPage } from "./pages/behavior-notes";
 import { AppLayout } from "./components/layout/app-layout";
@@ -687,10 +687,18 @@ async function bootstrap() {
                       }
                     />
                     <Route
+                      path="setup/pre-semester-snapshot"
+                      element={
+                        <ResourceActionGuard action="list" resourceName="students">
+                          <PreSemesterSnapshotPage />
+                        </ResourceActionGuard>
+                      }
+                    />
+                    <Route
                       path="setup/import-status"
                       element={
                         <ResourceActionGuard action="list" resourceName="students">
-                          <ImportStatusPage />
+                          <PreSemesterSnapshotPage />
                         </ResourceActionGuard>
                       }
                     />

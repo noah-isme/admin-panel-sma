@@ -4,7 +4,12 @@ import { useList } from "@refinedev/core";
 import { useNavigate } from "react-router-dom";
 import { ResourceActionGuard } from "../components/resource-action-guard";
 
-export const ImportStatusPage: React.FC = () => {
+/**
+ * Read-only pre-semester snapshot. Imports are synchronous row operations;
+ * this page intentionally reports the current tables rather than polling a
+ * server-side import job.
+ */
+export const PreSemesterSnapshotPage: React.FC = () => {
   const navigate = useNavigate();
 
   const studentsQuery = useList({
@@ -128,11 +133,11 @@ export const ImportStatusPage: React.FC = () => {
           <Space align="center" style={{ justifyContent: "space-between" }}>
             <div>
               <Typography.Title level={2} style={{ marginBottom: 0 }}>
-                Status Import & Pra-Semester
+                Snapshot Pra-Semester
               </Typography.Title>
               <Typography.Paragraph type="secondary" style={{ marginTop: 4 }}>
-                Lihat ringkasan hasil impor siswa, guru, kelas, mapping, dan jadwal. Gunakan tombol
-                di bawah untuk membuka modul terkait.
+                Lihat snapshot data siswa, guru, kelas, mapping, dan jadwal setelah proses impor
+                sinkron. Gunakan tombol di bawah untuk membuka modul terkait.
               </Typography.Paragraph>
             </div>
             <Space>

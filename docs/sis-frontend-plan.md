@@ -93,7 +93,11 @@ Simple portal: jadwal, nilai, absensi, pengumuman. (prioritas rendah).
 - `services/apiClient.ts` (axios).
 - Hooks: `useAcademicYears`, `useImportStudents`, `useAbsenceDailyMutation`, `useGradeFinalization`, etc.
 - Generic `useCsvUpload` with progress.
-- `useRealtimeJobStatus` poll `GET /imports/:id`, `GET /reports/:jobId`.
+- Student and teacher CSV imports are synchronous row-processing requests (`POST /students/import`
+  and `POST /teachers/import`) and return validation summaries in the response. The admin page is
+  therefore named **Pra-Semester Snapshot**: it reads current table data and does not poll an
+  import-job endpoint. `GET /imports/:id` is not a registered contract. Report jobs remain
+  asynchronous and may use `GET /reports/status/:jobId`.
 
 ## 5. Testing Strategy (Frontend)
 

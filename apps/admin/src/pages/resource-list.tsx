@@ -577,8 +577,11 @@ export const ResourceList = () => {
             }
             if (showImportStatusLink) {
               actions.push(
-                <Button key="import-status" onClick={() => navigate("/setup/import-status")}>
-                  Status Import
+                <Button
+                  key="pre-semester-snapshot"
+                  onClick={() => navigate("/setup/pre-semester-snapshot")}
+                >
+                  Snapshot Pra-Semester
                 </Button>
               );
             }
