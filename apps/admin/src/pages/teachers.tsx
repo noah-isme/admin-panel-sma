@@ -79,7 +79,7 @@ const availabilityLabelMap: Record<TeacherAvailabilityLevel, string> = {
 
 const fetchTeacherRoster = async (params: Record<string, unknown>) => {
   const response = await httpClient.get<TeacherRosterResponse>("/teachers/roster", { params });
-  return response.data;
+  return (response.data as unknown as { data?: TeacherRosterResponse }).data ?? response.data;
 };
 
 const enterpriseCardStyle: React.CSSProperties = {
@@ -204,7 +204,23 @@ export const TeachersPage: React.FC = () => {
 
   const handleBulkAction = useCallback((action: "import" | "export") => {
     if (action === "import") {
-      message.info("Integrasi import guru akan dihubungkan ke backend.");
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".csv,text/csv";
+      input.onchange = () => {
+        const file = input.files?.[0];
+        if (!file) return;
+        void httpClient
+          .post("/teachers/import", file, { headers: { "Content-Type": "text/csv" } })
+          .then(({ data }) => {
+            const result = (data as { data?: { created?: number; failed?: number } }).data ?? data;
+            message.success(
+              `Import selesai: ${result.created ?? 0} dibuat, ${result.failed ?? 0} gagal.`
+            );
+          })
+          .catch(() => message.error("Import CSV guru gagal."));
+      };
+      input.click();
     } else {
       downloadCsv(
         "teachers.csv",

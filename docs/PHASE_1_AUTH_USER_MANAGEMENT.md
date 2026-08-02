@@ -1103,11 +1103,13 @@ func TestLoginEndpoint(t *testing.T) {
 
 ### Week 3: Core Authentication
 
-- [ ] Create database migrations for refresh_tokens and audit_logs
-- [ ] Implement User model and repository
-- [ ] Implement AuthService (login, logout, token generation)
-- [ ] Create JWT middleware
-- [ ] Implement auth handlers (login, refresh, logout)
+> Status sync (2026-08-02): the Go API implementation is shipped. The items below remain as historical planning tasks; completed implementation is tracked in `sma-adp-api/docs/PROJECT_STATUS.md` and the canonical API specification.
+
+- [x] Create database migrations for refresh_tokens and audit_logs
+- [x] Implement User model and repository
+- [x] Implement AuthService (login, logout, token generation)
+- [x] Create JWT middleware
+- [x] Implement auth handlers (login, refresh, logout)
 - [ ] Write unit tests for AuthService
 - [ ] Create Swagger documentation
 - [ ] Manual testing with Postman/curl

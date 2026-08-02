@@ -142,6 +142,7 @@ Resource dan route opsional di admin harus mengikuti feature flag API yang sama.
 | Go API (`sma-adp-api/.env`) | Admin (`apps/admin/.env`)       | Cakupan                              |
 | --------------------------- | ------------------------------- | ------------------------------------ |
 | `ENABLE_DASHBOARD`          | `VITE_ENABLE_DASHBOARD`         | Dashboard dan analytics              |
+| `ENABLE_ANALYTICS`          | `VITE_ENABLE_ANALYTICS`         | Endpoint analytics tanpa dashboard   |
 | `ENABLE_SCHEDULER`          | `VITE_ENABLE_SCHEDULER`         | Generator jadwal dan preferensi guru |
 | `ENABLE_REPORTS`            | `VITE_ENABLE_REPORTS`           | Pembuatan dan unduhan laporan        |
 | `ENABLE_MUTATIONS`          | `VITE_ENABLE_MUTATIONS`         | Alur mutasi siswa                    |

@@ -83,7 +83,7 @@ const genderLabelMap: Record<StudentGenderCode, string> = {
 
 const fetchStudentRoster = async (params: Record<string, unknown>) => {
   const response = await httpClient.get<StudentRosterResponse>("/students/roster", { params });
-  return response.data;
+  return (response.data as unknown as { data?: StudentRosterResponse }).data ?? response.data;
 };
 
 const formatDate = (value?: string) => (value ? dayjs(value).format("DD MMM YYYY") : "–");
@@ -241,7 +241,23 @@ export const StudentsPage: React.FC = () => {
 
   const handleBulkAction = useCallback((action: "import" | "export" | "bulk-status") => {
     if (action === "import") {
-      message.info("Integrasi import CSV akan ditautkan ke backend.");
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".csv,text/csv";
+      input.onchange = () => {
+        const file = input.files?.[0];
+        if (!file) return;
+        void httpClient
+          .post("/students/import", file, { headers: { "Content-Type": "text/csv" } })
+          .then(({ data }) => {
+            const result = (data as { data?: { created?: number; failed?: number } }).data ?? data;
+            message.success(
+              `Import selesai: ${result.created ?? 0} dibuat, ${result.failed ?? 0} gagal.`
+            );
+          })
+          .catch(() => message.error("Import CSV siswa gagal."));
+      };
+      input.click();
     } else if (action === "export") {
       downloadCsv(
         "students.csv",

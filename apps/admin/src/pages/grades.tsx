@@ -96,7 +96,7 @@ const tabOptions = [
 
 const fetchGradeReport = async (params: Record<string, unknown>) => {
   const response = await httpClient.get<GradeReportResponse>("/grades/report", { params });
-  return response.data;
+  return (response.data as unknown as { data?: GradeReportResponse }).data ?? response.data;
 };
 
 const formatDate = (value?: string) =>

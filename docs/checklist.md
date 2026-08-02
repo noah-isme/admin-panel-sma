@@ -6,9 +6,9 @@
 - [ ] RBAC + guard + audit log interceptor (frontend guard selesai; backend pending)
 - [ ] Swagger & Postman collection
 - [ ] CRUD Tahun Ajar & Term + status
-- [ ] Impor siswa (CSV) + validasi unik & laporan error (UI mock ready)
+- [x] Impor siswa (CSV) + validasi unik & laporan error (`POST /students/import`)
 - [ ] Idempotensi impor siswa
-- [ ] Impor guru (CSV) + validasi (UI mock ready)
+- [x] Impor guru (CSV) + validasi (`POST /teachers/import`)
 - [x] CRUD Kelas + assign Wali Kelas (wizard mock ready)
 - [ ] Master Mapel; mapping Mapel ↔ Kelas ↔ Guru (wizard mock ready)
 - [ ] Jadwal manual & generator + konflik (wizard mock ready)

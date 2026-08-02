@@ -1449,11 +1449,13 @@ type AnnouncementService interface {
 
 ### Week 12: Attendance System
 
-- [ ] Create DailyAttendance repository, service, handlers
-- [ ] Create SubjectAttendance repository, service, handlers
-- [ ] Implement bulk attendance marking
-- [ ] Create attendance report generation
-- [ ] Implement attendance percentage calculation
+> Status sync (2026-08-02): daily/subject attendance, bulk marking, reporting, announcements, behavior notes, and calendar handlers are implemented. Attendance routes require `ENABLE_ATTENDANCE_ALIAS=true`; remaining test targets are pending verification.
+
+- [x] Create DailyAttendance repository, service, handlers
+- [x] Create SubjectAttendance repository, service, handlers
+- [x] Implement bulk attendance marking
+- [x] Create attendance report generation
+- [x] Implement attendance percentage calculation
 - [ ] Write unit tests for attendance logic
 - [ ] Integration tests for bulk operations
 - [ ] Update Swagger documentation

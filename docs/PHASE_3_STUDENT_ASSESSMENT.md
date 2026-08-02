@@ -1697,11 +1697,13 @@ func (s *gradeService) CalculateFinalScore(ctx context.Context, enrollmentID, cl
 
 ### Week 9: Students & Enrollment
 
-- [ ] Create Students repository, service, and handlers
-- [ ] Implement enrollment repository and service
-- [ ] Create student CRUD endpoints
-- [ ] Implement enrollment management (create, transfer, bulk)
-- [ ] Add student import functionality
+> Status sync (2026-08-02): student, enrollment, grade-config, grade, report, and CSV-import handlers are implemented in the Go API. Remaining test/performance items are still pending verification.
+
+- [x] Create Students repository, service, and handlers
+- [x] Implement enrollment repository and service
+- [x] Create student CRUD endpoints
+- [x] Implement enrollment management (create, transfer, bulk)
+- [x] Add student import functionality
 - [ ] Write unit tests for student/enrollment services
 - [ ] Integration tests for enrollment workflows
 - [ ] Update Swagger documentation
