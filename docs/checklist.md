@@ -7,7 +7,8 @@
 - [ ] Swagger & Postman collection
 - [ ] CRUD Tahun Ajar & Term + status
 - [x] Impor siswa (CSV) + validasi unik & laporan error (`POST /students/import`)
-- [ ] Idempotensi impor siswa
+- [x] Idempotensi impor siswa (`Idempotency-Key`, deterministic retry fallback, 5 MiB/10.000-row limit, duplicate row failures, best-effort row commits, `import_runs` + audit log)
+- [x] Idempotensi impor guru (shared `import_runs`/audit contract and retry behavior)
 - [x] Impor guru (CSV) + validasi (`POST /teachers/import`)
 - [x] CRUD Kelas + assign Wali Kelas (wizard mock ready)
 - [ ] Master Mapel; mapping Mapel ↔ Kelas ↔ Guru (wizard mock ready)

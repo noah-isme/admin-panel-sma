@@ -98,6 +98,9 @@ Simple portal: jadwal, nilai, absensi, pengumuman. (prioritas rendah).
   therefore named **Pra-Semester Snapshot**: it reads current table data and does not poll an
   import-job endpoint. `GET /imports/:id` is not a registered contract. Report jobs remain
   asynchronous and may use `GET /reports/status/:jobId`.
+- Uploads include an `Idempotency-Key`; the API enforces a 5 MiB/10,000-row limit,
+  replays completed retries, reports duplicate rows without rolling back valid rows,
+  and records the result in `import_runs` plus the audit log.
 
 ## 5. Testing Strategy (Frontend)
 

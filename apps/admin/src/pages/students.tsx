@@ -54,6 +54,11 @@ import type {
 
 const { RangePicker } = DatePicker;
 
+const createImportIdempotencyKey = () =>
+  typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `students-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
 type ViewKey = "list" | "insights";
 
 type FilterState = {
@@ -248,7 +253,12 @@ export const StudentsPage: React.FC = () => {
         const file = input.files?.[0];
         if (!file) return;
         void httpClient
-          .post("/students/import", file, { headers: { "Content-Type": "text/csv" } })
+          .post("/students/import", file, {
+            headers: {
+              "Content-Type": "text/csv",
+              "Idempotency-Key": createImportIdempotencyKey(),
+            },
+          })
           .then(({ data }) => {
             const result = (data as { data?: { created?: number; failed?: number } }).data ?? data;
             message.success(

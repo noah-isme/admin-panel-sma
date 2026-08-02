@@ -51,6 +51,11 @@ import type {
 
 type ViewKey = "list" | "insights";
 
+const createImportIdempotencyKey = () =>
+  typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `teachers-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
 type FilterState = {
   subjectId?: string;
   status?: TeacherStatusCode;
@@ -211,7 +216,12 @@ export const TeachersPage: React.FC = () => {
         const file = input.files?.[0];
         if (!file) return;
         void httpClient
-          .post("/teachers/import", file, { headers: { "Content-Type": "text/csv" } })
+          .post("/teachers/import", file, {
+            headers: {
+              "Content-Type": "text/csv",
+              "Idempotency-Key": createImportIdempotencyKey(),
+            },
+          })
           .then(({ data }) => {
             const result = (data as { data?: { created?: number; failed?: number } }).data ?? data;
             message.success(

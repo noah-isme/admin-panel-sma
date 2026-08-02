@@ -362,7 +362,8 @@ export const GradesPage: React.FC = () => {
     (record: GradeReportRow) => {
       Modal.confirm({
         title: `Hapus nilai ${record.studentName}?`,
-        content: "Nilai yang dihapus tidak dapat dikembalikan.",
+        content:
+          "Nilai akan disembunyikan dari daftar. Masukkan nilai kembali untuk memulihkannya.",
         okText: "Hapus",
         cancelText: "Batal",
         okButtonProps: { danger: true, loading: isDeleting },

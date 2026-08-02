@@ -157,6 +157,10 @@ Flag API dan Vite dibaca saat proses masing-masing dijalankan. Setelah mengubahn
 
 Detail envelope response, alias backward-compatible (`/exam-events`, `/attendance`, `/teacher-preferences`, dan `PUT /enrollments/:id`), serta kontrak role/user relation ada di [`sma-adp-api/docs/GO_BACKEND_API_SPECIFICATION.md`](../sma-adp-api/docs/GO_BACKEND_API_SPECIFICATION.md).
 
+Compatibility routes and their frontend readiness are tracked in [`sma-adp-api/docs/COMPATIBILITY_CONTRACT_MATRIX.md`](../sma-adp-api/docs/COMPATIBILITY_CONTRACT_MATRIX.md); core-resource CRUD coverage remains in the canonical specification and generated Swagger.
+
+Nilai mendukung update melalui `PUT/PATCH /grades/:id` dan soft-delete melalui `DELETE /grades/:id`. Nilai yang di-soft-delete tidak muncul pada daftar dan dapat dipulihkan dengan memasukkan nilai untuk enrollment, subject, dan component yang sama.
+
 ### Go API Environment (sma-adp-api)
 
 Go API menggunakan file `.env` di repository `sma-adp-api` dengan variabel seperti:
