@@ -93,7 +93,7 @@ import { ErrorBoundary } from "./components/error-boundary";
 
 const queryClient = new QueryClient();
 
-const resources = [
+const allResources = [
   {
     name: "dashboard",
     list: "/dashboard",
@@ -397,6 +397,50 @@ const resources = [
   },
 ] as const;
 
+type FeatureName =
+  | "dashboard"
+  | "calendar"
+  | "attendance"
+  | "homerooms"
+  | "settings"
+  | "schedules"
+  | "mutations"
+  | "archives"
+  | "reports";
+
+const featureEnvKeys: Record<FeatureName, string> = {
+  dashboard: "VITE_ENABLE_DASHBOARD",
+  calendar: "VITE_ENABLE_CALENDAR_ALIAS",
+  attendance: "VITE_ENABLE_ATTENDANCE_ALIAS",
+  homerooms: "VITE_ENABLE_HOMEROOMS",
+  settings: "VITE_ENABLE_CONFIGURATION_API",
+  schedules: "VITE_ENABLE_SCHEDULER",
+  mutations: "VITE_ENABLE_MUTATIONS",
+  archives: "VITE_ENABLE_ARCHIVES",
+  reports: "VITE_ENABLE_REPORTS",
+};
+
+const isFeatureEnabled = (feature: FeatureName) =>
+  import.meta.env[featureEnvKeys[feature]] === "true";
+
+const resourceFeature: Partial<Record<string, FeatureName>> = {
+  dashboard: "dashboard",
+  calendar: "calendar",
+  attendance: "attendance",
+  homerooms: "homerooms",
+  settings: "settings",
+  mutations: "mutations",
+  archives: "archives",
+  reports: "reports",
+};
+
+// The API defaults optional capabilities to disabled. Keep those pages out of
+// Refine's resource registry and router unless the matching VITE flag is set.
+const resources = allResources.filter((resource) => {
+  const feature = resourceFeature[resource.name];
+  return !feature || isFeatureEnabled(feature);
+});
+
 const resourceRouteConfig: Record<
   (typeof resources)[number]["name"],
   {
@@ -608,7 +652,7 @@ async function bootstrap() {
                               }
                             />
                           </>
-                        ) : resource.name === "schedules" ? (
+                        ) : resource.name === "schedules" && isFeatureEnabled("schedules") ? (
                           <>
                             <Route
                               path="generator"
@@ -650,14 +694,16 @@ async function bootstrap() {
                         </ResourceActionGuard>
                       }
                     />
-                    <Route
-                      path="configuration"
-                      element={
-                        <ResourceActionGuard action="edit" resourceName="settings">
-                          <ConfigurationPage />
-                        </ResourceActionGuard>
-                      }
-                    />
+                    {isFeatureEnabled("settings") ? (
+                      <Route
+                        path="configuration"
+                        element={
+                          <ResourceActionGuard action="edit" resourceName="settings">
+                            <ConfigurationPage />
+                          </ResourceActionGuard>
+                        }
+                      />
+                    ) : null}
                   </Route>
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="*" element={<ErrorComponent />} />

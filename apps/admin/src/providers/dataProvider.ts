@@ -10,6 +10,8 @@ import type {
   UpdateResponse,
   DeleteOneResponse,
   GetManyResponse,
+  CustomResponse,
+  CustomParams,
 } from "@refinedev/core";
 import { studentQuerySchema } from "@shared/schemas";
 
@@ -183,6 +185,43 @@ const transformFilters = (resource: string, filters?: CrudFilters): Record<strin
   return parsed.success ? parsed.data : flattened;
 };
 
+const isPlainObject = (value: unknown): value is Record<string, unknown> => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+};
+
+const snakeToCamel = (key: string) =>
+  key.replace(/_([a-z0-9])/g, (_, letter: string) => letter.toUpperCase());
+
+const camelToSnake = (key: string) =>
+  key
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replace(/([A-Z])([A-Z][a-z])/g, "$1_$2")
+    .toLowerCase();
+
+/** Keep Go's snake_case API contract outside the camelCase UI model. */
+const normalizeApiData = (value: unknown): unknown => {
+  if (Array.isArray(value)) return value.map(normalizeApiData);
+  if (!isPlainObject(value)) return value;
+
+  return Object.fromEntries(
+    Object.entries(value).map(([key, entry]) => [snakeToCamel(key), normalizeApiData(entry)])
+  );
+};
+
+const serializeApiData = (value: unknown): unknown => {
+  if (Array.isArray(value)) return value.map(serializeApiData);
+  if (!isPlainObject(value)) return value;
+
+  return Object.fromEntries(
+    Object.entries(value).map(([key, entry]) => [camelToSnake(key), serializeApiData(entry)])
+  );
+};
+
+const unwrapEnvelope = (payload: unknown): unknown =>
+  isPlainObject(payload) && "data" in payload ? payload.data : payload;
+
 const resolveTotal = (payload: Record<string, unknown>, fallback: number) => {
   const directTotal = payload.total;
   if (typeof directTotal === "number") {
@@ -200,6 +239,14 @@ const resolveTotal = (payload: Record<string, unknown>, fallback: number) => {
     if (typeof metaTotal === "number") {
       return metaTotal;
     }
+  }
+
+  const pagination = payload.pagination;
+  if (pagination && typeof pagination === "object") {
+    const totalCount =
+      (pagination as { total_count?: unknown; totalCount?: unknown }).total_count ??
+      (pagination as { totalCount?: unknown }).totalCount;
+    if (typeof totalCount === "number") return totalCount;
   }
 
   return fallback;
@@ -223,14 +270,14 @@ const extractListPayload = <TData extends BaseRecord = BaseRecord>(
 
     if (Array.isArray(candidates)) {
       return {
-        data: candidates as TData[],
+        data: normalizeApiData(candidates) as TData[],
         total: resolveTotal(payload as Record<string, unknown>, candidates.length),
       };
     }
 
     if (candidates && typeof candidates === "object") {
       return {
-        data: [candidates as TData],
+        data: [normalizeApiData(candidates) as TData],
         total: resolveTotal(payload as Record<string, unknown>, 1),
       };
     }
@@ -274,21 +321,22 @@ const dataProvider: DataProvider = {
     };
 
     if (pagination?.current) {
-      queryParams._page = pagination.current;
+      queryParams.page = pagination.current;
     }
     if (pagination?.pageSize) {
-      queryParams._perPage = pagination.pageSize;
+      queryParams[resource === "users" ? "page_size" : "limit"] = pagination.pageSize;
     }
 
     if (Array.isArray(sorters) && sorters.length > 0) {
       const sorter = sorters[0];
       if (sorter?.field) {
-        queryParams._sort = sorter.field;
+        queryParams[resource === "users" ? "sort_by" : "sort"] = camelToSnake(sorter.field);
         const orderValue =
           typeof sorter.order === "string"
             ? sorter.order.toLowerCase()
             : sorter.order?.toString().toLowerCase();
-        queryParams._order = orderValue === "desc" || orderValue === "descend" ? "DESC" : "ASC";
+        queryParams[resource === "users" ? "sort_order" : "order"] =
+          orderValue === "desc" || orderValue === "descend" ? "DESC" : "ASC";
       }
     }
 
@@ -323,27 +371,31 @@ const dataProvider: DataProvider = {
     const response = await api.get(ensureLeadingSlash(`${resource}/${id}`), {
       headers: resolveHeaders(meta),
     });
-    return { data: response.data as TData };
+    return { data: normalizeApiData(unwrapEnvelope(response.data)) as TData };
   },
 
   create: async <TData extends BaseRecord = BaseRecord>(
     params: Parameters<DataProvider["create"]>[0]
   ): Promise<CreateResponse<TData>> => {
     const { resource, variables, meta } = params as any;
-    const response = await api.post(ensureLeadingSlash(resource), variables, {
+    const response = await api.post(ensureLeadingSlash(resource), serializeApiData(variables), {
       headers: resolveHeaders(meta),
     });
-    return { data: response.data as TData };
+    return { data: normalizeApiData(unwrapEnvelope(response.data)) as TData };
   },
 
   update: async <TData extends BaseRecord = BaseRecord>(
     params: Parameters<DataProvider["update"]>[0]
   ): Promise<UpdateResponse<TData>> => {
     const { resource, id, variables, meta } = params as any;
-    const response = await api.patch(ensureLeadingSlash(`${resource}/${id}`), variables, {
-      headers: resolveHeaders(meta),
-    });
-    return { data: response.data as TData };
+    const response = await api.put(
+      ensureLeadingSlash(`${resource}/${id}`),
+      serializeApiData(variables),
+      {
+        headers: resolveHeaders(meta),
+      }
+    );
+    return { data: normalizeApiData(unwrapEnvelope(response.data)) as TData };
   },
 
   deleteOne: async <TData extends BaseRecord = BaseRecord>(
@@ -360,14 +412,33 @@ const dataProvider: DataProvider = {
     params: Parameters<DataProvider["getMany"]>[0]
   ): Promise<GetManyResponse<TData>> => {
     const { resource, ids, meta } = params as any;
-    const response = await api.get(ensureLeadingSlash(resource), {
-      params: { ids },
-      headers: resolveHeaders(meta),
-    });
-    return extractListPayload(response) as unknown as GetManyResponse<TData>;
+    const records = await Promise.all(
+      ids.map(async (id: string | number) => {
+        const response = await api.get(ensureLeadingSlash(`${resource}/${id}`), {
+          headers: resolveHeaders(meta),
+          signal: resolveSignal(meta),
+        });
+        return normalizeApiData(unwrapEnvelope(response.data)) as TData;
+      })
+    );
+    return { data: records };
   },
 
-  custom: async () => Promise.reject(new Error("custom requests are not implemented yet")),
+  custom: async <TData extends BaseRecord = BaseRecord>(
+    params: CustomParams
+  ): Promise<CustomResponse<TData>> => {
+    const { url, method, payload, query, headers, meta } = params;
+    const response = await api.request({
+      url: /^https?:\/\//.test(url) ? url : ensureLeadingSlash(url),
+      method,
+      data: payload,
+      params: query,
+      headers: (headers as Record<string, string> | undefined) ?? resolveHeaders(meta),
+      signal: resolveSignal(meta),
+    });
+
+    return { data: normalizeApiData(unwrapEnvelope(response.data)) as TData };
+  },
 };
 
 const formatArg = (arg: unknown) => {

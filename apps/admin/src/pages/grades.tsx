@@ -52,6 +52,7 @@ import type { ColumnsType } from "antd/es/table";
 import { useDelete, useNavigation, useNotification } from "@refinedev/core";
 import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
+import { downloadCsv } from "../utils/csv";
 import { httpClient } from "../providers/dataProvider";
 import type { GradeReportResponse, GradeReportRow, GradeStatusCode } from "../types/grade-report";
 
@@ -570,7 +571,30 @@ export const GradesPage: React.FC = () => {
   );
 
   const handleExport = useCallback((kind: "pdf" | "xlsx" | "summary") => {
-    message.info(`Fitur ekspor ${kind.toUpperCase()} akan terhubung ke API backend.`);
+    downloadCsv(
+      `grades-${kind}.csv`,
+      rows.map(
+        ({
+          id,
+          studentName,
+          studentNis,
+          className,
+          subjectName,
+          componentName,
+          score,
+          status,
+        }) => ({
+          id,
+          studentName,
+          studentNis,
+          className,
+          subjectName,
+          componentName,
+          score,
+          status: status?.code,
+        })
+      )
+    );
   }, []);
 
   const enterpriseCardStyle: React.CSSProperties = {

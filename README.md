@@ -135,6 +135,26 @@ pnpm --filter @apps/admin exec msw init ./apps/admin/public --save
 | `VITE_API_URL` | Base URL Go API (termasuk prefix `/api/v1`)                        | `http://localhost:8081/api/v1` |
 | `VITE_USE_MSW` | Aktifkan Mock Service Worker (`true`/`false`) untuk dashboard baru | `true`                         |
 
+#### Feature flags admin/API
+
+Resource dan route opsional di admin harus mengikuti feature flag API yang sama. Nilai default semua flag adalah `false`; aktifkan pasangan berikut bersama-sama agar halaman tidak memanggil endpoint yang tidak terdaftar:
+
+| Go API (`sma-adp-api/.env`) | Admin (`apps/admin/.env`)       | Cakupan                              |
+| --------------------------- | ------------------------------- | ------------------------------------ |
+| `ENABLE_DASHBOARD`          | `VITE_ENABLE_DASHBOARD`         | Dashboard dan analytics              |
+| `ENABLE_SCHEDULER`          | `VITE_ENABLE_SCHEDULER`         | Generator jadwal dan preferensi guru |
+| `ENABLE_REPORTS`            | `VITE_ENABLE_REPORTS`           | Pembuatan dan unduhan laporan        |
+| `ENABLE_MUTATIONS`          | `VITE_ENABLE_MUTATIONS`         | Alur mutasi siswa                    |
+| `ENABLE_ARCHIVES`           | `VITE_ENABLE_ARCHIVES`          | Arsip dan unduhan berkas             |
+| `ENABLE_HOMEROOMS`          | `VITE_ENABLE_HOMEROOMS`         | Data wali kelas                      |
+| `ENABLE_CONFIGURATION_API`  | `VITE_ENABLE_CONFIGURATION_API` | Konfigurasi aplikasi                 |
+| `ENABLE_CALENDAR_ALIAS`     | `VITE_ENABLE_CALENDAR_ALIAS`    | Alias `/calendar`                    |
+| `ENABLE_ATTENDANCE_ALIAS`   | `VITE_ENABLE_ATTENDANCE_ALIAS`  | Ringkasan alias attendance           |
+
+Flag API dan Vite dibaca saat proses masing-masing dijalankan. Setelah mengubahnya, restart Go API dan dev server/build admin. Resource inti seperti `/schedules` tetap tersedia terlepas dari flag opsional.
+
+Detail envelope response, alias backward-compatible (`/exam-events`, `/attendance`, `/teacher-preferences`, dan `PUT /enrollments/:id`), serta kontrak role/user relation ada di [`sma-adp-api/docs/GO_BACKEND_API_SPECIFICATION.md`](../sma-adp-api/docs/GO_BACKEND_API_SPECIFICATION.md).
+
 ### Go API Environment (sma-adp-api)
 
 Go API menggunakan file `.env` di repository `sma-adp-api` dengan variabel seperti:

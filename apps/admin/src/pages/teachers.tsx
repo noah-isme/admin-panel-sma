@@ -40,6 +40,7 @@ import { useNavigation, useNotification } from "@refinedev/core";
 import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { httpClient } from "../providers/dataProvider";
+import { downloadCsv } from "../utils/csv";
 import type {
   TeacherAvailabilityLevel,
   TeacherRosterResponse,
@@ -205,7 +206,18 @@ export const TeachersPage: React.FC = () => {
     if (action === "import") {
       message.info("Integrasi import guru akan dihubungkan ke backend.");
     } else {
-      message.info("Ekspor guru akan tersedia setelah endpoint siap.");
+      downloadCsv(
+        "teachers.csv",
+        rows.map(({ id, nip, fullName, email, phone, status, assignmentCount }) => ({
+          id,
+          nip,
+          fullName,
+          email,
+          phone,
+          status,
+          assignmentCount,
+        }))
+      );
     }
   }, []);
 
@@ -216,11 +228,10 @@ export const TeachersPage: React.FC = () => {
       } else if (action === "edit") {
         edit("teachers", record.id);
       } else {
-        notifyOpen?.({
-          type: "info",
-          message: "Ubah status guru",
-          description: `Fitur ubah status untuk ${record.fullName} akan tersedia segera.`,
-        });
+        void httpClient
+          .patch(`/teachers/${record.id}/status`, { active: record.status !== "active" })
+          .then(() => message.success("Status guru diperbarui"))
+          .catch(() => message.error("Gagal memperbarui status guru"));
       }
     },
     [edit, notifyOpen, show]

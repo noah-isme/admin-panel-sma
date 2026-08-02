@@ -81,7 +81,16 @@ interface MeResponse {
   role: string;
   teacherId?: string | null;
   studentId?: string | null;
+  classId?: string | null;
 }
+
+type MeEnvelope = Partial<MeResponse> & {
+  data?: MeEnvelope;
+  full_name?: string;
+  teacher_id?: string | null;
+  student_id?: string | null;
+  class_id?: string | null;
+};
 
 // Helper to get tokens from localStorage
 const getAccessToken = () => localStorage.getItem("access_token");
@@ -132,6 +141,38 @@ const normalizeTokens = (tokens: TokenResponse | null | undefined) => {
   }
 
   return { accessToken, refreshToken };
+};
+
+const normalizeUser = (payload: MeEnvelope | null | undefined): MeResponse | null => {
+  if (!payload || typeof payload !== "object") return null;
+  if (payload.data) return normalizeUser(payload.data);
+
+  const id = payload.id;
+  const email = payload.email;
+  const fullName = payload.fullName ?? payload.full_name;
+  const role = payload.role;
+  if (!id || !email || !fullName || !role) return null;
+
+  return {
+    id,
+    email,
+    fullName,
+    role,
+    teacherId: payload.teacherId ?? payload.teacher_id,
+    studentId: payload.studentId ?? payload.student_id,
+    classId: payload.classId ?? payload.class_id,
+  };
+};
+
+const readStoredUser = (): MeResponse | null => {
+  const value = localStorage.getItem("user");
+  if (!value) return null;
+
+  try {
+    return normalizeUser(JSON.parse(value) as MeEnvelope);
+  } catch {
+    return null;
+  }
 };
 
 export const authProvider: AuthProvider = {
@@ -222,8 +263,10 @@ export const authProvider: AuthProvider = {
       setTokens(accessToken, refreshToken);
 
       // If backend already returned user, store it. Otherwise try fetching /auth/me
-      if (body.user) {
-        localStorage.setItem("user", JSON.stringify(body.user));
+      const loginPayload = unwrapTokenPayload(body);
+      const loginUser = normalizeUser(loginPayload?.user);
+      if (loginUser) {
+        localStorage.setItem("user", JSON.stringify(loginUser));
       }
 
       try {
@@ -232,14 +275,18 @@ export const authProvider: AuthProvider = {
         });
 
         if (meResponse.ok) {
-          const user: MeResponse = await meResponse.json();
-          localStorage.setItem("user", JSON.stringify(user));
-        } else if (!body.user) {
+          const user = normalizeUser((await meResponse.json()) as MeEnvelope);
+          if (user) {
+            localStorage.setItem("user", JSON.stringify(user));
+          } else if (!loginUser) {
+            localStorage.removeItem("user");
+          }
+        } else if (!loginUser) {
           localStorage.removeItem("user");
         }
       } catch (error) {
         console.error("Failed to fetch user profile after login", error);
-        if (!body.user) {
+        if (!loginUser) {
           localStorage.removeItem("user");
         }
       }
@@ -335,20 +382,14 @@ export const authProvider: AuthProvider = {
   },
 
   getPermissions: async () => {
-    const userStr = localStorage.getItem("user");
-    if (userStr) {
-      const user = JSON.parse(userStr) as MeResponse;
-      return user.role;
-    }
-    return null;
+    return readStoredUser()?.role ?? null;
   },
 
   getIdentity: async () => {
     // In DEV, prefer the locally-stored user if present.
     if (import.meta.env.DEV) {
-      const userStr = localStorage.getItem("user");
-      if (userStr) {
-        const user = JSON.parse(userStr) as MeResponse;
+      const user = readStoredUser();
+      if (user) {
         return {
           id: user.id,
           name: user.fullName,
@@ -359,9 +400,8 @@ export const authProvider: AuthProvider = {
       return null;
     }
 
-    const userStr = localStorage.getItem("user");
-    if (userStr) {
-      const user = JSON.parse(userStr) as MeResponse;
+    const user = readStoredUser();
+    if (user) {
       return {
         id: user.id,
         name: user.fullName,
@@ -384,7 +424,8 @@ export const authProvider: AuthProvider = {
         return null;
       }
 
-      const user = (await response.json()) as MeResponse;
+      const user = normalizeUser((await response.json()) as MeEnvelope);
+      if (!user) return null;
       localStorage.setItem("user", JSON.stringify(user));
 
       return {

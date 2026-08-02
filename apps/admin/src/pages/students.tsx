@@ -43,6 +43,7 @@ import dayjs from "dayjs";
 import { useNavigation, useNotification } from "@refinedev/core";
 import { useQuery } from "@tanstack/react-query";
 import { httpClient } from "../providers/dataProvider";
+import { downloadCsv } from "../utils/csv";
 import type {
   StudentGenderCode,
   StudentRosterResponse,
@@ -242,7 +243,18 @@ export const StudentsPage: React.FC = () => {
     if (action === "import") {
       message.info("Integrasi import CSV akan ditautkan ke backend.");
     } else if (action === "export") {
-      message.info("Ekspor Excel akan tersedia setelah API siap.");
+      downloadCsv(
+        "students.csv",
+        rows.map(({ id, nis, fullName, gender, birthDate, className, status }) => ({
+          id,
+          nis,
+          fullName,
+          gender,
+          birthDate,
+          className,
+          status,
+        }))
+      );
     } else {
       message.info("Perubahan status massal membutuhkan endpoint khusus.");
     }
@@ -255,11 +267,12 @@ export const StudentsPage: React.FC = () => {
       } else if (action === "edit") {
         edit("students", record.id);
       } else {
-        notifyOpen?.({
-          type: "info",
-          message: "Ubah status siswa",
-          description: `Aksi ubah status untuk ${record.fullName} akan tersedia setelah endpoint siap.`,
-        });
+        void httpClient
+          .patch(`/students/${record.id}/status`, {
+            status: record.status === "active" ? "inactive" : "active",
+          })
+          .then(() => message.success("Status siswa diperbarui"))
+          .catch(() => message.error("Gagal memperbarui status siswa"));
       }
     },
     [edit, notifyOpen, show]
