@@ -21,6 +21,7 @@ import {
   Divider,
   Dropdown,
   Empty,
+  Flex,
   Grid,
   Input,
   List,
@@ -37,7 +38,8 @@ import {
   Typography,
   message,
 } from "antd";
-import type { ColumnsType, TableProps } from "antd/es/table";
+import type { ColumnsType, TableProps, TablePaginationConfig } from "antd/es/table";
+import type { FilterValue, SorterResult } from "antd/es/table/interface";
 import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 import { useNavigation } from "@refinedev/core";
@@ -64,8 +66,8 @@ type ViewKey = "list" | "insights";
 
 type FilterState = {
   classId?: string;
-  status?: StudentStatusCode;
-  gender?: StudentGenderCode;
+  status?: StudentStatusCode | "all";
+  gender?: StudentGenderCode | "all";
   track?: string;
   guardian?: string;
 };
@@ -141,8 +143,8 @@ export const StudentsPage: React.FC = () => {
       perPage: pagination.pageSize,
     };
     if (filtersState.classId) params.classId = filtersState.classId;
-    if (filtersState.status) params.status = filtersState.status;
-    if (filtersState.gender) params.gender = filtersState.gender;
+    if (filtersState.status && filtersState.status !== "all") params.status = filtersState.status;
+    if (filtersState.gender && filtersState.gender !== "all") params.gender = filtersState.gender;
     if (filtersState.track) params.track = filtersState.track;
     if (filtersState.guardian) params.guardian = filtersState.guardian;
     if (typeof birthYearRange[0] === "number") params.birthYearStart = birthYearRange[0];
@@ -225,7 +227,11 @@ export const StudentsPage: React.FC = () => {
   }, [pagination.pageSize]);
 
   const handleTableChange: TableProps<StudentRosterRow>["onChange"] = useCallback(
-    (pager, _filters, sorter) => {
+    (
+      pager: TablePaginationConfig,
+      _filters: Record<string, FilterValue | null>,
+      sorter: SorterResult<StudentRosterRow> | SorterResult<StudentRosterRow>[]
+    ) => {
       setPagination((prev) => ({
         current: pager.current ?? prev.current,
         pageSize: pager.pageSize ?? prev.pageSize,
@@ -424,9 +430,11 @@ export const StudentsPage: React.FC = () => {
       tags.push({ key: "status", label: `Status: ${filtersState.status.toUpperCase()}` });
     }
     if (filtersState.gender) {
+      const genderLabel =
+        filtersState.gender === "all" ? "Semua" : genderLabelMap[filtersState.gender];
       tags.push({
         key: "gender",
-        label: `Gender: ${genderLabelMap[filtersState.gender]}`,
+        label: `Gender: ${genderLabel}`,
       });
     }
     if (filtersState.track) {
@@ -475,7 +483,7 @@ export const StudentsPage: React.FC = () => {
                   <Typography.Text>Wali: {record.guardianName}</Typography.Text>
                   <Typography.Text type="secondary">{record.guardianPhone}</Typography.Text>
                 </Space>
-                <Space justify="space-between" align="center">
+                <Flex justify="space-between" align="center" gap="small">
                   <Tag color={statusColorMap[record.status]}>{record.status.toUpperCase()}</Tag>
                   <Dropdown
                     menu={{
@@ -492,7 +500,7 @@ export const StudentsPage: React.FC = () => {
                   >
                     <Button icon={<MoreOutlined />} />
                   </Dropdown>
-                </Space>
+                </Flex>
               </Space>
             </Card>
           </List.Item>

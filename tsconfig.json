@@ -5,5 +5,11 @@
     "incremental": true,
     "tsBuildInfoFile": "./.tsbuildinfo"
   },
+  "references": [
+    { "path": "./apps/admin" },
+    { "path": "./apps/landing" },
+    { "path": "./apps/shared" },
+    { "path": "./apps/worker" }
+  ],
   "files": []
 }

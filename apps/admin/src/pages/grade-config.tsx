@@ -114,7 +114,15 @@ export const GradeConfigPage: React.FC = () => {
   const classSubjects = (classSubjectsQuery.data?.data as BaseRecord[]) ?? [];
   const classes = (classesQuery.data?.data as BaseRecord[]) ?? [];
   const subjects = (subjectsQuery.data?.data as BaseRecord[]) ?? [];
-  const gradeComponents = (gradeComponentsQuery.data?.data as BaseRecord[]) ?? [];
+  const gradeComponents =
+    (gradeComponentsQuery.data?.data as Array<{
+      id: string;
+      name: string;
+      weight?: number | string;
+      classSubjectId: string;
+      kkm: number;
+      description: string;
+    }>) ?? [];
   const gradeConfigs = (gradeConfigsQuery.data?.data as BaseRecord[]) ?? [];
   const gradeScores = (gradeScoresQuery.data?.data as BaseRecord[]) ?? [];
   const enrollments = (enrollmentsQuery.data?.data as BaseRecord[]) ?? [];
@@ -379,7 +387,7 @@ export const GradeConfigPage: React.FC = () => {
   };
 
   const handleReset = async () => {
-    if (!existingConfig) return;
+    if (!existingConfig?.id) return;
     try {
       setSaving(true);
       await deleteConfig({ resource: "grade-configs", id: existingConfig.id });

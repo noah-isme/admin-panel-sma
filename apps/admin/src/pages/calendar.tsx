@@ -126,7 +126,7 @@ const AUDIENCE_OPTIONS = [
   { label: "Guru", value: "GURU" },
   { label: "Siswa", value: "SISWA" },
   { label: "Orang Tua", value: "ORTU" },
-] as const;
+];
 
 const formatAudience = (
   audience: string | undefined,
@@ -686,7 +686,7 @@ export const CalendarPage: React.FC = () => {
   const handleCreateEvent = useCallback(async () => {
     try {
       const values = await form.validateFields();
-      if (!values.period || values.period.length === 0) {
+      if (!values.period || !values.period[0] || !values.period[1]) {
         throw new Error("Tanggal event wajib diisi.");
       }
       if (!selectedTermId) {

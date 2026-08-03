@@ -33,6 +33,14 @@ const formatTitle = (key: string) =>
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .replace(/^./, (char) => char.toUpperCase());
 
+/**
+ * antd's Table sorts with `"ascend"`/`"descend"`; Refine's `CrudSort` uses
+ * `"asc"`/`"desc"`. The sort buttons here are antd, the sorter state is Refine,
+ * so translate rather than passing antd's spelling through.
+ */
+const toCrudOrder = (order: "ascend" | "descend"): "asc" | "desc" =>
+  order === "descend" ? "desc" : "asc";
+
 export const ResourceList = () => {
   const { resource } = useResource();
   const resourceName = resource?.name;
@@ -158,7 +166,7 @@ export const ResourceList = () => {
     if (Array.isArray(sorters) && sorters.length > 0) {
       const activeSorter = sorters[0];
       setSelectedSortField((activeSorter.field as string) ?? undefined);
-      setSelectedSortOrder((activeSorter.order as "ascend" | "descend" | undefined) ?? undefined);
+      setSelectedSortOrder(activeSorter.order === "desc" ? "descend" : "ascend");
     } else {
       setSelectedSortField(undefined);
       setSelectedSortOrder(undefined);
@@ -204,8 +212,7 @@ export const ResourceList = () => {
         setSorters([]);
         return;
       }
-      const order = selectedSortOrder ?? "ascend";
-      setSorters([{ field: value, order }]);
+      setSorters([{ field: value, order: toCrudOrder(selectedSortOrder ?? "ascend") }]);
     },
     [selectedSortOrder, setSorters]
   );
@@ -214,7 +221,7 @@ export const ResourceList = () => {
     (order: "ascend" | "descend") => {
       setSelectedSortOrder(order);
       if (!setSorters || !selectedSortField) return;
-      setSorters([{ field: selectedSortField, order }]);
+      setSorters([{ field: selectedSortField, order: toCrudOrder(order) }]);
     },
     [selectedSortField, setSorters]
   );
@@ -523,6 +530,9 @@ export const ResourceList = () => {
   const columnOptions = useMemo(
     () =>
       columns
+        // `ColumnsType` is a union of leaf columns and column *groups*; only the
+        // former carry `dataIndex`, so narrow before reading it.
+        .flatMap((column) => ("dataIndex" in column ? [column] : []))
         .filter((column) => typeof column.dataIndex === "string")
         .map((column) => ({
           value: column.dataIndex as string,

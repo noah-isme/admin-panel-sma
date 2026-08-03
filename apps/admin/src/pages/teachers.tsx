@@ -19,6 +19,7 @@ import {
   Divider,
   Dropdown,
   Empty,
+  Flex,
   Grid,
   Input,
   List,
@@ -35,7 +36,8 @@ import {
   Typography,
   message,
 } from "antd";
-import type { ColumnsType, TableProps } from "antd/es/table";
+import type { ColumnsType, TableProps, TablePaginationConfig } from "antd/es/table";
+import type { FilterValue, SorterResult } from "antd/es/table/interface";
 import { useNavigation } from "@refinedev/core";
 import { useAppNotification } from "../hooks/use-app-notification";
 import { useQuery } from "@tanstack/react-query";
@@ -59,9 +61,9 @@ const createImportIdempotencyKey = () =>
 
 type FilterState = {
   subjectId?: string;
-  status?: TeacherStatusCode;
+  status?: TeacherStatusCode | "all";
   track?: string;
-  availability?: TeacherAvailabilityLevel;
+  availability?: TeacherAvailabilityLevel | "all";
   homeroomClassId?: string;
 };
 
@@ -117,9 +119,10 @@ export const TeachersPage: React.FC = () => {
       perPage: pagination.pageSize,
     };
     if (filtersState.subjectId) params.subjectId = filtersState.subjectId;
-    if (filtersState.status) params.status = filtersState.status;
+    if (filtersState.status && filtersState.status !== "all") params.status = filtersState.status;
     if (filtersState.track) params.track = filtersState.track;
-    if (filtersState.availability) params.availability = filtersState.availability;
+    if (filtersState.availability && filtersState.availability !== "all")
+      params.availability = filtersState.availability;
     if (filtersState.homeroomClassId) params.homeroomClassId = filtersState.homeroomClassId;
     if (searchQuery) params.search = searchQuery;
     if (sortState.field) {
@@ -188,7 +191,11 @@ export const TeachersPage: React.FC = () => {
   }, [pagination.pageSize]);
 
   const handleTableChange: TableProps<TeacherRosterRow>["onChange"] = useCallback(
-    (pager, _filters, sorter) => {
+    (
+      pager: TablePaginationConfig,
+      _filters: Record<string, FilterValue | null>,
+      sorter: SorterResult<TeacherRosterRow> | SorterResult<TeacherRosterRow>[]
+    ) => {
       setPagination((prev) => ({
         current: pager.current ?? prev.current,
         pageSize: pager.pageSize ?? prev.pageSize,
@@ -424,9 +431,13 @@ export const TeachersPage: React.FC = () => {
       tags.push({ key: "track", label: `Program: ${filtersState.track}` });
     }
     if (filtersState.availability) {
+      const availabilityLabel =
+        filtersState.availability === "all"
+          ? "Semua"
+          : availabilityLabelMap[filtersState.availability];
       tags.push({
         key: "availability",
-        label: `Ketersediaan: ${availabilityLabelMap[filtersState.availability]}`,
+        label: `Ketersediaan: ${availabilityLabel}`,
       });
     }
     if (filtersState.homeroomClassId) {
@@ -472,7 +483,7 @@ export const TeachersPage: React.FC = () => {
                     Wali kelas: {record.homeroomClassName ?? "—"}
                   </Typography.Text>
                 </Space>
-                <Space justify="space-between" align="center">
+                <Flex justify="space-between" align="center" gap="small">
                   <Space>
                     <Tag color={statusColorMap[record.status]}>{record.status.toUpperCase()}</Tag>
                     {record.availability ? (
@@ -496,7 +507,7 @@ export const TeachersPage: React.FC = () => {
                   >
                     <Button icon={<MoreOutlined />} />
                   </Dropdown>
-                </Space>
+                </Flex>
               </Space>
             </Card>
           </List.Item>

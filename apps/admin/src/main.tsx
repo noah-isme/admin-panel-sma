@@ -536,13 +536,13 @@ async function bootstrap() {
                 accessControlProvider={accessControlProvider}
                 notificationProvider={notificationProvider}
                 routerProvider={routerProvider}
-                resources={resources.map(({ name, list, create, edit, show, meta }) => ({
-                  name,
-                  list,
-                  create,
-                  edit,
-                  show,
-                  meta,
+                resources={resources.map((resource) => ({
+                  name: resource.name,
+                  list: resource.list,
+                  create: "create" in resource ? resource.create : undefined,
+                  edit: "edit" in resource ? resource.edit : undefined,
+                  show: "show" in resource ? resource.show : undefined,
+                  meta: resource.meta,
                 }))}
                 options={{
                   syncWithLocation: true,

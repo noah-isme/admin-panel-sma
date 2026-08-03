@@ -23,8 +23,13 @@ export const useAppNotification = () => {
 
   return useMemo(
     () => ({
-      open: open as ((params: AppNotificationParams) => void) | undefined,
-      close,
+      // `open` is optional upstream (it is undefined when no notification
+      // provider is mounted, e.g. in isolated tests). Falling back to a no-op
+      // means call sites cannot crash by forgetting the optional check, which
+      // three of them had.
+      open: (params: AppNotificationParams) =>
+        (open as ((params: AppNotificationParams) => void) | undefined)?.(params),
+      close: (key: string) => close?.(key),
     }),
     [open, close]
   );

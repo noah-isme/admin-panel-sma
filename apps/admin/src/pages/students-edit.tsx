@@ -28,8 +28,8 @@ export const StudentsEdit: React.FC = () => {
               rules={[{ required: true, message: "Tanggal lahir wajib diisi" }]}
               getValueProps={(value: unknown) => {
                 if (!value) return { value: undefined };
-                const formatted = dayjs(value);
-                return { value: formatted.isValid() ? formatted.format("YYYY-MM-DD") : value };
+                const formatted = dayjs(String(value));
+                return { value: formatted.isValid() ? formatted.format("YYYY-MM-DD") : undefined };
               }}
             >
               <Input type="date" placeholder="YYYY-MM-DD" />

@@ -2,7 +2,7 @@ import axios, { AxiosHeaders, type AxiosResponse } from "axios";
 import type {
   BaseRecord,
   CrudFilters,
-  CrudSorter,
+  CrudSort,
   DataProvider,
   GetListResponse,
   GetOneResponse,
@@ -10,6 +10,7 @@ import type {
   UpdateResponse,
   DeleteOneResponse,
   GetManyResponse,
+  GetManyParams,
   CustomResponse,
   CustomParams,
 } from "@refinedev/core";
@@ -301,13 +302,13 @@ const ensureParams = (
   pagination?: { current?: number; pageSize?: number };
   filters?: CrudFilters;
   meta?: Record<string, unknown>;
-  sorters?: CrudSorter[];
+  sorters?: CrudSort[];
 } => ({
   resource: params.resource,
   pagination: params.pagination,
   filters: params.filters,
   meta: params.meta,
-  sorters: (params as any).sorters as CrudSorter[] | undefined,
+  sorters: (params as any).sorters as CrudSort[] | undefined,
 });
 
 const dataProvider: DataProvider = {
@@ -331,10 +332,10 @@ const dataProvider: DataProvider = {
       const sorter = sorters[0];
       if (sorter?.field) {
         queryParams[resource === "users" ? "sort_by" : "sort"] = camelToSnake(sorter.field);
-        const orderValue =
-          typeof sorter.order === "string"
-            ? sorter.order.toLowerCase()
-            : sorter.order?.toString().toLowerCase();
+        // `CrudSort["order"]` is "asc" | "desc", but antd's Table hands back
+        // "ascend" | "descend", and some call sites pass that straight through.
+        // Accept either spelling rather than assuming the declared type holds.
+        const orderValue = String(sorter.order ?? "").toLowerCase();
         queryParams[resource === "users" ? "sort_order" : "order"] =
           orderValue === "desc" || orderValue === "descend" ? "DESC" : "ASC";
       }
@@ -409,7 +410,7 @@ const dataProvider: DataProvider = {
   },
 
   getMany: async <TData extends BaseRecord = BaseRecord>(
-    params: Parameters<DataProvider["getMany"]>[0]
+    params: GetManyParams
   ): Promise<GetManyResponse<TData>> => {
     const { resource, ids, meta } = params as any;
     const records = await Promise.all(

@@ -110,7 +110,7 @@ export type AttendanceStudentRow = {
   studentName: string;
   studentNis: string;
   studentStatus: StudentRecord["status"];
-  existing?: AttendanceRecord;
+  existing: AttendanceRecord | undefined;
 };
 
 const arrayify = <T>(value: T[] | undefined | null): T[] => (Array.isArray(value) ? value : []);

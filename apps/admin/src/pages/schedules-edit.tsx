@@ -12,7 +12,7 @@ const DAY_OPTIONS = [
   { value: 4, label: "Kamis" },
   { value: 5, label: "Jumat" },
   { value: 6, label: "Sabtu" },
-] as const;
+];
 
 export const SchedulesEdit: React.FC = () => {
   const { formProps, saveButtonProps } = useForm();
@@ -66,11 +66,7 @@ export const SchedulesEdit: React.FC = () => {
 
   return (
     <ResourceActionGuard action="edit">
-      <Edit
-        saveButtonProps={saveButtonProps}
-        title="Ubah Jadwal Pelajaran"
-        onFinishFailed={handleFinishFailed}
-      >
+      <Edit saveButtonProps={saveButtonProps} title="Ubah Jadwal Pelajaran">
         <Card>
           <Form {...formProps} layout="vertical">
             <Form.Item

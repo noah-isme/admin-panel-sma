@@ -84,7 +84,7 @@ export const ClassesPage: React.FC = () => {
     setFilters,
     setSorters,
     tableQueryResult: { refetch } = {},
-  } = useTable<ClassResource>({
+  } = useTable<ClassTableRow>({
     resource: "classes",
     pagination: {
       pageSize: 10,

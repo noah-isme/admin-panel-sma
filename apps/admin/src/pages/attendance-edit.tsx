@@ -33,8 +33,8 @@ export const AttendanceEdit: React.FC = () => {
               rules={[{ required: true }]}
               getValueProps={(value: unknown) => {
                 if (!value) return { value: undefined };
-                const formatted = dayjs(value);
-                return { value: formatted.isValid() ? formatted.format("YYYY-MM-DD") : value };
+                const formatted = dayjs(String(value));
+                return { value: formatted.isValid() ? formatted.format("YYYY-MM-DD") : undefined };
               }}
             >
               <Input type="date" />

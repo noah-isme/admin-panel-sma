@@ -43,7 +43,7 @@ const DAY_OPTIONS = [
   { value: "4", label: "Kamis" },
   { value: "5", label: "Jumat" },
   { value: "6", label: "Sabtu" },
-] as const;
+];
 
 const SLOT_START_TIMES = ["07:00", "07:50", "08:40", "09:40", "10:30", "11:20", "12:45", "13:35"];
 
@@ -130,7 +130,7 @@ export const SchedulesPage: React.FC = () => {
     tableProps,
     setFilters,
     tableQueryResult: { refetch } = {},
-  } = useTable<ScheduleResource>({
+  } = useTable<EnrichedSchedule>({
     resource: "schedules",
     pagination: { pageSize: 20 },
     initialSorter: [

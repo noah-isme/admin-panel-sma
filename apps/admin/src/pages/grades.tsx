@@ -29,6 +29,7 @@ import {
   Divider,
   Dropdown,
   Empty,
+  Flex,
   Grid,
   Input,
   InputNumber,
@@ -47,7 +48,8 @@ import {
   Tooltip,
   Typography,
 } from "antd";
-import type { ColumnsType } from "antd/es/table";
+import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
+import type { FilterValue, SorterResult } from "antd/es/table/interface";
 import { useDelete, useNavigation } from "@refinedev/core";
 import { useAppNotification } from "../hooks/use-app-notification";
 import { useQuery } from "@tanstack/react-query";
@@ -539,7 +541,11 @@ export const GradesPage: React.FC = () => {
   );
 
   const handleTableChange: TableProps<GradeReportRow>["onChange"] = useCallback(
-    (pager, _filters, sorter) => {
+    (
+      pager: TablePaginationConfig,
+      _filters: Record<string, FilterValue | null>,
+      sorter: SorterResult<GradeReportRow> | SorterResult<GradeReportRow>[]
+    ) => {
       setPagination((prev) => ({
         current: pager.current ?? prev.current,
         pageSize: pager.pageSize ?? prev.pageSize,
@@ -632,7 +638,7 @@ export const GradesPage: React.FC = () => {
                       Bobot {record.componentWeight}% • KKM {record.kkm}
                     </Typography.Text>
                   </Space>
-                  <Space align="center" justify="space-between">
+                  <Flex align="center" justify="space-between" gap="small">
                     <Typography.Text
                       strong
                       style={{ color: toneColorMap[record.status.tone], fontSize: 22 }}
@@ -640,11 +646,11 @@ export const GradesPage: React.FC = () => {
                       {record.score}
                     </Typography.Text>
                     {toneTag(record)}
-                  </Space>
+                  </Flex>
                   <Typography.Text type="secondary">
                     Terakhir diperbarui {formatDate(record.lastUpdated)}
                   </Typography.Text>
-                  <Space justify="end">
+                  <Flex justify="flex-end">
                     <Dropdown
                       menu={{
                         items: actionMenuItems,
@@ -654,7 +660,7 @@ export const GradesPage: React.FC = () => {
                     >
                       <Button icon={<MoreOutlined />} />
                     </Dropdown>
-                  </Space>
+                  </Flex>
                 </Space>
               </Card>
             </List.Item>
@@ -740,7 +746,7 @@ export const GradesPage: React.FC = () => {
                 options={
                   filters?.terms.map((term) => ({
                     value: term.id,
-                    label: `${term.label} • ${term.extras.year} / Semester ${term.extras.semester}`,
+                    label: `${term.label} • ${term.extras?.year ?? ""} / Semester ${term.extras?.semester ?? ""}`,
                   })) ?? []
                 }
                 suffixIcon={<FilterOutlined />}
@@ -754,7 +760,7 @@ export const GradesPage: React.FC = () => {
                 options={
                   filters?.classes.map((klass) => ({
                     value: klass.id,
-                    label: `${klass.label} • ${klass.extras.track}`,
+                    label: `${klass.label} • ${klass.extras?.track ?? ""}`,
                   })) ?? []
                 }
               />

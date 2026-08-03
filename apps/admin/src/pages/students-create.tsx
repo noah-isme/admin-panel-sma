@@ -7,16 +7,14 @@ import { ResourceActionGuard } from "../components/resource-action-guard";
 export const StudentsCreate: React.FC = () => {
   const { open: notify } = useAppNotification();
   const { formProps, saveButtonProps } = useForm({
-    mutationOptions: {
-      onSuccess: () =>
-        notify?.({ type: "success", message: "Berhasil", description: "Siswa berhasil dibuat." }),
-      onError: (err: any) =>
-        notify?.({
-          type: "error",
-          message: "Gagal",
-          description: err?.message ?? "Gagal membuat siswa.",
-        }),
-    },
+    onMutationSuccess: () =>
+      notify?.({ type: "success", message: "Berhasil", description: "Siswa berhasil dibuat." }),
+    onMutationError: (err: any) =>
+      notify?.({
+        type: "error",
+        message: "Gagal",
+        description: err?.message ?? "Gagal membuat siswa.",
+      }),
   });
 
   return (
@@ -24,18 +22,6 @@ export const StudentsCreate: React.FC = () => {
       <Create
         saveButtonProps={{
           ...saveButtonProps,
-          onSuccess: () =>
-            notify?.({
-              type: "success",
-              message: "Berhasil",
-              description: "Siswa berhasil dibuat.",
-            }),
-          onError: (err: any) =>
-            notify?.({
-              type: "error",
-              message: "Gagal",
-              description: err?.message ?? "Gagal membuat siswa.",
-            }),
         }}
         title="Buat Siswa"
       >

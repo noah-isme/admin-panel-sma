@@ -65,11 +65,7 @@ export const GradeComponentsCreate: React.FC = () => {
 
   return (
     <ResourceActionGuard action="create">
-      <Create
-        saveButtonProps={saveButtonProps}
-        title="Buat Komponen Nilai"
-        onFinishFailed={handleFinishFailed}
-      >
+      <Create saveButtonProps={saveButtonProps} title="Buat Komponen Nilai">
         <Card>
           <Form {...formProps} layout="vertical">
             <Form.Item label="Nama Komponen" name="name" rules={[{ required: true }]}>
