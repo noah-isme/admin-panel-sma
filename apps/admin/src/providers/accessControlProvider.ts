@@ -25,12 +25,20 @@ const RW_ACTIONS: readonly ResourceAction[] = ["list", "show", "create", "edit"]
 const CRUD_ACTIONS: readonly ResourceAction[] = ["list", "show", "create", "edit", "delete"];
 const EMPTY_ACTIONS: readonly ResourceAction[] = [];
 
+// Every resource key below must correspond to an endpoint the API actually
+// serves. Granting a permission for a resource with no backing route produces a
+// navigable page that can only answer 404, which is worse than hiding it.
+//
+// `documents` maps to the archive store (`/documents`, an alias over
+// `/archives`). There is deliberately no `evaluations` key: no such endpoint
+// exists, and per-component marks are handled through `grades` plus
+// `grade-components`.
 const RBAC_MATRIX: Record<Role | "GUEST", RolePermissions> = {
   SUPERADMIN: {
     "*": "*",
     settings: "*",
     users: CRUD_ACTIONS,
-    audit: READ_ACTIONS,
+    "audit-logs": READ_ACTIONS,
   },
   ADMIN_TU: {
     students: CRUD_ACTIONS,
@@ -56,12 +64,11 @@ const RBAC_MATRIX: Record<Role | "GUEST", RolePermissions> = {
     reports: RW_ACTIONS,
     mutations: CRUD_ACTIONS,
     archives: RW_ACTIONS,
-    schedule: CRUD_ACTIONS,
+    "audit-logs": EMPTY_ACTIONS,
   },
   WALI_KELAS: {
     attendance: RW_ACTIONS,
     grades: RW_ACTIONS,
-    behavior: READ_ACTIONS,
     reports: RW_ACTIONS,
     mutations: READ_ACTIONS,
     archives: READ_ACTIONS,
@@ -81,7 +88,6 @@ const RBAC_MATRIX: Record<Role | "GUEST", RolePermissions> = {
     attendance: RW_ACTIONS,
     grades: RW_ACTIONS,
     subjects: READ_ACTIONS,
-    evaluations: RW_ACTIONS,
     "class-subjects": READ_ACTIONS,
     schedules: READ_ACTIONS,
     "teacher-preferences": READ_ACTIONS,
@@ -97,7 +103,9 @@ const RBAC_MATRIX: Record<Role | "GUEST", RolePermissions> = {
     reports: RW_ACTIONS,
   },
   KEPALA_SEKOLAH: {
-    dashboard: ["view"],
+    // GET /dashboard returns school-wide aggregates, which is the principal's
+    // primary view; the API grants KEPALA_SEKOLAH read access to it.
+    dashboard: ["list", "show", "view"],
     reports: READ_ACTIONS,
     mutations: READ_ACTIONS,
     archives: READ_ACTIONS,
@@ -120,7 +128,7 @@ const RBAC_MATRIX: Record<Role | "GUEST", RolePermissions> = {
     grades: READ_ACTIONS,
     classes: READ_ACTIONS,
     announcements: READ_ACTIONS,
-    schedule: READ_ACTIONS,
+    schedules: READ_ACTIONS,
     calendar: READ_ACTIONS,
     "teacher-preferences": READ_ACTIONS,
     settings: READ_ACTIONS,
@@ -132,7 +140,7 @@ const RBAC_MATRIX: Record<Role | "GUEST", RolePermissions> = {
     grades: READ_ACTIONS,
     classes: READ_ACTIONS,
     announcements: READ_ACTIONS,
-    schedule: READ_ACTIONS,
+    schedules: READ_ACTIONS,
     "behavior-notes": READ_ACTIONS,
     calendar: READ_ACTIONS,
     "teacher-preferences": READ_ACTIONS,
@@ -141,6 +149,23 @@ const RBAC_MATRIX: Record<Role | "GUEST", RolePermissions> = {
     "exam-events": READ_ACTIONS,
   },
   GUEST: {},
+};
+
+/**
+ * Every resource name the matrix grants a permission for, excluding the `*`
+ * wildcard. Exported so a test can assert the matrix never names a resource the
+ * API does not serve.
+ */
+export const declaredResources = (): string[] => {
+  const names = new Set<string>();
+  Object.values(RBAC_MATRIX).forEach((permissions) => {
+    Object.keys(permissions).forEach((resource) => {
+      if (resource !== "*") {
+        names.add(resource);
+      }
+    });
+  });
+  return [...names].sort();
 };
 
 const normalizeRole = (rawRole: unknown): Role | "GUEST" => {

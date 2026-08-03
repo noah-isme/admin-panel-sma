@@ -17,6 +17,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { resolveDataProvider } from "./providers/dataProvider";
 import { authProvider } from "./providers/authProvider";
 import { accessControlProvider } from "./providers/accessControlProvider";
+import {
+  buildTimeFeatures,
+  fetchFeatures,
+  type FeatureFlags,
+  type FeatureName,
+} from "./providers/features";
 import { ResourceList } from "./pages/resource-list";
 import { LoginPage } from "./pages/login";
 import { RouteDebugger } from "./components/route-debugger";
@@ -397,32 +403,6 @@ const allResources = [
   },
 ] as const;
 
-type FeatureName =
-  | "dashboard"
-  | "calendar"
-  | "attendance"
-  | "homerooms"
-  | "settings"
-  | "schedules"
-  | "mutations"
-  | "archives"
-  | "reports";
-
-const featureEnvKeys: Record<FeatureName, string> = {
-  dashboard: "VITE_ENABLE_DASHBOARD",
-  calendar: "VITE_ENABLE_CALENDAR_ALIAS",
-  attendance: "VITE_ENABLE_ATTENDANCE_ALIAS",
-  homerooms: "VITE_ENABLE_HOMEROOMS",
-  settings: "VITE_ENABLE_CONFIGURATION_API",
-  schedules: "VITE_ENABLE_SCHEDULER",
-  mutations: "VITE_ENABLE_MUTATIONS",
-  archives: "VITE_ENABLE_ARCHIVES",
-  reports: "VITE_ENABLE_REPORTS",
-};
-
-const isFeatureEnabled = (feature: FeatureName) =>
-  import.meta.env[featureEnvKeys[feature]] === "true";
-
 const resourceFeature: Partial<Record<string, FeatureName>> = {
   dashboard: "dashboard",
   calendar: "calendar",
@@ -434,15 +414,17 @@ const resourceFeature: Partial<Record<string, FeatureName>> = {
   reports: "reports",
 };
 
-// The API defaults optional capabilities to disabled. Keep those pages out of
-// Refine's resource registry and router unless the matching VITE flag is set.
-const resources = allResources.filter((resource) => {
-  const feature = resourceFeature[resource.name];
-  return !feature || isFeatureEnabled(feature);
-});
+// The API defaults optional capabilities to disabled, so a page whose module is
+// not mounted can only answer 404. Resolved at runtime from GET /features, with
+// the build-time VITE flags as the offline fallback.
+const selectResources = (features: FeatureFlags) =>
+  allResources.filter((resource) => {
+    const feature = resourceFeature[resource.name];
+    return !feature || features[feature];
+  });
 
 const resourceRouteConfig: Record<
-  (typeof resources)[number]["name"],
+  (typeof allResources)[number]["name"],
   {
     create?: React.ReactNode;
     edit?: React.ReactNode;
@@ -540,6 +522,20 @@ async function bootstrap() {
     } catch (err) {
       console.warn("MSW failed to start:", err instanceof Error ? err.message : String(err));
     }
+  }
+
+  // Ask the API which modules it mounted before building the resource registry.
+  // Under MSW there is no real backend to ask, so the build-time flags stand in.
+  const features: FeatureFlags = ENABLE_MSW
+    ? buildTimeFeatures()
+    : await fetchFeatures(dataProvider.getApiUrl());
+  const resources = selectResources(features);
+  const isFeatureEnabled = (feature: FeatureName) => features[feature];
+
+  try {
+    console.info("[features] Resolved:", features);
+  } catch {
+    // ignore
   }
 
   ReactDOM.createRoot(document.getElementById("root")!).render(
