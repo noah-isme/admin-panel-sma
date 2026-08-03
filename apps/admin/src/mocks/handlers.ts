@@ -418,8 +418,15 @@ const normalizers: Partial<
     const endDate = sanitizeDate(next.endDate);
     if (startDate) next.startDate = startDate;
     if (endDate) next.endDate = endDate;
-    if (typeof next.active !== "undefined") {
+    // The API field is `is_active` (normalized to `isActive`); `active` is the
+    // older fixture alias. Keep both in step so a write through either name
+    // stays visible to readers of the other.
+    if (typeof next.isActive !== "undefined") {
+      next.isActive = Boolean(next.isActive);
+      next.active = next.isActive;
+    } else if (typeof next.active !== "undefined") {
       next.active = Boolean(next.active);
+      next.isActive = next.active;
     }
     return next;
   },

@@ -352,20 +352,6 @@ const allResources = [
     },
   },
   {
-    name: "enrollments",
-    list: "/enrollments",
-    create: "/enrollments/create",
-    edit: "/enrollments/edit/:id",
-    meta: {
-      label: "Penempatan",
-      canCreate: true,
-      canEdit: true,
-      canDelete: true,
-      canShow: false,
-      icon: <DeploymentUnitOutlined />,
-    },
-  },
-  {
     name: "mutations",
     list: "/mutations",
     meta: {

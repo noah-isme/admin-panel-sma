@@ -47,9 +47,17 @@ import {
 import { SummaryCard } from "../components/dashboard/summary-card";
 import { themeTokens } from "../theme/tokens";
 import { formatWeekLabel, percent } from "../utils/format";
+import { ACTIVE_TERM_FILTER_FIELD, resolveActiveTerm } from "../utils/terms";
 import { useList as useRefineList } from "@refinedev/core";
 
 const EMPTY_MESSAGE = "Belum ada data. Tambahkan siswa/guru terlebih dulu.";
+
+type TermRecord = {
+  id: string;
+  name: string;
+  active?: boolean;
+  isActive?: boolean;
+};
 
 type DistributionBucket = {
   range: string;
@@ -129,23 +137,24 @@ const EmptyState: React.FC<{ message?: string }> = ({ message = EMPTY_MESSAGE })
 export const DashboardPage: React.FC = () => {
   const { list, push } = useNavigation();
 
-  // Fetch active term
+  // The dashboard is scoped to a term, so resolve the active one first. The API
+  // rejects the request without a termId, which is why this is not optional.
   const { data: activeTerms } = useRefineList<TermRecord>({
     resource: "terms",
-    filters: [{ field: "active", operator: "eq", value: true }],
+    filters: [{ field: ACTIVE_TERM_FILTER_FIELD, operator: "eq", value: true }],
     pagination: { current: 1, pageSize: 5 },
   });
 
-  const activeTerm = React.useMemo(
-    () => activeTerms?.data?.find((term) => term.active) ?? activeTerms?.data?.[0] ?? null,
-    [activeTerms]
-  );
+  const activeTerm = React.useMemo(() => resolveActiveTerm(activeTerms?.data), [activeTerms]);
   const activeTermId = activeTerm?.id;
 
+  // Without a termId the API answers 400, so wait for the term rather than
+  // firing a request that can only fail and surface as an error state.
   const dashboardQuery = useList<PrincipalDashboard>({
     resource: "dashboard",
     dataProviderName: "default",
-    ...(activeTermId ? { meta: { termId: activeTermId } } : {}),
+    meta: { termId: activeTermId },
+    queryOptions: { enabled: Boolean(activeTermId) },
   });
 
   const theme = useTheme();

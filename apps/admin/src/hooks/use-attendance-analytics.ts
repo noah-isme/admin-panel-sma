@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useList } from "@refinedev/core";
 import dayjs from "dayjs";
+import { resolveActiveTerm } from "../utils/terms";
 
 export type AttendanceStatus = "H" | "I" | "S" | "A";
 
@@ -10,6 +11,7 @@ type TermRecord = {
   startDate: string;
   endDate: string;
   active?: boolean;
+  isActive?: boolean;
 };
 
 type ClassRecord = {
@@ -191,7 +193,7 @@ export const useAttendanceAnalytics = (
     if (filters.termId) {
       return terms.find((term) => term.id === filters.termId) ?? null;
     }
-    return terms.find((term) => term.active) ?? terms[0] ?? null;
+    return resolveActiveTerm(terms);
   }, [filters.termId, terms]);
 
   const classesInTerm = useMemo(() => {

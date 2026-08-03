@@ -67,6 +67,7 @@ import { useGetIdentity, useList, useLogout, useNavigation } from "@refinedev/co
 import { AppBreadcrumb } from "./app-breadcrumb";
 import { themeTokens } from "../../theme/tokens";
 import { useColorMode } from "../../theme/theme-provider";
+import { ACTIVE_TERM_FILTER_FIELD, resolveActiveTerm } from "../../utils/terms";
 
 const SKIP_LINK_ID = "main-content";
 
@@ -74,6 +75,7 @@ type TermRecord = {
   id: string;
   name: string;
   active?: boolean;
+  isActive?: boolean;
 };
 
 type NavNode = {
@@ -532,7 +534,7 @@ export const AppLayout: React.FC = () => {
   const { data: identity } = useGetIdentity<{ id: string; name?: string; email?: string }>();
   const { data: activeTerms, isLoading: isLoadingTerms } = useList<TermRecord>({
     resource: "terms",
-    filters: [{ field: "active", operator: "eq", value: true }],
+    filters: [{ field: ACTIVE_TERM_FILTER_FIELD, operator: "eq", value: true }],
     pagination: { current: 1, pageSize: 5 },
   });
   const { mode, toggleMode } = useColorMode();
@@ -640,8 +642,7 @@ export const AppLayout: React.FC = () => {
       );
     });
 
-  const activeTerm =
-    activeTerms?.data?.find((term) => term.active) ?? activeTerms?.data?.[0] ?? null;
+  const activeTerm = resolveActiveTerm(activeTerms?.data);
 
   const activeItem = React.useMemo(
     () => findNavItem(navItems, activeState.key),

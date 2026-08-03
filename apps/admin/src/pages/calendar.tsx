@@ -42,6 +42,7 @@ import {
   type CalendarEvent,
 } from "../types/calendar";
 import { useEvents } from "../hooks/use-events";
+import { resolveActiveTerm } from "../utils/terms";
 
 type TermRecord = {
   id: string;
@@ -51,6 +52,7 @@ type TermRecord = {
   year: string;
   semester: 1 | 2;
   active?: boolean;
+  isActive?: boolean;
 };
 
 type ClassRecord = {
@@ -264,7 +266,10 @@ export const CalendarPage: React.FC = () => {
       return;
     }
     if (!selectedTermId) {
-      const active = terms.find((term) => term.active) ?? terms[0];
+      const active = resolveActiveTerm(terms);
+      if (!active) {
+        return;
+      }
       setSelectedTermId(active.id);
       setSelectedYear(active.year);
       setSelectedSemester(active.semester);

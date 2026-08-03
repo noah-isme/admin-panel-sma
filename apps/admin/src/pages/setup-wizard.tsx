@@ -29,13 +29,17 @@ import { useCreate, useDelete, useList, useNotification, useUpdate } from "@refi
 import dayjs, { type Dayjs } from "dayjs";
 import { useNavigate } from "react-router-dom";
 import { ResourceActionGuard } from "../components/resource-action-guard";
+import { DEFAULT_TERM_TYPE, TERM_TYPES, buildTermPayload, isTermActive } from "../utils/terms";
 
 type TermRecord = {
   id: string;
   name: string;
   startDate: string;
   endDate: string;
+  type?: string;
+  academicYear?: string;
   active?: boolean;
+  isActive?: boolean;
 };
 
 export const parseTimeToMinutes = (time: string) => {
@@ -98,6 +102,8 @@ type TermFormValues = {
   name: string;
   startDate: Dayjs;
   endDate: Dayjs;
+  type: string;
+  academicYear?: string;
   active: boolean;
 };
 
@@ -287,9 +293,11 @@ const TermSetupStep: React.FC<{
       name: existingTerm?.name ?? "",
       startDate: existingTerm?.startDate ? dayjs(existingTerm.startDate) : dayjs(),
       endDate: existingTerm?.endDate ? dayjs(existingTerm.endDate) : dayjs().add(5, "month"),
-      active: existingTerm?.active ?? true,
+      type: existingTerm?.type ?? DEFAULT_TERM_TYPE,
+      academicYear: existingTerm?.academicYear,
+      active: isTermActive(existingTerm ?? {}) || !existingTerm,
     }),
-    [existingTerm?.active, existingTerm?.endDate, existingTerm?.name, existingTerm?.startDate]
+    [existingTerm]
   );
 
   useEffect(() => {
@@ -297,12 +305,16 @@ const TermSetupStep: React.FC<{
   }, [form, initialValues]);
 
   const handleFinish = async (values: TermFormValues) => {
-    const payload = {
-      name: values.name.trim(),
-      startDate: values.startDate.format(DATE_FORMAT),
-      endDate: values.endDate.format(DATE_FORMAT),
-      active: values.active,
-    };
+    // The API requires type, academicYear, RFC3339 dates, and `is_active`;
+    // buildTermPayload fills the gaps this form does not collect directly.
+    const payload = buildTermPayload({
+      name: values.name,
+      type: values.type,
+      academicYear: values.academicYear,
+      startDate: values.startDate?.format(DATE_FORMAT),
+      endDate: values.endDate?.format(DATE_FORMAT),
+      isActive: values.active,
+    });
 
     setSubmitting(true);
     try {
@@ -375,6 +387,26 @@ const TermSetupStep: React.FC<{
           <Col xs={24} md={12}>
             <Form.Item label="Status Aktif" name="active" valuePropName="checked">
               <Switch />
+            </Form.Item>
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col xs={24} md={12}>
+            <Form.Item
+              label="Jenis"
+              name="type"
+              rules={[{ required: true, message: "Jenis semester wajib dipilih." }]}
+            >
+              <Select options={TERM_TYPES.map((type) => ({ label: type, value: type }))} />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={12}>
+            <Form.Item
+              label="Tahun Ajaran"
+              name="academicYear"
+              tooltip="Kosongkan untuk mengikuti tanggal mulai, misal 2025/2026."
+            >
+              <Input placeholder="2025/2026" />
             </Form.Item>
           </Col>
         </Row>

@@ -5,6 +5,9 @@ type TermRecord = {
   name: string;
   startDate: string;
   endDate: string;
+  /** Mirrors the API's `is_active` after the dataProvider normalizes it. */
+  isActive: boolean;
+  /** Legacy alias kept so older fixtures and screens keep resolving. */
   active: boolean;
   year: string;
   semester: 1 | 2;
@@ -433,6 +436,7 @@ function createTerms(): TermRecord[] {
       name: "TP 2024/2025 - Semester Ganjil",
       startDate: "2024-07-15",
       endDate: "2024-12-21",
+      isActive: true,
       active: true,
       year: "2024/2025",
       semester: 1,
@@ -442,6 +446,7 @@ function createTerms(): TermRecord[] {
       name: "TP 2024/2025 - Semester Genap",
       startDate: "2025-01-06",
       endDate: "2025-06-21",
+      isActive: false,
       active: false,
       year: "2024/2025",
       semester: 2,
