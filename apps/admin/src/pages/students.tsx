@@ -40,7 +40,8 @@ import {
 import type { ColumnsType, TableProps } from "antd/es/table";
 import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
-import { useNavigation, useNotification } from "@refinedev/core";
+import { useNavigation } from "@refinedev/core";
+import { useAppNotification } from "../hooks/use-app-notification";
 import { useQuery } from "@tanstack/react-query";
 import { httpClient } from "../providers/dataProvider";
 import { downloadCsv } from "../utils/csv";
@@ -132,7 +133,7 @@ export const StudentsPage: React.FC = () => {
   }>({});
 
   const { create, edit, show } = useNavigation();
-  const { open: notifyOpen } = useNotification();
+  const { open: notifyOpen } = useAppNotification();
 
   const queryParams = useMemo(() => {
     const params: Record<string, unknown> = {

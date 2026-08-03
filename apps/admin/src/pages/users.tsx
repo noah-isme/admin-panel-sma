@@ -18,7 +18,8 @@ import {
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { List, useTable } from "@refinedev/antd";
-import { useList, useMany, useNavigation, useNotification, type CrudFilter } from "@refinedev/core";
+import { useList, useMany, useNavigation, type CrudFilter } from "@refinedev/core";
+import { useAppNotification } from "../hooks/use-app-notification";
 import { EyeOutlined, KeyOutlined, ReloadOutlined } from "@ant-design/icons";
 
 type RoleMeta = {
@@ -143,7 +144,7 @@ const buildStats = (users: UserRecord[]) => {
 };
 
 export const UsersPage: React.FC = () => {
-  const { open: notify } = useNotification();
+  const { open: notify } = useAppNotification();
   const { show } = useNavigation();
 
   const [searchInput, setSearchInput] = useState<string>("");

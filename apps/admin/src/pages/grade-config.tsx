@@ -15,14 +15,8 @@ import {
   Typography,
 } from "antd";
 import type { RadioChangeEvent } from "antd";
-import {
-  useCreate,
-  useDelete,
-  useList,
-  useNotification,
-  useUpdate,
-  type BaseRecord,
-} from "@refinedev/core";
+import { useCreate, useDelete, useList, useUpdate, type BaseRecord } from "@refinedev/core";
+import { useAppNotification } from "../hooks/use-app-notification";
 import { ResourceActionGuard } from "../components/resource-action-guard";
 import { usePersistentSelection } from "../hooks/use-persistent-selection";
 
@@ -64,7 +58,7 @@ export const calculateWeightedAggregate = (
 };
 
 export const GradeConfigPage: React.FC = () => {
-  const { open: notify } = useNotification();
+  const { open: notify } = useAppNotification();
   const { value: storedMapping, setValue: setStoredMapping } = usePersistentSelection<
     string | undefined
   >("grade-config:mapping");

@@ -11,14 +11,8 @@ import {
   UserSwitchOutlined,
 } from "@ant-design/icons";
 import { List, useTable } from "@refinedev/antd";
-import {
-  useDelete,
-  useList,
-  useMany,
-  useNavigation,
-  useNotification,
-  type CrudFilter,
-} from "@refinedev/core";
+import { useDelete, useList, useMany, useNavigation, type CrudFilter } from "@refinedev/core";
+import { useAppNotification } from "../hooks/use-app-notification";
 import { ResourceActionGuard } from "../components/resource-action-guard";
 
 type ClassResource = {
@@ -72,7 +66,7 @@ const enterpriseCardStyle: React.CSSProperties = {
 
 export const ClassesPage: React.FC = () => {
   const { show, edit, create } = useNavigation();
-  const { open: notify } = useNotification();
+  const { open: notify } = useAppNotification();
   const { mutate: deleteOne } = useDelete();
 
   const [selectedYear, setSelectedYear] = useState<string | undefined>(undefined);
@@ -295,7 +289,7 @@ export const ClassesPage: React.FC = () => {
     setSelectedHomeroom(undefined);
     setSearchValue("");
     setFilters?.([], "replace");
-    setSorters?.([], "replace");
+    setSorters?.([]);
   };
 
   const handleRowView = useCallback(

@@ -1,12 +1,13 @@
 import React, { useMemo } from "react";
 import { Edit, useForm } from "@refinedev/antd";
 import { Alert, Card, Form, Input, InputNumber, Select, Space, Typography } from "antd";
-import { useList, useNotification } from "@refinedev/core";
+import { useList } from "@refinedev/core";
+import { useAppNotification } from "../hooks/use-app-notification";
 import { ResourceActionGuard } from "../components/resource-action-guard";
 
 export const GradeComponentsEdit: React.FC = () => {
   const { formProps, saveButtonProps, form } = useForm();
-  const { open: notify } = useNotification();
+  const { open: notify } = useAppNotification();
 
   const classSubjectsQuery = useList({
     resource: "class-subjects",

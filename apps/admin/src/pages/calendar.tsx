@@ -34,7 +34,8 @@ import {
   SyncOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
-import { useCreate, useList, useNotification, usePermissions } from "@refinedev/core";
+import { useCreate, useList, usePermissions } from "@refinedev/core";
+import { useAppNotification } from "../hooks/use-app-notification";
 import {
   CALENDAR_LEGEND,
   CALENDAR_CATEGORY_ORDER,
@@ -232,7 +233,7 @@ export const CalendarPage: React.FC = () => {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const lastSearchRef = useRef<string>("");
 
-  const { open: notify } = useNotification();
+  const { open: notify } = useAppNotification();
 
   const termsQuery = useList<TermRecord>({
     resource: "terms",

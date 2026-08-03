@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Button, Card, Form, Progress, Select, Space, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { DownloadOutlined } from "@ant-design/icons";
-import { useList, useNotification } from "@refinedev/core";
+import { useList } from "@refinedev/core";
+import { useAppNotification } from "../hooks/use-app-notification";
 import { httpClient } from "../providers/dataProvider";
 import { ResourceActionGuard } from "../components/resource-action-guard";
 
@@ -62,7 +63,7 @@ export const ReportsPage: React.FC = () => {
   const [jobs, setJobs] = useState<ReportJob[]>([]);
   const [generating, setGenerating] = useState(false);
   const [form] = Form.useForm<GenerateFormValues>();
-  const { open: notify } = useNotification();
+  const { open: notify } = useAppNotification();
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const termsQuery = useList({ resource: "terms", pagination: { current: 1, pageSize: 50 } });

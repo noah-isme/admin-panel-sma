@@ -13,7 +13,8 @@ import {
   Typography,
 } from "antd";
 import dayjs from "dayjs";
-import { useCreate, useDelete, useList, useNotification } from "@refinedev/core";
+import { useCreate, useDelete, useList } from "@refinedev/core";
+import { useAppNotification } from "../hooks/use-app-notification";
 import { ResourceActionGuard } from "../components/resource-action-guard";
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -24,7 +25,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 export const BehaviorNotesPage: React.FC = () => {
   const [classFilter, setClassFilter] = useState<string | undefined>(undefined);
-  const { open: notify } = useNotification();
+  const { open: notify } = useAppNotification();
   const { mutateAsync: createNote } = useCreate();
   const { mutateAsync: deleteNote } = useDelete();
 

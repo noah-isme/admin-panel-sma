@@ -25,7 +25,8 @@ import {
 import type { RcFile } from "antd/es/upload";
 import type { UploadProps } from "antd";
 import { InboxOutlined, CheckCircleOutlined, SwapLeftOutlined } from "@ant-design/icons";
-import { useCreate, useDelete, useList, useNotification, useUpdate } from "@refinedev/core";
+import { useCreate, useDelete, useList, useUpdate } from "@refinedev/core";
+import { useAppNotification } from "../hooks/use-app-notification";
 import dayjs, { type Dayjs } from "dayjs";
 import { useNavigate } from "react-router-dom";
 import { ResourceActionGuard } from "../components/resource-action-guard";
@@ -285,7 +286,7 @@ const TermSetupStep: React.FC<{
   const [form] = Form.useForm<TermFormValues>();
   const { mutateAsync: createTerm } = useCreate();
   const { mutateAsync: updateTerm } = useUpdate();
-  const { open: notify } = useNotification();
+  const { open: notify } = useAppNotification();
   const [submitting, setSubmitting] = useState(false);
 
   const initialValues = useMemo<TermFormValues>(
@@ -627,7 +628,7 @@ const StudentImportStep: React.FC<{
   onSkip: () => void;
 }> = ({ existingStudents, onComplete, onSkip }) => {
   const { mutateAsync: createStudent } = useCreate();
-  const { open: notify } = useNotification();
+  const { open: notify } = useAppNotification();
 
   const [rows, setRows] = useState<ImportRow<StudentRowData>[]>([]);
   const [parsing, setParsing] = useState(false);
@@ -907,7 +908,7 @@ const TeacherImportStep: React.FC<{
   onSkip: () => void;
 }> = ({ existingTeachers, onComplete, onSkip }) => {
   const { mutateAsync: createTeacher } = useCreate();
-  const { open: notify } = useNotification();
+  const { open: notify } = useAppNotification();
 
   const [rows, setRows] = useState<ImportRow<TeacherRowData>[]>([]);
   const [parsing, setParsing] = useState(false);
@@ -1184,7 +1185,7 @@ const ClassSetupStep: React.FC<{
 }> = ({ term, classes, teachers, onComplete, onSkip, onRefresh }) => {
   const [form] = Form.useForm<ClassSetupFormValues>();
   const { mutateAsync: createClass } = useCreate();
-  const { open: notify } = useNotification();
+  const { open: notify } = useAppNotification();
   const [saving, setSaving] = useState(false);
   const [createdCount, setCreatedCount] = useState(0);
 
@@ -1357,7 +1358,7 @@ const SubjectMappingStep: React.FC<{
   const { mutateAsync: createMapping } = useCreate();
   const { mutateAsync: updateMapping } = useUpdate();
   const { mutateAsync: deleteMapping } = useDelete();
-  const { open: notify } = useNotification();
+  const { open: notify } = useAppNotification();
   const [createdCount, setCreatedCount] = useState(0);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -1630,7 +1631,7 @@ const ScheduleSetupStep: React.FC<{
   const { mutateAsync: createSchedule } = useCreate();
   const { mutateAsync: updateSchedule } = useUpdate();
   const { mutateAsync: deleteSchedule } = useDelete();
-  const { open: notify } = useNotification();
+  const { open: notify } = useAppNotification();
   const [createdCount, setCreatedCount] = useState(0);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -2087,7 +2088,7 @@ const SummaryStep: React.FC<{
 
 export const SetupWizard: React.FC = () => {
   const navigate = useNavigate();
-  const { open: notify } = useNotification();
+  const { open: notify } = useAppNotification();
 
   const studentsQuery = useList({
     resource: "students",

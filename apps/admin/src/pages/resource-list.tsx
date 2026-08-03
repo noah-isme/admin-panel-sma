@@ -3,14 +3,8 @@ import { Button, Input, Result, Select, Space, Spin, Table, Tooltip, Typography 
 import type { AxiosError } from "axios";
 import type { ColumnsType } from "antd/es/table";
 import { List, useTable } from "@refinedev/antd";
-import {
-  useResource,
-  useNavigation,
-  useDelete,
-  useNotification,
-  useCan,
-  type CrudFilter,
-} from "@refinedev/core";
+import { useResource, useNavigation, useDelete, useCan, type CrudFilter } from "@refinedev/core";
+import { useAppNotification } from "../hooks/use-app-notification";
 import { Space as AntdSpace } from "antd";
 import {
   FilterOutlined,
@@ -50,22 +44,26 @@ export const ResourceList = () => {
   const metaShowAllowed = resource?.meta?.canShow ?? Boolean(resource?.show ?? true);
   const metaDeleteAllowed = resource?.meta?.canDelete ?? true;
 
-  const { data: createPermission } = useCan(
-    { resource: resolvedResourceName ?? "", action: "create" },
-    { queryOptions: { enabled: Boolean(resolvedResourceName) } }
-  );
-  const { data: editPermission } = useCan(
-    { resource: resolvedResourceName ?? "", action: "edit" },
-    { queryOptions: { enabled: Boolean(resolvedResourceName) } }
-  );
-  const { data: showPermission } = useCan(
-    { resource: resolvedResourceName ?? "", action: "show" },
-    { queryOptions: { enabled: Boolean(resolvedResourceName) } }
-  );
-  const { data: deletePermission } = useCan(
-    { resource: resolvedResourceName ?? "", action: "delete" },
-    { queryOptions: { enabled: Boolean(resolvedResourceName) } }
-  );
+  const { data: createPermission } = useCan({
+    resource: resolvedResourceName ?? "",
+    action: "create",
+    queryOptions: { enabled: Boolean(resolvedResourceName) },
+  });
+  const { data: editPermission } = useCan({
+    resource: resolvedResourceName ?? "",
+    action: "edit",
+    queryOptions: { enabled: Boolean(resolvedResourceName) },
+  });
+  const { data: showPermission } = useCan({
+    resource: resolvedResourceName ?? "",
+    action: "show",
+    queryOptions: { enabled: Boolean(resolvedResourceName) },
+  });
+  const { data: deletePermission } = useCan({
+    resource: resolvedResourceName ?? "",
+    action: "delete",
+    queryOptions: { enabled: Boolean(resolvedResourceName) },
+  });
 
   const { tableProps, tableQueryResult, setFilters, setSorters, filters, sorters } = useTable({
     resource: resolvedResourceName,
@@ -203,11 +201,11 @@ export const ResourceList = () => {
       setSelectedSortField(value);
       if (!setSorters) return;
       if (!value) {
-        setSorters([], "replace");
+        setSorters([]);
         return;
       }
       const order = selectedSortOrder ?? "ascend";
-      setSorters([{ field: value, order }], "replace");
+      setSorters([{ field: value, order }]);
     },
     [selectedSortOrder, setSorters]
   );
@@ -216,7 +214,7 @@ export const ResourceList = () => {
     (order: "ascend" | "descend") => {
       setSelectedSortOrder(order);
       if (!setSorters || !selectedSortField) return;
-      setSorters([{ field: selectedSortField, order }], "replace");
+      setSorters([{ field: selectedSortField, order }]);
     },
     [selectedSortField, setSorters]
   );
@@ -226,7 +224,7 @@ export const ResourceList = () => {
     setSelectedSortField(undefined);
     setSelectedSortOrder(undefined);
     setFilters?.([], "replace");
-    setSorters?.([], "replace");
+    setSorters?.([]);
   }, [setFilters, setSorters]);
 
   const resourceLabel = useMemo(
@@ -246,7 +244,7 @@ export const ResourceList = () => {
 
   const { create, edit, show } = useNavigation();
   const { mutate: deleteOne, isLoading: isDeleting } = useDelete();
-  const { open: notifyOpen } = useNotification();
+  const { open: notifyOpen } = useAppNotification();
 
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [confirmTarget, setConfirmTarget] = useState<{

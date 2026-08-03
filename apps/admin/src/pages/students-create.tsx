@@ -1,11 +1,11 @@
 import React from "react";
 import { Create, useForm } from "@refinedev/antd";
-import { useNotification } from "@refinedev/core";
+import { useAppNotification } from "../hooks/use-app-notification";
 import { Form, Input, Card, Select } from "antd";
 import { ResourceActionGuard } from "../components/resource-action-guard";
 
 export const StudentsCreate: React.FC = () => {
-  const { open: notify } = useNotification();
+  const { open: notify } = useAppNotification();
   const { formProps, saveButtonProps } = useForm({
     mutationOptions: {
       onSuccess: () =>

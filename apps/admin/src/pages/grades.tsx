@@ -48,7 +48,8 @@ import {
   Typography,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { useDelete, useNavigation, useNotification } from "@refinedev/core";
+import { useDelete, useNavigation } from "@refinedev/core";
+import { useAppNotification } from "../hooks/use-app-notification";
 import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { downloadCsv } from "../utils/csv";
@@ -123,7 +124,7 @@ export const GradesPage: React.FC = () => {
 
   const { show, edit } = useNavigation();
   const { mutate: deleteOne, isLoading: isDeleting } = useDelete();
-  const { open: notifyOpen } = useNotification();
+  const { open: notifyOpen } = useAppNotification();
 
   const queryParams = useMemo(() => {
     const statusParam = filtersState.status === "ALL" ? undefined : filtersState.status;

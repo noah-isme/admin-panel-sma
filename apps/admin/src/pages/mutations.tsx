@@ -14,7 +14,8 @@ import {
   Typography,
 } from "antd";
 import dayjs from "dayjs";
-import { useCan, useCreate, useList, useNotification } from "@refinedev/core";
+import { useCan, useCreate, useList } from "@refinedev/core";
+import { useAppNotification } from "../hooks/use-app-notification";
 import { httpClient } from "../providers/dataProvider";
 import { ResourceActionGuard } from "../components/resource-action-guard";
 
@@ -61,7 +62,7 @@ export const MutationsPage: React.FC = () => {
   const [reviewDecision, setReviewDecision] = useState<"APPROVED" | "REJECTED">("APPROVED");
   const [submitting, setSubmitting] = useState(false);
   const [reviewForm] = Form.useForm<ReviewValues>();
-  const { open: notify } = useNotification();
+  const { open: notify } = useAppNotification();
   const { mutateAsync: createMutationReq } = useCreate();
   const { data: canReview } = useCan({ resource: "mutations", action: "approve" });
 

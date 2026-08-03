@@ -36,7 +36,8 @@ import {
   message,
 } from "antd";
 import type { ColumnsType, TableProps } from "antd/es/table";
-import { useNavigation, useNotification } from "@refinedev/core";
+import { useNavigation } from "@refinedev/core";
+import { useAppNotification } from "../hooks/use-app-notification";
 import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { httpClient } from "../providers/dataProvider";
@@ -108,7 +109,7 @@ export const TeachersPage: React.FC = () => {
   }>({});
 
   const { create, edit, show } = useNavigation();
-  const { open: notifyOpen } = useNotification();
+  const { open: notifyOpen } = useAppNotification();
 
   const queryParams = useMemo(() => {
     const params: Record<string, unknown> = {

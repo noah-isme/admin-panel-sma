@@ -13,7 +13,8 @@ import {
   Tag,
   Typography,
 } from "antd";
-import { useCreate, useList, useNotification, useUpdate } from "@refinedev/core";
+import { useCreate, useList, useUpdate } from "@refinedev/core";
+import { useAppNotification } from "../hooks/use-app-notification";
 import type { BaseRecord } from "@refinedev/core";
 
 const DAY_OPTIONS = [
@@ -63,7 +64,7 @@ export const TeacherPreferencesPage: React.FC = () => {
   const [selectedTeacherId, setSelectedTeacherId] = useState<string | undefined>();
   const [searchValue, setSearchValue] = useState<string>("");
   const [form] = Form.useForm();
-  const { open: notify } = useNotification();
+  const { open: notify } = useAppNotification();
 
   const teachersQuery = useList<{ id: string; fullName: string; email?: string }>({
     resource: "teachers",

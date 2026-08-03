@@ -17,7 +17,8 @@ import {
 } from "antd";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import { List } from "@refinedev/antd";
-import { useList, useNotification, useUpdate, type HttpError } from "@refinedev/core";
+import { useList, useUpdate, type HttpError } from "@refinedev/core";
+import { useAppNotification } from "../hooks/use-app-notification";
 import { EditOutlined, ReloadOutlined } from "@ant-design/icons";
 
 type Track = "IPA" | "IPS";
@@ -73,7 +74,7 @@ const toClassLabel = (klass: ClassRecord) => `${klass.code} • ${klass.name}`;
 const DEFAULT_PAGE_STATE = { current: 1, pageSize: 10 } as const;
 
 export const HomeroomAssignmentsPage: React.FC = () => {
-  const { open: notify } = useNotification();
+  const { open: notify } = useAppNotification();
   const [searchInput, setSearchInput] = useState("");
   const [searchValue, setSearchValue] = useState("");
   const [selectedTrack, setSelectedTrack] = useState<TrackFilter>("ALL");

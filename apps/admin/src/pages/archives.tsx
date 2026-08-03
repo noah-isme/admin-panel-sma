@@ -17,7 +17,8 @@ import {
 } from "antd";
 import { InboxOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
-import { useDelete, useList, useNotification } from "@refinedev/core";
+import { useDelete, useList } from "@refinedev/core";
+import { useAppNotification } from "../hooks/use-app-notification";
 import { httpClient } from "../providers/dataProvider";
 import { ResourceActionGuard } from "../components/resource-action-guard";
 
@@ -78,7 +79,7 @@ export const ArchivesPage: React.FC = () => {
   const [fileList, setFileList] = useState<UploadProps["fileList"]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadForm] = Form.useForm<UploadFormValues>();
-  const { open: notify } = useNotification();
+  const { open: notify } = useAppNotification();
   const { mutateAsync: deleteArchive } = useDelete();
 
   const termsQuery = useList({ resource: "terms", pagination: { current: 1, pageSize: 50 } });

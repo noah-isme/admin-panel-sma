@@ -21,14 +21,8 @@ import {
   RedoOutlined,
 } from "@ant-design/icons";
 import { List, useTable } from "@refinedev/antd";
-import {
-  useCreate,
-  useDelete,
-  useList,
-  useNavigation,
-  useNotification,
-  type CrudFilter,
-} from "@refinedev/core";
+import { useCreate, useDelete, useList, useNavigation, type CrudFilter } from "@refinedev/core";
+import { useAppNotification } from "../hooks/use-app-notification";
 import dayjs from "dayjs";
 import { ResourceActionGuard } from "../components/resource-action-guard";
 
@@ -118,7 +112,7 @@ const resolvePeriodLabel = (startTime?: string) => {
 
 export const SchedulesPage: React.FC = () => {
   const { create: navigateCreate, edit } = useNavigation();
-  const { open: notify } = useNotification();
+  const { open: notify } = useAppNotification();
   const { mutate: deleteOne } = useDelete();
   const { mutateAsync: createOne, isLoading: isDuplicating } = useCreate();
 

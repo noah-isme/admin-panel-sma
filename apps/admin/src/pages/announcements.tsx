@@ -13,7 +13,8 @@ import {
   Typography,
 } from "antd";
 import dayjs from "dayjs";
-import { useCreate, useDelete, useList, useNotification, useUpdate } from "@refinedev/core";
+import { useCreate, useDelete, useList, useUpdate } from "@refinedev/core";
+import { useAppNotification } from "../hooks/use-app-notification";
 import { ResourceActionGuard } from "../components/resource-action-guard";
 
 const AUDIENCE_LABEL: Record<string, string> = {
@@ -35,7 +36,7 @@ const formatDate = (value?: string | null) => {
 
 export const AnnouncementsPage: React.FC = () => {
   const [audienceFilter, setAudienceFilter] = useState<string | undefined>(undefined);
-  const { open: notify } = useNotification();
+  const { open: notify } = useAppNotification();
   const { mutateAsync: createAnnouncement } = useCreate();
   const { mutateAsync: updateAnnouncement } = useUpdate();
   const { mutateAsync: deleteAnnouncement } = useDelete();

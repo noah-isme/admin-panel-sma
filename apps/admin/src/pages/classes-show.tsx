@@ -29,11 +29,11 @@ import {
   useList,
   useMany,
   useNavigation,
-  useNotification,
   useOne,
   useShow,
   type CrudFilter,
 } from "@refinedev/core";
+import { useAppNotification } from "../hooks/use-app-notification";
 import dayjs from "dayjs";
 import { ResourceActionGuard } from "../components/resource-action-guard";
 
@@ -154,7 +154,7 @@ const buildTermLabel = (term?: TermRecord) => {
 
 export const ClassesShow: React.FC = () => {
   const { edit, create, show, list } = useNavigation();
-  const { open: notify } = useNotification();
+  const { open: notify } = useAppNotification();
   const { mutate: deleteEnrollment } = useDelete();
 
   const { queryResult: classQuery } = useShow<ClassRecord>({

@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { Create, useForm } from "@refinedev/antd";
-import { useList, useNotification } from "@refinedev/core";
+import { useList } from "@refinedev/core";
+import { useAppNotification } from "../hooks/use-app-notification";
 import { Alert, Card, Form, Input, Select, Space, Typography } from "antd";
 import { ResourceActionGuard } from "../components/resource-action-guard";
 
@@ -15,7 +16,7 @@ const DAY_OPTIONS = [
 
 export const SchedulesCreate: React.FC = () => {
   const { formProps, saveButtonProps } = useForm();
-  const { open: notify } = useNotification();
+  const { open: notify } = useAppNotification();
 
   const classSubjectsQuery = useList({
     resource: "class-subjects",
