@@ -2163,10 +2163,13 @@ export async function createHandlers() {
         return HttpResponse.json({ message: "Invalid payload" }, { status: 400 });
       }
 
-      const remaining = semesterSchedule.filter((slot) => slot.classId !== body.classId);
+      // Bind the narrowed id: the guard above does not survive into the closure,
+      // so `body.classId` would still widen back to `string | undefined` there.
+      const classId = body.classId;
+      const remaining = semesterSchedule.filter((slot) => slot.classId !== classId);
       const sanitizedSlots = body.slots.map((slot) => ({
         ...slot,
-        classId: body.classId,
+        classId,
       }));
       semesterSchedule.length = 0;
       semesterSchedule.push(...remaining, ...sanitizedSlots);
