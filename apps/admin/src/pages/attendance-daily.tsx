@@ -35,7 +35,9 @@ import {
   type AttendanceClassSubjectRecord,
   type AttendanceScheduleRecord,
 } from "../hooks/use-attendance-session";
-import { useDataProvider, useGetIdentity, useNotification } from "@refinedev/core";
+import { useDataProvider, useGetIdentity } from "@refinedev/core";
+import type { IdentityPayload } from "../types/identity";
+import { useAppNotification } from "../hooks/use-app-notification";
 
 type StatusValue = "H" | "I" | "S" | "A";
 type StatusOptionValue = StatusValue | null;
@@ -45,13 +47,6 @@ type RowState = {
   note: string;
   existingId?: string;
   dirty: boolean;
-};
-
-type IdentityPayload = {
-  id: string;
-  role?: string;
-  teacherId?: string;
-  classId?: string;
 };
 
 const STATUS_DEFINITIONS: Array<{
@@ -208,8 +203,12 @@ export const AttendanceDailyPage: React.FC = () => {
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingHydrationRef = useRef<boolean>(true);
 
-  const { open: notify } = useNotification();
-  const dataProvider = useDataProvider();
+  const { open: notify } = useAppNotification();
+  // `useDataProvider` returns a *getter*, not the provider itself. Calling
+  // `.update`/`.create`/`.custom` straight off it throws at runtime, so resolve
+  // the default provider once here.
+  const getDataProvider = useDataProvider();
+  const dataProvider = useMemo(() => getDataProvider(), [getDataProvider]);
   const { data: identity } = useGetIdentity<IdentityPayload>();
   const weekday = ((date.day() + 6) % 7) + 1;
 

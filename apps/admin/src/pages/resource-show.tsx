@@ -34,12 +34,11 @@ export const ResourceShow: React.FC = () => {
   const resourceName = resource?.name ?? resource?.identifier;
   const resourceLabel = resource?.meta?.label ?? resource?.label ?? resourceName ?? "Detail";
 
-  const { data: editPermission } = useCan(
-    { resource: resourceName ?? "", action: "edit" },
-    {
-      queryOptions: { enabled: Boolean(resourceName) },
-    }
-  );
+  const { data: editPermission } = useCan({
+    resource: resourceName ?? "",
+    action: "edit",
+    queryOptions: { enabled: Boolean(resourceName) },
+  });
   const canEdit =
     (resource?.meta?.canEdit ?? Boolean(resource?.edit)) && editPermission?.can !== false;
 

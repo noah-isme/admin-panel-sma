@@ -22,6 +22,7 @@ import {
 } from "@ant-design/icons";
 import { List, useTable } from "@refinedev/antd";
 import { useCreate, useDelete, useList, useNavigation, type CrudFilter } from "@refinedev/core";
+import { isTermActive } from "../utils/terms";
 import { useAppNotification } from "../hooks/use-app-notification";
 import dayjs from "dayjs";
 import { ResourceActionGuard } from "../components/resource-action-guard";
@@ -84,6 +85,7 @@ type TermResource = {
   id: string;
   name: string;
   active?: boolean;
+  isActive?: boolean;
   year: string;
   semester: number;
 };
@@ -179,7 +181,7 @@ export const SchedulesPage: React.FC = () => {
 
   useEffect(() => {
     if (selectedYear || selectedSemester) return;
-    const activeTerm = terms.find((term) => term.active);
+    const activeTerm = terms.find(isTermActive);
     if (activeTerm) {
       setSelectedYear(activeTerm.year);
       setSelectedSemester(String(activeTerm.semester));

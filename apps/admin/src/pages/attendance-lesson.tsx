@@ -19,10 +19,11 @@ import {
   useDataProvider,
   useGetIdentity,
   useList,
-  useNotification,
   useTranslate,
   type BaseRecord,
 } from "@refinedev/core";
+import type { IdentityPayload } from "../types/identity";
+import { useAppNotification } from "../hooks/use-app-notification";
 import { ResourceActionGuard } from "../components/resource-action-guard";
 import { usePersistentSelection } from "../hooks/use-persistent-selection";
 import { DownloadOutlined } from "@ant-design/icons";
@@ -65,8 +66,12 @@ export const AttendanceLessonPage: React.FC = () => {
   const [formState, setFormState] = useState<LessonAttendanceState>({});
   const [submitting, setSubmitting] = useState(false);
 
-  const dataProvider = useDataProvider();
-  const { open: notify } = useNotification();
+  // `useDataProvider` returns a *getter*, not the provider itself. Calling
+  // `.update`/`.create`/`.custom` straight off it throws at runtime, so resolve
+  // the default provider once here.
+  const getDataProvider = useDataProvider();
+  const dataProvider = useMemo(() => getDataProvider(), [getDataProvider]);
+  const { open: notify } = useAppNotification();
   const t = useTranslate();
 
   const classSubjectsQuery = useList({
@@ -97,8 +102,8 @@ export const AttendanceLessonPage: React.FC = () => {
     resource: "attendance",
     pagination: { current: 1, pageSize: 1000 },
   });
-  const { data: identity } = useGetIdentity();
-  const teacherId = identity?.teacherId as string | undefined;
+  const { data: identity } = useGetIdentity<IdentityPayload>();
+  const teacherId = identity?.teacherId;
 
   const classSubjects = (classSubjectsQuery.data?.data as BaseRecord[]) ?? [];
   const classes = (classesQuery.data?.data as BaseRecord[]) ?? [];
@@ -247,7 +252,9 @@ export const AttendanceLessonPage: React.FC = () => {
       if (record.sessionType !== "Mapel") return false;
       if (record.subjectId !== selectedMapping.subjectId) return false;
       const recordDate = dayjs(record.date);
-      return recordDate.isSameOrBefore(date) && recordDate.isAfter(date.clone().subtract(7, "day"));
+      // `isSameOrBefore` comes from a dayjs plugin that was never registered, so
+      // this threw at runtime. `!isAfter` is the same comparison on core dayjs.
+      return !recordDate.isAfter(date) && recordDate.isAfter(date.clone().subtract(7, "day"));
     });
   }, [attendanceRecords, date, selectedMapping]);
 

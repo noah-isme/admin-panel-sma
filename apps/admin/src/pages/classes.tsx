@@ -12,6 +12,7 @@ import {
 } from "@ant-design/icons";
 import { List, useTable } from "@refinedev/antd";
 import { useDelete, useList, useMany, useNavigation, type CrudFilter } from "@refinedev/core";
+import { isTermActive } from "../utils/terms";
 import { useAppNotification } from "../hooks/use-app-notification";
 import { ResourceActionGuard } from "../components/resource-action-guard";
 
@@ -34,6 +35,7 @@ type TermResource = {
   year: string;
   semester: number;
   active?: boolean;
+  isActive?: boolean;
 };
 
 type EnrollmentResource = {
@@ -106,7 +108,7 @@ export const ClassesPage: React.FC = () => {
   useEffect(() => {
     if (hasInitialFilter.current) return;
     if (!terms || terms.length === 0) return;
-    const activeTerm = terms.find((term) => term.active);
+    const activeTerm = terms.find(isTermActive);
     if (!activeTerm) return;
     setSelectedYear(activeTerm.year);
     setSelectedSemester(String(activeTerm.semester));

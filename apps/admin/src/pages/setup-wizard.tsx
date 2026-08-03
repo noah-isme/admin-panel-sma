@@ -2013,7 +2013,7 @@ const SummaryStep: React.FC<{
                 Periode: {dayjs(term.startDate).format("DD MMM YYYY")} –{" "}
                 {dayjs(term.endDate).format("DD MMM YYYY")}
               </li>
-              <li>Status: {term.active ? "Aktif" : "Draft"}</li>
+              <li>Status: {isTermActive(term) ? "Aktif" : "Draft"}</li>
             </ul>
           ) : (
             <Typography.Text type="secondary">

@@ -22,14 +22,11 @@ export const ResourceActionGuard: React.FC<PropsWithChildren<ResourceActionGuard
   const targetResource =
     resourceName ?? resource?.name ?? resource?.identifier ?? resource?.route ?? undefined;
 
-  const { data, isLoading } = useCan(
-    { resource: targetResource ?? "", action },
-    {
-      queryOptions: {
-        enabled: Boolean(targetResource),
-      },
-    }
-  );
+  const { data, isLoading } = useCan({
+    resource: targetResource ?? "",
+    action,
+    queryOptions: { enabled: Boolean(targetResource) },
+  });
 
   if (!targetResource) {
     return <>{children}</>;

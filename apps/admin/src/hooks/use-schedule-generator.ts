@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useDataProvider, useList, useNotification, type HttpError } from "@refinedev/core";
+import { useDataProvider, useList, type HttpError } from "@refinedev/core";
+import { useAppNotification } from "./use-app-notification";
 const DAYS = [
   { value: 1, label: "Senin" },
   { value: 2, label: "Selasa" },
@@ -96,8 +97,22 @@ const AVAILABILITY_COLORS: Record<TeacherPreference["availabilityLevel"], Teache
 };
 
 export const useScheduleGenerator = (filters: GeneratorFilters) => {
-  const dataProvider = useDataProvider();
-  const { open: notify } = useNotification();
+  // `useDataProvider` returns a *getter*, not the provider itself. Calling
+  // `.update`/`.create`/`.custom` straight off it throws at runtime, so resolve
+  // the default provider once here.
+  const getDataProvider = useDataProvider();
+  const dataProvider = useMemo(() => getDataProvider(), [getDataProvider]);
+  // `custom` is optional on the DataProvider interface. Ours implements it, but
+  // resolve it once with an explicit failure so a provider swap surfaces here
+  // rather than as a confusing "not a function" deep inside a callback.
+  const customRequest = useMemo(() => {
+    const custom = dataProvider.custom;
+    if (!custom) {
+      return undefined;
+    }
+    return custom.bind(dataProvider);
+  }, [dataProvider]);
+  const { open: notify } = useAppNotification();
 
   const termsQuery = useList<{ id: string; name: string; semester?: number; year?: string }>({
     resource: "terms",
@@ -395,7 +410,7 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
     }
     setIsGenerating(true);
     try {
-      const response = await dataProvider.custom<{
+      const response = await customRequest?.<{
         slots: ScheduleSlot[];
         summary: GenerateSummary;
       }>({
@@ -422,7 +437,7 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
     } finally {
       setIsGenerating(false);
     }
-  }, [dataProvider, filters.classId, filters.termId, initialiseSlots, notify]);
+  }, [customRequest, filters.classId, filters.termId, initialiseSlots, notify]);
 
   const saveSchedule = useCallback(async () => {
     if (!filters.classId) {
@@ -435,7 +450,7 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
     setIsSaving(true);
     try {
       const payload = Object.values(slotState);
-      await dataProvider.custom({
+      await customRequest?.({
         url: "/schedule/save",
         method: "post",
         payload: {
@@ -450,7 +465,7 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
     } finally {
       setIsSaving(false);
     }
-  }, [dataProvider, filters.classId, notify, slotState]);
+  }, [customRequest, filters.classId, notify, slotState]);
 
   const terms = useMemo(() => termsQuery.data?.data ?? [], [termsQuery.data?.data]);
 
