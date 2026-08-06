@@ -48,7 +48,7 @@ const TYPE_LABELS: Record<string, string> = {
   DROPOUT: "Putus Sekolah",
 };
 
-const MutationListPage: React.FC = () => {
+export const MutationListPage: React.FC = () => {
   const getDataProvider = useDataProvider();
   const dataProvider = useMemo(() => getDataProvider(), [getDataProvider]);
   const { open: notify } = useAppNotification();
@@ -436,5 +436,3 @@ const MutationListPage: React.FC = () => {
     </Space>
   );
 };
-
-export default MutationListPage;

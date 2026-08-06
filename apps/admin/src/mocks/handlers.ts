@@ -2231,6 +2231,40 @@ export async function createHandlers() {
       return HttpResponse.json(updated, { status: 200 });
     }),
 
+    http.patch(/\/api(?:\/v1)?\/mutations\/([^/?]+)\/approve$/, async ({ request }) => {
+      const match = new URL(request.url).pathname.match(/\/mutations\/([^/?]+)\/approve$/);
+      const id = match?.[1] ?? "";
+      const body = (await request.json().catch(() => ({}))) as Record<string, any>;
+      const existing = findRecord("mutations", id);
+      if (!existing) {
+        return HttpResponse.json({ message: "Not found" }, { status: 404 });
+      }
+      const updated = updateRecord("mutations", id, {
+        status: "APPROVED",
+        note: body.comment ?? null,
+        reviewedBy: "user_superadmin",
+        reviewedAt: new Date().toISOString(),
+      });
+      return HttpResponse.json(updated, { status: 200 });
+    }),
+
+    http.patch(/\/api(?:\/v1)?\/mutations\/([^/?]+)\/reject$/, async ({ request }) => {
+      const match = new URL(request.url).pathname.match(/\/mutations\/([^/?]+)\/reject$/);
+      const id = match?.[1] ?? "";
+      const body = (await request.json().catch(() => ({}))) as Record<string, any>;
+      const existing = findRecord("mutations", id);
+      if (!existing) {
+        return HttpResponse.json({ message: "Not found" }, { status: 404 });
+      }
+      const updated = updateRecord("mutations", id, {
+        status: "REJECTED",
+        note: body.comment ?? null,
+        reviewedBy: "user_superadmin",
+        reviewedAt: new Date().toISOString(),
+      });
+      return HttpResponse.json(updated, { status: 200 });
+    }),
+
     http.post(/\/api(?:\/v1)?\/archives$/, async ({ request }) => {
       const formData = await request.formData().catch(() => null);
       if (!formData) {
