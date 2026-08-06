@@ -28,6 +28,14 @@ export type ScheduleSlot = {
   locked?: boolean;
 };
 
+export type ScheduleSlotProposal = {
+  dayOfWeek: number;
+  timeSlot: number;
+  subjectId: string;
+  teacherId: string;
+  room?: string | null;
+};
+
 export type TeacherPreference = {
   id: string;
   teacherId: string;
@@ -64,12 +72,29 @@ export type FairnessEntry = {
   availabilityLevel: TeacherPreference["availabilityLevel"];
 };
 
+export type ProposalConflict = {
+  type: string;
+  message: string;
+  slot?: ScheduleSlotProposal;
+  meta?: Record<string, any>;
+};
+
+export type ScheduleImprovementStats = {
+  iterations: number;
+  gapPenalty: number;
+  loadPenalty: number;
+};
+
 export type GenerateSummary = {
   preferenceMatches: number;
   compromise: number;
   conflicts: number;
   empty: number;
   confidence: number;
+  score?: number;
+  proposalId?: string;
+  backendConflicts?: ProposalConflict[];
+  backendStats?: ScheduleImprovementStats;
 };
 
 const buildSlotKey = (day: number, slot: number) => `${day}-${slot}`;
@@ -203,6 +228,7 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
   const [generateSummary, setGenerateSummary] = useState<GenerateSummary | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [lastProposalId, setLastProposalId] = useState<string | null>(null);
 
   const initialiseSlots = useCallback((slots: ScheduleSlot[]) => {
     const map: Record<string, ScheduleSlot> = {};
@@ -411,24 +437,66 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
     setIsGenerating(true);
     try {
       const response = await customRequest?.<{
-        slots: ScheduleSlot[];
-        summary: GenerateSummary;
+        mode: string;
+        proposal: {
+          proposalId: string;
+          score: number;
+          slots: ScheduleSlotProposal[];
+          conflicts: ProposalConflict[];
+          stats: ScheduleImprovementStats;
+        };
       }>({
-        url: "/schedule/generate",
+        url: "/schedules/generator",
         method: "post",
-        payload: { classId: filters.classId, termId: filters.termId },
+        payload: {
+          classId: filters.classId,
+          termId: filters.termId,
+          timeSlotsPerDay: 8,
+          days: [1, 2, 3, 4, 5],
+          subjectLoads: classSubjects
+            .filter((m) => m.classroomId === filters.classId)
+            .map((m) => ({
+              subjectId: m.subjectId,
+              teacherId: m.teacherId,
+              weeklyCount: 2,
+            })),
+          hardConstraints: [],
+          softConstraints: [],
+        },
       });
-      const slots = response?.data?.slots ?? [];
-      const summary = response?.data?.summary ?? null;
-      if (slots.length > 0) {
+      const proposal = response?.data?.proposal;
+      if (proposal?.slots?.length > 0) {
+        const slots: ScheduleSlot[] = proposal.slots.map((p, idx) => ({
+          id: `slot_${p.dayOfWeek}_${p.timeSlot}`,
+          classId: filters.classId ?? "",
+          dayOfWeek: p.dayOfWeek,
+          slot: p.timeSlot,
+          teacherId: p.teacherId,
+          subjectId: p.subjectId,
+          status: "PREFERENCE" as const,
+          locked: false,
+        }));
         initialiseSlots(slots);
       }
-      setGenerateSummary(summary);
-      if (summary) {
+      setGenerateSummary({
+        preferenceMatches: proposal?.slots?.length ?? 0,
+        compromise: 0,
+        conflicts: proposal?.conflicts?.length ?? 0,
+        empty: 0,
+        confidence: proposal?.score ? proposal.score * 100 : 0,
+        score: proposal?.score,
+        proposalId: proposal?.proposalId,
+        backendConflicts: proposal?.conflicts,
+        backendStats: proposal?.stats,
+      });
+      if (proposal?.proposalId) {
+        setLastProposalId(proposal.proposalId);
+      }
+      if (proposal) {
         notify?.({
           type: "success",
           message: "Jadwal otomatis dibuat",
-          description: `Kesesuaian preferensi ${summary.confidence.toFixed(1)}%`,
+          description: `Skor ${proposal.score.toFixed(2)} · ${proposal.conflicts?.length ?? 0} konflik`,
         });
       }
     } catch (error) {
@@ -437,7 +505,7 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
     } finally {
       setIsGenerating(false);
     }
-  }, [customRequest, filters.classId, filters.termId, initialiseSlots, notify]);
+  }, [customRequest, filters.classId, filters.termId, initialiseSlots, notify, classSubjects]);
 
   const saveSchedule = useCallback(async () => {
     if (!filters.classId) {
@@ -447,15 +515,21 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
       });
       return;
     }
+    if (!lastProposalId) {
+      notify?.({
+        type: "warning",
+        message: "Belum ada proposal jadwal yang dihasilkan",
+      });
+      return;
+    }
     setIsSaving(true);
     try {
-      const payload = Object.values(slotState);
       await customRequest?.({
         url: "/schedule/save",
         method: "post",
         payload: {
-          classId: filters.classId,
-          slots: payload,
+          proposalId: lastProposalId,
+          commitToDaily: true,
         },
       });
       notify?.({ type: "success", message: "Jadwal berhasil disimpan" });
@@ -465,7 +539,7 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
     } finally {
       setIsSaving(false);
     }
-  }, [customRequest, filters.classId, notify, slotState]);
+  }, [customRequest, filters.classId, notify, lastProposalId]);
 
   const terms = useMemo(() => termsQuery.data?.data ?? [], [termsQuery.data?.data]);
 
@@ -507,5 +581,6 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
     saveSchedule,
     fairnessSummary,
     generateSummary,
+    lastProposalId,
   };
 };

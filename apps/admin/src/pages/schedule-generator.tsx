@@ -31,7 +31,13 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useScheduleGenerator } from "../hooks/use-schedule-generator";
-import type { ScheduleSlot, TeacherCard, TeacherPreference } from "../hooks/use-schedule-generator";
+import type {
+  ScheduleSlot,
+  TeacherCard,
+  TeacherPreference,
+  ProposalConflict,
+  ScheduleImprovementStats,
+} from "../hooks/use-schedule-generator";
 
 const STATUS_COLORS: Record<ScheduleSlot["status"], string> = {
   EMPTY: "#f1f5f9",
@@ -227,7 +233,10 @@ export const ScheduleGeneratorPage: React.FC = () => {
     saveSchedule,
     fairnessSummary,
     generateSummary,
+    lastProposalId,
   } = useScheduleGenerator({ termId, classId });
+
+  const [showConflicts, setShowConflicts] = useState(false);
 
   useEffect(() => {
     if (!termId && terms.length > 0) {
@@ -284,12 +293,23 @@ export const ScheduleGeneratorPage: React.FC = () => {
   }, [setHoveredTeacherId]);
 
   const summaryBadge = generateSummary ? (
-    <Space>
+    <Space wrap>
       <Tag color="green">Preferensi {generateSummary.preferenceMatches}</Tag>
       <Tag color="gold">Kompromi {generateSummary.compromise}</Tag>
       <Tag color="red">Konflik {generateSummary.conflicts}</Tag>
       <Tag color="default">Kosong {generateSummary.empty}</Tag>
       <Badge status="processing" text={`Confidence ${generateSummary.confidence}%`} />
+      {generateSummary.proposalId && (
+        <Tag color="blue">ID: {generateSummary.proposalId.slice(0, 8)}...</Tag>
+      )}
+      {generateSummary.backendConflicts && generateSummary.backendConflicts.length > 0 && (
+        <Button type="link" onClick={() => setShowConflicts(true)}>
+          Lihat {generateSummary.backendConflicts.length} Konflik Backend
+        </Button>
+      )}
+      {generateSummary.backendStats && (
+        <Tag color="purple">Iter: {generateSummary.backendStats.iterations}</Tag>
+      )}
     </Space>
   ) : null;
 
@@ -571,6 +591,65 @@ export const ScheduleGeneratorPage: React.FC = () => {
             Terapkan Aturan
           </Button>
         </Form>
+      </Drawer>
+
+      <Drawer
+        title="Konflik Backend Generator"
+        placement="right"
+        width={520}
+        onClose={() => setShowConflicts(false)}
+        open={showConflicts}
+      >
+        {generateSummary?.backendConflicts && generateSummary.backendConflicts.length > 0 ? (
+          <Space direction="vertical" size={16} style={{ width: "100%" }}>
+            <Typography.Title level={5}>
+              {generateSummary.backendConflicts.length} Konflik Ditemukan
+            </Typography.Title>
+            <div style={{ maxHeight: 400, overflow: "auto" }}>
+              {generateSummary.backendConflicts.map((conflict, idx) => (
+                <Card key={idx} size="small" style={{ marginBottom: 8 }}>
+                  <Space direction="vertical" size={4} style={{ width: "100%" }}>
+                    <Space>
+                      <Tag color="red">{conflict.type}</Tag>
+                      <Tag color="default">
+                        {conflict.slot
+                          ? `Hari ${conflict.slot.dayOfWeek} Jam ${conflict.slot.timeSlot}`
+                          : "Umum"}
+                      </Tag>
+                    </Space>
+                    <Typography.Text style={{ fontSize: 13 }}>{conflict.message}</Typography.Text>
+                    {conflict.slot && (
+                      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                        Mapel: {conflict.slot.subjectId} · Guru: {conflict.slot.teacherId}
+                      </Typography.Text>
+                    )}
+                    {conflict.meta && Object.keys(conflict.meta).length > 0 && (
+                      <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+                        Detail: {JSON.stringify(conflict.meta)}
+                      </Typography.Text>
+                    )}
+                  </Space>
+                </Card>
+              ))}
+            </div>
+            {generateSummary.backendStats && (
+              <Card size="small" style={{ background: "#fafafa" }}>
+                <Typography.Title level={5}>Statistik Generator</Typography.Title>
+                <Space wrap size={8}>
+                  <Tag color="blue">Iterasi: {generateSummary.backendStats.iterations}</Tag>
+                  <Tag color="purple">
+                    Gap Penalty: {generateSummary.backendStats.gapPenalty.toFixed(2)}
+                  </Tag>
+                  <Tag color="orange">
+                    Load Penalty: {generateSummary.backendStats.loadPenalty.toFixed(2)}
+                  </Tag>
+                </Space>
+              </Card>
+            )}
+          </Space>
+        ) : (
+          <Typography.Text type="secondary">Tidak ada konflik backend</Typography.Text>
+        )}
       </Drawer>
     </Space>
   );

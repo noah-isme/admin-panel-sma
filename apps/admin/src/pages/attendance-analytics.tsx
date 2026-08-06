@@ -17,7 +17,10 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import { DownloadOutlined, PrinterOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
-import { useAttendanceAnalytics, type AttendanceStatus } from "../hooks/use-attendance-analytics";
+import {
+  useAttendanceAnalyticsServer as useAttendanceAnalytics,
+  type AttendanceStatus,
+} from "../hooks/use-attendance-analytics-server";
 
 const { RangePicker } = DatePicker;
 

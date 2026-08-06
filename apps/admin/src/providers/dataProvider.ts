@@ -81,6 +81,59 @@ const api = axios.create({
   withCredentials: true,
 });
 
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (token: string) => void;
+  reject: (error: unknown) => void;
+}> = [];
+
+const processQueue = (error: unknown, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token!);
+    }
+  });
+  failedQueue = [];
+};
+
+const refreshAccessToken = async (): Promise<string | null> => {
+  const refreshToken = localStorage.getItem("refresh_token");
+  if (!refreshToken) {
+    return null;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${refreshToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+    const accessToken = data.accessToken ?? data.access_token;
+    const newRefreshToken = data.refreshToken ?? data.refresh_token;
+
+    if (accessToken) {
+      localStorage.setItem("access_token", accessToken);
+      if (newRefreshToken) {
+        localStorage.setItem("refresh_token", newRefreshToken);
+      }
+      return accessToken;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
 export const httpClient = api;
 
 // Log resolved base in browser runtime (non-sensitive)
@@ -136,18 +189,65 @@ const clearStoredSession = () => {
   localStorage.removeItem("user");
 };
 
-// Add response interceptor to handle 401 errors
+// Add response interceptor to handle 401 errors with token refresh
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        // If already refreshing, queue this request
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            if (originalRequest.headers instanceof AxiosHeaders) {
+              originalRequest.headers.set("Authorization", `Bearer ${token}`);
+            } else {
+              const headers = AxiosHeaders.from(originalRequest.headers ?? {});
+              headers.set("Authorization", `Bearer ${token}`);
+              originalRequest.headers = headers;
+            }
+            return api(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      const newAccessToken = await refreshAccessToken();
+
+      isRefreshing = false;
+
+      if (newAccessToken) {
+        processQueue(null, newAccessToken);
+        if (originalRequest.headers instanceof AxiosHeaders) {
+          originalRequest.headers.set("Authorization", `Bearer ${newAccessToken}`);
+        } else {
+          const headers = AxiosHeaders.from(originalRequest.headers ?? {});
+          headers.set("Authorization", `Bearer ${newAccessToken}`);
+          originalRequest.headers = headers;
+        }
+        return api(originalRequest);
+      } else {
+        processQueue(new Error("Token refresh failed"), null);
+        clearStoredSession();
+        if (typeof window !== "undefined") {
+          window.location.href = "/login";
+        }
+        return Promise.reject(error);
+      }
+    }
+
     if (error.response?.status === 401) {
       clearStoredSession();
-      window.location.href = "/login";
+      if (typeof window !== "undefined") {
+        window.location.href = "/login";
+      }
     }
     return Promise.reject(error);
-    // --- DEV in-memory store -------------------------------------------------
-    // Keep the development store close to the dataProvider so CRUD methods can
-    // operate on the same fixtures used by getList when the backend is offline.
   }
 );
 

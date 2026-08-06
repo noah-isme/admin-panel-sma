@@ -1,0 +1,108 @@
+name: E2E Tests
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * *'  # 4 AM UTC daily
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e-local:
+    name: E2E Tests (Local Dev)
+    runs-on: ubuntu-latest
+    if: github.event_name != 'schedule'
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install
+      - name: Build apps
+        run: pnpm -r build
+      - name: Install Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Start backend API
+        run: |
+          cd ../sma-adp-api
+          docker compose -f docker/docker-compose.yml up -d
+          sleep 5
+          make migrate-up
+          psql "postgresql://postgres:postgres@localhost:5432/admin_panel_sma?sslmode=disable" -f scripts/seed.sql
+          go run ./cmd/api-gateway &
+          echo $! > api.pid
+          sleep 5
+          curl -f http://localhost:8080/health || (echo "API failed to start" && exit 1)
+      - name: Run E2E tests
+        run: |
+          cd ../admin-panel-sma/apps/admin
+          npx playwright test
+        env:
+          VITE_API_URL: http://localhost:8080/api/v1
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/admin/playwright-report
+      - name: Upload traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: apps/admin/test-results
+      - name: Stop backend API
+        if: always()
+        run: |
+          if [ -f ../sma-adp-api/api.pid ]; then
+            kill $(cat ../sma-adp-api/api.pid) || true
+          fi
+          docker compose -f ../sma-adp-api/docker/docker-compose.yml down
+
+  e2e-staged:
+    name: E2E Tests (Staged Environment)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install
+      - name: Install Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Run E2E tests against staging
+        run: |
+          cd admin-panel-sma/apps/admin
+          npx playwright test
+        env:
+          PLAYWRIGHT_STAGED: "1"
+          PLAYWRIGHT_BASE_URL: ${{ secrets.STAGING_FRONTEND_URL }}
+          PLAYWRIGHT_API_URL: ${{ secrets.STAGING_API_URL }}
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-staged
+          path: apps/admin/playwright-report
+      - name: Upload traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces-staged
+          path: apps/admin/test-results

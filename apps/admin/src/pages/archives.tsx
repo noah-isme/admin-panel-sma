@@ -1,330 +1,480 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
-  Alert,
+  Avatar,
+  Badge,
   Button,
   Card,
+  Col,
+  Divider,
   Form,
   Input,
-  List,
   Modal,
-  Segmented,
+  Popconfirm,
+  Row,
   Select,
   Space,
+  Spin,
+  Table,
   Tag,
+  Tooltip,
   Typography,
-  Upload,
-  type UploadProps,
 } from "antd";
-import { InboxOutlined } from "@ant-design/icons";
+import {
+  DeleteOutlined,
+  DownloadOutlined,
+  EyeOutlined,
+  FilePdfOutlined,
+  FileWordOutlined,
+  FileImageOutlined,
+  FileOutlined,
+  PlusOutlined,
+  UploadOutlined,
+} from "@ant-design/icons";
 import dayjs from "dayjs";
-import { useDelete, useList } from "@refinedev/core";
+import { useDataProvider, useList } from "@refinedev/core";
 import { useAppNotification } from "../hooks/use-app-notification";
-import { httpClient } from "../providers/dataProvider";
-import { ResourceActionGuard } from "../components/resource-action-guard";
 
-const SCOPE_OPTIONS = [
-  { label: "Global", value: "GLOBAL" },
-  { label: "Term", value: "TERM" },
-  { label: "Kelas", value: "CLASS" },
-  { label: "Siswa", value: "STUDENT" },
-];
-
-const SCOPE_LABELS: Record<string, string> = {
-  GLOBAL: "Global",
-  TERM: "Term",
-  CLASS: "Kelas",
-  STUDENT: "Siswa",
+const CATEGORY_COLORS: Record<string, string> = {
+  RAPOR: "blue",
+  CERTIFICATE: "gold",
+  TRANSCRIPT: "purple",
+  PHOTO: "green",
+  OTHER: "default",
 };
 
-const SCOPE_COLORS: Record<string, string> = {
-  GLOBAL: "blue",
-  TERM: "cyan",
-  CLASS: "purple",
-  STUDENT: "magenta",
+const getFileIcon = (mimeType: string) => {
+  if (mimeType?.includes("pdf"))
+    return <FilePdfOutlined style={{ color: "#ff4d4f", fontSize: 24 }} />;
+  if (mimeType?.includes("word") || mimeType?.includes("document"))
+    return <FileWordOutlined style={{ color: "#2f54eb", fontSize: 24 }} />;
+  if (mimeType?.includes("image"))
+    return <FileImageOutlined style={{ color: "#52c41a", fontSize: 24 }} />;
+  return <FileOutlined style={{ color: "#8c8c8c", fontSize: 24 }} />;
 };
 
-const formatDate = (value?: string | null) =>
-  value ? dayjs(value).format("DD MMM YYYY HH:mm") : "-";
-
-const formatBytes = (bytes?: number | null) => {
-  if (!bytes) return "-";
-  const units = ["B", "KB", "MB", "GB"];
-  let value = bytes;
-  let unit = 0;
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024;
-    unit += 1;
-  }
-  return `${value.toFixed(value >= 10 || unit === 0 ? 0 : 1)} ${units[unit]}`;
+const formatFileSize = (bytes: number) => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-// Backend wraps responses in { data: ... }; MSW returns the resource directly.
-const unwrap = (res: any) => {
-  const body = res?.data;
-  return body && typeof body === "object" && "data" in body ? body.data : body;
-};
-
-type UploadFormValues = {
-  title: string;
-  category: string;
-  scope: string;
-  refTermId?: string;
-  refClassId?: string;
-  refStudentId?: string;
-};
-
-export const ArchivesPage: React.FC = () => {
-  const [scopeFilter, setScopeFilter] = useState<string>("ALL");
-  const [uploadOpen, setUploadOpen] = useState(false);
-  const [fileList, setFileList] = useState<UploadProps["fileList"]>([]);
-  const [uploading, setUploading] = useState(false);
-  const [uploadForm] = Form.useForm<UploadFormValues>();
+const ArchiveListPage: React.FC = () => {
+  const getDataProvider = useDataProvider();
+  const dataProvider = useMemo(() => getDataProvider(), [getDataProvider]);
   const { open: notify } = useAppNotification();
-  const { mutateAsync: deleteArchive } = useDelete();
 
-  const termsQuery = useList({ resource: "terms", pagination: { current: 1, pageSize: 50 } });
-  const classesQuery = useList({ resource: "classes", pagination: { current: 1, pageSize: 100 } });
+  const [searchForm] = Form.useForm();
+  const [uploadForm] = Form.useForm();
+  const [selectedArchive, setSelectedArchive] = useState<any>(null);
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [uploadVisible, setUploadVisible] = useState(false);
+  const [uploadLoading, setUploadLoading] = useState(false);
+
+  const searchValues = useMemo(() => searchForm.getFieldsValue(), [searchForm]);
+
   const archivesQuery = useList({
     resource: "archives",
-    pagination: { current: 1, pageSize: 200 },
+    pagination: { current: 1, pageSize: 20 },
+    sorters: [{ field: "uploadedAt", order: "desc" }],
+    filters: [
+      ...(searchValues.category
+        ? [{ field: "category", operator: "eq", value: searchValues.category }]
+        : []),
+      ...(searchValues.studentId
+        ? [{ field: "studentId", operator: "eq", value: searchValues.studentId }]
+        : []),
+      ...(searchValues.termId
+        ? [{ field: "termId", operator: "eq", value: searchValues.termId }]
+        : []),
+    ],
   });
 
-  const terms = (termsQuery.data?.data as Record<string, any>[]) ?? [];
-  const classes = (classesQuery.data?.data as Record<string, any>[]) ?? [];
+  const columns = useMemo(
+    () => [
+      {
+        title: "Dokumen",
+        dataIndex: "fileName",
+        key: "fileName",
+        width: 200,
+        render: (_, record: any) => (
+          <Space>
+            {getFileIcon(record.mimeType)}
+            <Space direction="vertical" size={0}>
+              <Typography.Text strong>{record.originalName ?? record.fileName}</Typography.Text>
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                {record.fileName}
+              </Typography.Text>
+            </Space>
+          </Space>
+        ),
+      },
+      {
+        title: "Kategori",
+        dataIndex: "category",
+        key: "category",
+        width: 120,
+        render: (category: string) => (
+          <Tag color={CATEGORY_COLORS[category] ?? "default"}>{category}</Tag>
+        ),
+      },
+      {
+        title: "Siswa",
+        dataIndex: "studentId",
+        key: "studentId",
+        width: 160,
+      },
+      {
+        title: "Term",
+        dataIndex: "termId",
+        key: "termId",
+        width: 120,
+      },
+      {
+        title: "Ukuran",
+        dataIndex: "fileSize",
+        key: "fileSize",
+        width: 100,
+        render: (size: number) => formatFileSize(size),
+        align: "right" as const,
+      },
+      {
+        title: "Diunggah Oleh",
+        dataIndex: "uploadedBy",
+        key: "uploadedBy",
+        width: 140,
+      },
+      {
+        title: "Waktu",
+        dataIndex: "uploadedAt",
+        key: "uploadedAt",
+        width: 160,
+        render: (date: string) => dayjs(date).format("DD MMM YYYY HH:mm"),
+      },
+      {
+        title: "Aksi",
+        key: "actions",
+        width: 120,
+        fixed: "right" as const,
+        render: (_: any, record: any) => (
+          <Space size={4}>
+            <Tooltip title="Pratinjau">
+              <Button type="link" icon={<EyeOutlined />} onClick={() => handlePreview(record)} />
+            </Tooltip>
+            <Tooltip title="Unduh">
+              <Button
+                type="link"
+                icon={<DownloadOutlined />}
+                onClick={() => handleDownload(record)}
+              />
+            </Tooltip>
+            <Popconfirm
+              title="Hapus arsip ini?"
+              onConfirm={() => handleDelete(record.id)}
+              okText="Ya"
+              cancelText="Tidak"
+            >
+              <Tooltip title="Hapus">
+                <Button type="link" icon={<DeleteOutlined />} danger />
+              </Tooltip>
+            </Popconfirm>
+          </Space>
+        ),
+      },
+    ],
+    []
+  );
 
-  const archives = useMemo(() => {
-    const data = (archivesQuery.data?.data as Record<string, any>[]) ?? [];
-    if (scopeFilter === "ALL") return data;
-    return data.filter((item) => (item.scope ?? "GLOBAL") === scopeFilter);
-  }, [archivesQuery.data?.data, scopeFilter]);
+  const handlePreview = useCallback((record: any) => {
+    setSelectedArchive(record);
+    setPreviewVisible(true);
+  }, []);
 
-  const handleDownload = async (item: Record<string, any>) => {
-    try {
-      const res = await httpClient.get(`/archives/${item.id}`);
-      const payload = unwrap(res) as Record<string, any>;
-      const url = payload?.downloadUrl ?? item.downloadUrl;
-      if (!url) {
-        notify?.({ type: "error", message: "URL unduhan tidak tersedia" });
-        return;
-      }
-      window.open(url, "_blank");
-    } catch (error) {
-      notify?.({ type: "error", message: "Gagal mengambil unduhan", description: String(error) });
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteArchive({ resource: "archives", id });
-      notify?.({ type: "success", message: "Arsip dihapus" });
-      await archivesQuery.refetch?.();
-    } catch (error) {
-      notify?.({ type: "error", message: "Gagal menghapus arsip", description: String(error) });
-    }
-  };
-
-  const handleUpload = async (values: UploadFormValues) => {
-    if (!fileList || fileList.length === 0) {
-      notify?.({ type: "error", message: "File wajib diunggah" });
-      return;
-    }
-    const file = fileList[0]?.originFileObj as File | undefined;
-    if (!file) {
-      notify?.({ type: "error", message: "File tidak valid" });
-      return;
-    }
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append("title", values.title);
-      formData.append("category", values.category);
-      formData.append("scope", values.scope);
-      if (values.refTermId) formData.append("refTermId", values.refTermId);
-      if (values.refClassId) formData.append("refClassId", values.refClassId);
-      if (values.refStudentId) formData.append("refStudentId", values.refStudentId);
-      formData.append("file", file);
-      await httpClient.post("/archives", formData);
-      notify?.({ type: "success", message: "Arsip diunggah" });
-      setUploadOpen(false);
-      uploadForm.resetFields();
-      setFileList([]);
-      await archivesQuery.refetch?.();
-    } catch (error) {
-      notify?.({ type: "error", message: "Gagal mengunggah arsip", description: String(error) });
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const uploadProps: UploadProps = {
-    beforeUpload: (file) => {
-      setFileList([
-        {
-          uid: file.uid,
-          name: file.name,
-          size: file.size,
-          type: file.type,
-          originFileObj: file as any,
-        } as any,
-      ]);
-      return false;
+  const handleUploadSubmit = useCallback(
+    async (values: any) => {
+      const { file, category, studentId, termId } = values;
+      if (!file) return;
+      await handleUpload(file, category, studentId, termId);
     },
-    fileList,
-    onRemove: () => setFileList([]),
-    maxCount: 1,
-  };
+    [handleUpload]
+  );
+
+  const handleDownload = useCallback(
+    async (record: any) => {
+      try {
+        const response = await dataProvider.custom({
+          url: `archives/${record.id}/download`,
+          method: "get",
+        });
+        if (response?.url) {
+          window.open(response.url, "_blank");
+        } else {
+          notify?.({ type: "error", message: "Gagal mendapatkan URL unduh" });
+        }
+      } catch (error) {
+        notify?.({ type: "error", message: "Gagal mengunduh dokumen" });
+      }
+    },
+    [dataProvider, notify]
+  );
+
+  const handleDelete = useCallback(
+    async (id: string) => {
+      try {
+        await dataProvider.custom({
+          url: `archives/${id}`,
+          method: "delete",
+        });
+        notify?.({ type: "success", message: "Arsip berhasil dihapus" });
+        archivesQuery.refetch();
+      } catch (error) {
+        notify?.({ type: "error", message: "Gagal menghapus arsip" });
+      }
+    },
+    [dataProvider, notify, archivesQuery]
+  );
+
+  const handleUpload = useCallback(
+    async (file: File, category: string, studentId: string, termId: string) => {
+      setUploadLoading(true);
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("category", category);
+        formData.append("studentId", studentId);
+        formData.append("termId", termId);
+
+        await dataProvider.custom({
+          url: "archives/upload",
+          method: "post",
+          payload: formData,
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+
+        notify?.({ type: "success", message: "Dokumen berhasil diunggah" });
+        setUploadVisible(false);
+        archivesQuery.refetch();
+      } catch (error) {
+        notify?.({ type: "error", message: "Gagal mengunggah dokumen" });
+      } finally {
+        setUploadLoading(false);
+      }
+    },
+    [dataProvider, notify, archivesQuery]
+  );
+
+  const archives = archivesQuery.data?.data ?? [];
+  const isLoading = archivesQuery.isLoading;
 
   return (
-    <ResourceActionGuard action="list" resourceName="archives">
-      <div style={{ padding: 24 }}>
-        <Space direction="vertical" size={24} style={{ width: "100%" }}>
-          <Typography.Title level={2} style={{ marginBottom: 0 }}>
-            Arsip Dokumen
-          </Typography.Title>
+    <Space direction="vertical" size="large" style={{ width: "100%" }}>
+      <Space direction="vertical" size={4} style={{ width: "100%" }}>
+        <Typography.Title level={3} style={{ margin: 0 }}>
+          Manajemen Arsip Dokumen
+        </Typography.Title>
+        <Typography.Text type="secondary">
+          Kelola arsip dokumen: rapor, sertifikat, transkrip, foto, dan dokumen lain.
+        </Typography.Text>
+      </Space>
 
-          <Card
-            title="Daftar Arsip"
-            extra={
-              <Space>
-                <Segmented
-                  value={scopeFilter}
-                  onChange={(v) => setScopeFilter(v as string)}
-                  options={[{ label: "Semua", value: "ALL" }, ...SCOPE_OPTIONS]}
-                />
-                <Button
-                  type="primary"
-                  onClick={() => {
-                    setUploadOpen(true);
-                    uploadForm.resetFields();
-                    setFileList([]);
-                  }}
-                >
-                  Unggah Arsip
-                </Button>
-              </Space>
-            }
-          >
-            {archives.length === 0 ? (
-              <Alert
-                type="info"
-                showIcon
-                message="Belum ada arsip"
-                description="Unggah rapor, absensi, atau dokumen lain."
+      <Card>
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={12} md={6}>
+            <Form.Item label="Kategori" name="category">
+              <Select
+                placeholder="Semua kategori"
+                allowClear
+                options={Object.entries(CATEGORY_COLORS).map(([value, color]) => ({
+                  label: value,
+                  value,
+                }))}
               />
-            ) : (
-              <List
-                itemLayout="vertical"
-                dataSource={archives}
-                renderItem={(item) => {
-                  const scope = item.scope ?? "GLOBAL";
-                  const title = item.title ?? item.label ?? item.fileName ?? "Arsip";
-                  const category = item.category ?? item.type ?? "-";
-                  const size = item.sizeBytes ?? item.fileSize ?? 0;
-                  const uploadedBy = item.uploadedBy ?? item.generatedBy ?? "-";
-                  const uploadedAt = item.uploadedAt ?? item.generatedAt;
-                  return (
-                    <List.Item
-                      key={item.id}
-                      actions={[
-                        <Button key="download" onClick={() => handleDownload(item)}>
-                          Unduh
-                        </Button>,
-                        <Button key="delete" danger onClick={() => handleDelete(item.id)}>
-                          Hapus
-                        </Button>,
-                      ]}
-                    >
-                      <List.Item.Meta
-                        title={
-                          <Space size={8} wrap>
-                            <Typography.Text strong>{title}</Typography.Text>
-                            <Tag color={SCOPE_COLORS[scope] ?? "default"}>
-                              {SCOPE_LABELS[scope] ?? scope}
-                            </Tag>
-                            <Tag>{category}</Tag>
-                          </Space>
-                        }
-                        description={
-                          <Space direction="vertical" size={2}>
-                            <Typography.Text type="secondary">
-                              {item.fileName ?? item.filePath ?? "-"} • {formatBytes(size)}
-                            </Typography.Text>
-                            <Typography.Text type="secondary">
-                              Diunggah oleh {uploadedBy} • {formatDate(uploadedAt)}
-                            </Typography.Text>
-                            {item.termName && (
-                              <Typography.Text type="secondary">
-                                Term: {item.termName}
-                              </Typography.Text>
-                            )}
-                          </Space>
-                        }
-                      />
-                    </List.Item>
-                  );
-                }}
-              />
-            )}
-          </Card>
-        </Space>
-      </div>
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Form.Item label="Siswa" name="studentId">
+              <Input placeholder="ID Siswa" allowClear />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Form.Item label="Term" name="termId">
+              <Input placeholder="ID Term" allowClear />
+            </Form.Item>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Space style={{ marginTop: 24 }}>
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => setUploadVisible(true)}>
+                <UploadOutlined /> Unggah Baru
+              </Button>
+            </Space>
+          </Col>
+        </Row>
+      </Card>
 
+      <Card>
+        <Table
+          size="middle"
+          rowKey="id"
+          columns={columns}
+          dataSource={archives}
+          loading={isLoading}
+          pagination={{ pageSize: 20, showSizeChanger: true }}
+        />
+      </Card>
+
+      {/* Preview Modal */}
       <Modal
-        open={uploadOpen}
-        title="Unggah Arsip"
-        okText="Unggah"
-        cancelText="Batal"
-        confirmLoading={uploading}
-        onCancel={() => setUploadOpen(false)}
-        onOk={() => uploadForm.submit()}
+        title="Pratinjau Dokumen"
+        open={previewVisible}
+        onCancel={() => setPreviewVisible(false)}
+        width={900}
+        footer={null}
+      >
+        {selectedArchive && (
+          <Space direction="vertical" size={16} style={{ width: "100%" }}>
+            <Card title="Informasi Dokumen" size="small">
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Typography.Text type="secondary">Nama Asli</Typography.Text>
+                  <Typography.Text strong>
+                    {selectedArchive.originalName ?? selectedArchive.fileName}
+                  </Typography.Text>
+                </Col>
+                <Col span={12}>
+                  <Typography.Text type="secondary">Kategori</Typography.Text>
+                  <Tag color={CATEGORY_COLORS[selectedArchive.category] ?? "default"}>
+                    {selectedArchive.category}
+                  </Tag>
+                </Col>
+                <Col span={12}>
+                  <Typography.Text type="secondary">Siswa</Typography.Text>
+                  <Typography.Text>{selectedArchive.studentId}</Typography.Text>
+                </Col>
+                <Col span={12}>
+                  <Typography.Text type="secondary">Term</Typography.Text>
+                  <Typography.Text>{selectedArchive.termId}</Typography.Text>
+                </Col>
+                <Col span={12}>
+                  <Typography.Text type="secondary">Ukuran File</Typography.Text>
+                  <Typography.Text>{formatFileSize(selectedArchive.fileSize)}</Typography.Text>
+                </Col>
+                <Col span={12}>
+                  <Typography.Text type="secondary">Tipe MIME</Typography.Text>
+                  <Typography.Text>{selectedArchive.mimeType}</Typography.Text>
+                </Col>
+                <Col span={12}>
+                  <Typography.Text type="secondary">Diunggah Oleh</Typography.Text>
+                  <Typography.Text>{selectedArchive.uploadedBy}</Typography.Text>
+                </Col>
+                <Col span={12}>
+                  <Typography.Text type="secondary">Waktu Unggah</Typography.Text>
+                  <Typography.Text>
+                    {dayjs(selectedArchive.uploadedAt).format("DD MMMM YYYY HH:mm")}
+                  </Typography.Text>
+                </Col>
+              </Row>
+            </Card>
+
+            <Card title="Pratinjau" size="small">
+              {selectedArchive.mimeType?.includes("pdf") ? (
+                <iframe
+                  src={selectedArchive.url}
+                  style={{ width: "100%", height: 600, border: "none" }}
+                  title="PDF Preview"
+                />
+              ) : selectedArchive.mimeType?.includes("image") ? (
+                <img
+                  src={selectedArchive.url}
+                  alt="Preview"
+                  style={{ maxWidth: "100%", maxHeight: 600 }}
+                />
+              ) : (
+                <Space
+                  direction="vertical"
+                  size={16}
+                  style={{ width: "100%", textAlign: "center" }}
+                >
+                  {getFileIcon(selectedArchive.mimeType)}
+                  <Typography.Text type="secondary">
+                    Pratinjau tidak tersedia untuk tipe file ini
+                  </Typography.Text>
+                  <Button
+                    type="primary"
+                    icon={<DownloadOutlined />}
+                    onClick={() => handleDownload(selectedArchive)}
+                  >
+                    Unduh untuk Melihat
+                  </Button>
+                </Space>
+              )}
+            </Card>
+          </Space>
+        )}
+      </Modal>
+
+      {/* Upload Modal */}
+      <Modal
+        title="Unggah Dokumen Baru"
+        open={uploadVisible}
+        onCancel={() => setUploadVisible(false)}
+        width={500}
+        footer={[
+          <Button key="cancel" onClick={() => setUploadVisible(false)}>
+            Batal
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            loading={uploadLoading}
+            onClick={() => uploadForm.validateFields().then(handleUploadSubmit)}
+          >
+            Unggah
+          </Button>,
+        ]}
       >
         <Form
-          form={uploadForm}
           layout="vertical"
-          onFinish={handleUpload}
-          initialValues={{ scope: "GLOBAL" }}
+          form={uploadForm}
+          initialValues={{ category: "RAPOR" }}
+          onFinish={handleUploadSubmit}
         >
-          <Form.Item
-            label="Judul"
-            name="title"
-            rules={[{ required: true, message: "Judul wajib diisi" }]}
-          >
-            <Input placeholder="mis. Rapor Semester Ganjil" />
+          <Form.Item label="File" name="file" rules={[{ required: true }]}>
+            <input
+              type="file"
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+              onChange={(e) => uploadForm.setFieldsValue({ file: e.target.files?.[0] })}
+              style={{ display: "none" }}
+              id="archive-file-input"
+            />
+            <Button
+              type="dashed"
+              block
+              icon={<UploadOutlined />}
+              onClick={() => document.getElementById("archive-file-input")?.click()}
+            >
+              Klik atau seret file ke sini
+            </Button>
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              Format: PDF, DOC, DOCX, JPG, PNG. Maksimal 10MB.
+            </Typography.Text>
           </Form.Item>
-          <Form.Item
-            label="Kategori"
-            name="category"
-            rules={[{ required: true, message: "Kategori wajib diisi" }]}
-          >
-            <Input placeholder="mis. REPORT_PDF" />
-          </Form.Item>
-          <Form.Item label="Cakupan" name="scope" rules={[{ required: true }]}>
-            <Select options={SCOPE_OPTIONS} />
-          </Form.Item>
-          <Form.Item label="Term (opsional)" name="refTermId">
+
+          <Form.Item label="Kategori" name="category" rules={[{ required: true }]}>
             <Select
-              allowClear
-              placeholder="Pilih term"
-              options={terms.map((t) => ({ value: t.id, label: t.name }))}
+              options={Object.entries(CATEGORY_COLORS).map(([value]) => ({ label: value, value }))}
             />
           </Form.Item>
-          <Form.Item label="Kelas (opsional)" name="refClassId">
-            <Select
-              allowClear
-              placeholder="Pilih kelas"
-              options={classes.map((c) => ({ value: c.id, label: c.name }))}
-            />
+
+          <Form.Item label="Siswa" name="studentId" rules={[{ required: true }]}>
+            <Input placeholder="ID Siswa" />
           </Form.Item>
-          <Form.Item label="File" required>
-            <Upload.Dragger {...uploadProps}>
-              <p className="ant-upload-drag-icon">
-                <InboxOutlined />
-              </p>
-              <p className="ant-upload-text">Klik atau seret file ke sini</p>
-            </Upload.Dragger>
+
+          <Form.Item label="Term" name="termId" rules={[{ required: true }]}>
+            <Input placeholder="ID Term" />
           </Form.Item>
         </Form>
       </Modal>
-    </ResourceActionGuard>
+    </Space>
   );
 };
+
+export default ArchiveListPage;

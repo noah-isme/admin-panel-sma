@@ -98,16 +98,10 @@ const getRefreshToken = () => localStorage.getItem("refresh_token");
 const setTokens = (accessToken: string, refreshToken: string) => {
   localStorage.setItem("access_token", accessToken);
   localStorage.setItem("refresh_token", refreshToken);
-
-  // Legacy camelCase keys for backward compatibility with earlier builds
-  localStorage.setItem("accessToken", accessToken);
-  localStorage.setItem("refreshToken", refreshToken);
 };
 const clearTokens = () => {
   localStorage.removeItem("access_token");
   localStorage.removeItem("refresh_token");
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("refreshToken");
   localStorage.removeItem("user");
 };
 
@@ -177,31 +171,6 @@ const readStoredUser = (): MeResponse | null => {
 
 export const authProvider: AuthProvider = {
   login: async ({ email, password }: LoginParams) => {
-    // Development shortcut: bypass network and use mock tokens/user so admin
-    // works while backend is offline. In production we use the normal flow.
-    if (import.meta.env.DEV) {
-      // Accept any credentials in dev, but log the attempt.
-      try {
-        console.info("[authProvider][dev] mock login", { email, password: "••••" });
-      } catch {
-        // ignore
-      }
-
-      const accessToken = "mock-access-token";
-      const refreshToken = "mock-refresh-token";
-      setTokens(accessToken, refreshToken);
-
-      const mockUser: MeResponse = {
-        id: "user_superadmin",
-        email: email ?? "superadmin@example.sch.id",
-        fullName: "Super Admin",
-        role: "SUPERADMIN",
-      };
-      localStorage.setItem("user", JSON.stringify(mockUser));
-
-      return { success: true, redirectTo: "/" };
-    }
-
     try {
       const url = resolveEndpoint("auth/login");
 
@@ -304,11 +273,6 @@ export const authProvider: AuthProvider = {
   },
 
   logout: async () => {
-    if (import.meta.env.DEV) {
-      clearTokens();
-      return { success: true, redirectTo: "/login" };
-    }
-
     const accessToken = getAccessToken();
     const refreshToken = getRefreshToken();
 
@@ -336,17 +300,6 @@ export const authProvider: AuthProvider = {
   },
 
   check: async () => {
-    // In DEV, trust the presence of tokens/localStorage so the UI remains usable
-    // even when the backend is offline.
-    if (import.meta.env.DEV) {
-      const token = getAccessToken();
-      console.info("[auth][dev] checkAuth", { hasToken: Boolean(token) });
-      if (!token) {
-        return { authenticated: false, redirectTo: "/login", logout: true };
-      }
-      return { authenticated: true };
-    }
-
     const token = getAccessToken();
 
     console.info("[auth] checkAuth", {
@@ -386,20 +339,6 @@ export const authProvider: AuthProvider = {
   },
 
   getIdentity: async () => {
-    // In DEV, prefer the locally-stored user if present.
-    if (import.meta.env.DEV) {
-      const user = readStoredUser();
-      if (user) {
-        return {
-          id: user.id,
-          name: user.fullName,
-          email: user.email,
-          avatar: undefined,
-        };
-      }
-      return null;
-    }
-
     const user = readStoredUser();
     if (user) {
       return {

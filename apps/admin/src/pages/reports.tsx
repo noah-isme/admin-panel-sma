@@ -26,6 +26,18 @@ const FORMAT_OPTIONS = [
   { label: "PDF", value: "pdf" },
 ];
 
+const TEMPLATE_OPTIONS = [
+  { label: "Standar", value: "simple" },
+  { label: "Detail", value: "detailed" },
+  { label: "Landscape", value: "landscape" },
+];
+
+const TEMPLATE_LABELS: Record<string, string> = {
+  simple: "Standar",
+  detailed: "Detail",
+  landscape: "Landscape",
+};
+
 const STATUS_COLORS: Record<string, string> = {
   QUEUED: "default",
   PROCESSING: "processing",
@@ -57,6 +69,7 @@ type GenerateFormValues = {
   termId: string;
   classId?: string;
   format: string;
+  template?: string;
 };
 
 export const ReportsPage: React.FC = () => {
@@ -124,6 +137,7 @@ export const ReportsPage: React.FC = () => {
         termId: values.termId,
         classId: values.classId ?? null,
         format: values.format,
+        template: values.template ?? null,
       });
       const payload = unwrap(res) as Partial<ReportJob>;
       const job: ReportJob = {
@@ -245,6 +259,14 @@ export const ReportsPage: React.FC = () => {
               </Form.Item>
               <Form.Item label="Format" name="format" rules={[{ required: true }]}>
                 <Select options={FORMAT_OPTIONS} style={{ width: 110 }} />
+              </Form.Item>
+              <Form.Item label="Template (PDF)" name="template">
+                <Select
+                  allowClear
+                  placeholder="Pilih template"
+                  style={{ width: 140 }}
+                  options={TEMPLATE_OPTIONS}
+                />
               </Form.Item>
               <Form.Item>
                 <Button type="primary" htmlType="submit" loading={generating}>
