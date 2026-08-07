@@ -60,7 +60,9 @@ export type FeatureFlags = Record<FeatureName, boolean>;
 
 const FEATURE_NAMES = Object.keys(apiFeatureKeys) as FeatureName[];
 
-const envFlag = (feature: FeatureName) => import.meta.env[featureEnvKeys[feature]] === "true";
+const envFlag = (feature: FeatureName) =>
+  import.meta.env.VITE_ENABLE_ALL_FEATURES === "true" ||
+  import.meta.env[featureEnvKeys[feature]] === "true";
 
 /** Flags derived purely from the build, used until the API answers. */
 export const buildTimeFeatures = (): FeatureFlags =>

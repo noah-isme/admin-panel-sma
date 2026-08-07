@@ -141,6 +141,7 @@ Resource dan route opsional di admin harus mengikuti feature flag API yang sama.
 
 | Go API (`sma-adp-api/.env`) | Admin (`apps/admin/.env`)       | Cakupan                                                                      |
 | --------------------------- | ------------------------------- | ---------------------------------------------------------------------------- |
+| `ENABLE_ALL_FEATURES`       | `VITE_ENABLE_ALL_FEATURES`      | **All-on mode**: enables all feature-flagged modules at once                 |
 | `ENABLE_DASHBOARD`          | `VITE_ENABLE_DASHBOARD`         | Dashboard dan analytics                                                      |
 | `ENABLE_SCHEDULER`          | `VITE_ENABLE_SCHEDULER`         | Generator jadwal dan preferensi guru                                         |
 | `ENABLE_REPORTS`            | `VITE_ENABLE_REPORTS`           | Pembuatan dan unduhan laporan                                                |
@@ -154,6 +155,8 @@ Resource dan route opsional di admin harus mengikuti feature flag API yang sama.
 `ENABLE_ANALYTICS` tidak memiliki flag Vite terpisah: analytics API adalah dependensi backend untuk dashboard (`ENABLE_DASHBOARD`/`VITE_ENABLE_DASHBOARD`). Layar analytics kehadiran menggunakan resource attendance dan mengikuti `ENABLE_ATTENDANCE_ALIAS`/`VITE_ENABLE_ATTENDANCE_ALIAS`.
 
 Flag API dan Vite dibaca saat proses masing-masing dijalankan. Setelah mengubahnya, restart Go API dan dev server/build admin. Resource inti seperti `/schedules` tetap tersedia terlepas dari flag opsional.
+
+**New "All-On" Mode:** Set `ENABLE_ALL_FEATURES=true` (backend) and `VITE_ENABLE_ALL_FEATURES=true` (frontend) to enable all feature-flagged modules at once. Individual flags still work and can override the all-on mode if explicitly set to `false`.
 
 Detail envelope response, alias backward-compatible (`/exam-events`, `/attendance`, `/teacher-preferences`, dan `PUT /enrollments/:id`), serta kontrak role/user relation ada di [`sma-adp-api/docs/GO_BACKEND_API_SPECIFICATION.md`](../sma-adp-api/docs/GO_BACKEND_API_SPECIFICATION.md).
 
@@ -169,7 +172,7 @@ Go API menggunakan file `.env` di repository `sma-adp-api` dengan variabel seper
 - `REDIS_HOST`, `REDIS_PORT`
 - `JWT_SECRET`, `JWT_EXPIRATION`, `REFRESH_TOKEN_EXPIRATION`
 - `ALLOWED_ORIGINS` (CORS)
-- Feature flags: `ENABLE_ANALYTICS`, `ENABLE_DASHBOARD`, `ENABLE_SCHEDULER`, `ENABLE_REPORTS`, `ENABLE_MUTATIONS`, `ENABLE_ARCHIVES`, `ENABLE_HOMEROOMS`, `ENABLE_CALENDAR_ALIAS`, `ENABLE_ATTENDANCE_ALIAS`, `ENABLE_CONFIGURATION_API`
+- Feature flags: `ENABLE_ALL_FEATURES`, `ENABLE_ANALYTICS`, `ENABLE_DASHBOARD`, `ENABLE_SCHEDULER`, `ENABLE_REPORTS`, `ENABLE_MUTATIONS`, `ENABLE_ARCHIVES`, `ENABLE_HOMEROOMS`, `ENABLE_CALENDAR_ALIAS`, `ENABLE_ATTENDANCE_ALIAS`, `ENABLE_CONFIGURATION_API`
 
 Lihat `sma-adp-api/.env.example` untuk daftar lengkap.
 

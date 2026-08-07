@@ -158,3 +158,63 @@ describe("fetchFeatures", () => {
     Object.values(features).forEach((value) => expect(typeof value).toBe("boolean"));
   });
 });
+
+describe("VITE_ENABLE_ALL_FEATURES", () => {
+  const originalEnv = { ...import.meta.env };
+
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  it("enables all features when VITE_ENABLE_ALL_FEATURES=true", async () => {
+    vi.stubEnv("VITE_ENABLE_ALL_FEATURES", "true");
+    // Clear other flags to ensure they're not set
+    vi.stubEnv("VITE_ENABLE_DASHBOARD", "");
+    vi.stubEnv("VITE_ENABLE_CALENDAR_ALIAS", "");
+    vi.stubEnv("VITE_ENABLE_ATTENDANCE_ALIAS", "");
+    vi.stubEnv("VITE_ENABLE_HOMEROOMS", "");
+    vi.stubEnv("VITE_ENABLE_CONFIGURATION_API", "");
+    vi.stubEnv("VITE_ENABLE_SCHEDULER", "");
+    vi.stubEnv("VITE_ENABLE_MUTATIONS", "");
+    vi.stubEnv("VITE_ENABLE_ARCHIVES", "");
+    vi.stubEnv("VITE_ENABLE_REPORTS", "");
+    vi.stubEnv("VITE_ENABLE_AUDIT", "");
+
+    // Re-import to pick up new env
+    const { buildTimeFeatures: buildTimeFeaturesFresh } = await import("../providers/features");
+    const features = buildTimeFeaturesFresh();
+
+    expect(features.dashboard).toBe(true);
+    expect(features.calendar).toBe(true);
+    expect(features.attendance).toBe(true);
+    expect(features.homerooms).toBe(true);
+    expect(features.settings).toBe(true);
+    expect(features.schedules).toBe(true);
+    expect(features.mutations).toBe(true);
+    expect(features.archives).toBe(true);
+    expect(features.reports).toBe(true);
+    expect(features.documents).toBe(true);
+    expect(features.audit).toBe(true);
+  });
+
+  it("respects individual flags when VITE_ENABLE_ALL_FEATURES=false", async () => {
+    vi.stubEnv("VITE_ENABLE_ALL_FEATURES", "false");
+    vi.stubEnv("VITE_ENABLE_DASHBOARD", "true");
+    vi.stubEnv("VITE_ENABLE_REPORTS", "true");
+    vi.stubEnv("VITE_ENABLE_SCHEDULER", "");
+    vi.stubEnv("VITE_ENABLE_MUTATIONS", "");
+
+    const { buildTimeFeatures: buildTimeFeaturesFresh } = await import("../providers/features");
+    const features = buildTimeFeaturesFresh();
+
+    expect(features.dashboard).toBe(true);
+    expect(features.reports).toBe(true);
+    expect(features.schedules).toBe(false);
+    expect(features.mutations).toBe(false);
+  });
+});
