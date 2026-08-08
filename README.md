@@ -139,20 +139,22 @@ pnpm --filter @apps/admin exec msw init ./apps/admin/public --save
 
 Resource dan route opsional di admin harus mengikuti feature flag API yang sama. Nilai default semua flag adalah `false`; aktifkan pasangan berikut bersama-sama agar halaman tidak memanggil endpoint yang tidak terdaftar:
 
-| Go API (`sma-adp-api/.env`) | Admin (`apps/admin/.env`)       | Cakupan                                                                      |
-| --------------------------- | ------------------------------- | ---------------------------------------------------------------------------- |
-| `ENABLE_ALL_FEATURES`       | `VITE_ENABLE_ALL_FEATURES`      | **All-on mode**: enables all feature-flagged modules at once                 |
-| `ENABLE_DASHBOARD`          | `VITE_ENABLE_DASHBOARD`         | Dashboard dan analytics                                                      |
-| `ENABLE_SCHEDULER`          | `VITE_ENABLE_SCHEDULER`         | Generator jadwal dan preferensi guru                                         |
-| `ENABLE_REPORTS`            | `VITE_ENABLE_REPORTS`           | Pembuatan dan unduhan laporan                                                |
-| `ENABLE_MUTATIONS`          | `VITE_ENABLE_MUTATIONS`         | Alur mutasi siswa                                                            |
-| `ENABLE_ARCHIVES`           | `VITE_ENABLE_ARCHIVES`          | Arsip dan unduhan berkas                                                     |
-| `ENABLE_HOMEROOMS`          | `VITE_ENABLE_HOMEROOMS`         | Data wali kelas                                                              |
-| `ENABLE_CONFIGURATION_API`  | `VITE_ENABLE_CONFIGURATION_API` | Konfigurasi aplikasi                                                         |
-| `ENABLE_CALENDAR_ALIAS`     | `VITE_ENABLE_CALENDAR_ALIAS`    | Alias `/calendar`                                                            |
-| `ENABLE_ATTENDANCE_ALIAS`   | `VITE_ENABLE_ATTENDANCE_ALIAS`  | Rute attendance dan compatibility aliases (daily, subject, generic, summary) |
+| Go API (`sma-adp-api/.env`)                    | Admin (`apps/admin/.env`)                                | Cakupan                                                      |
+| ---------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------ |
+| `ENABLE_ALL_FEATURES`                          | `VITE_ENABLE_ALL_FEATURES`                               | **All-on mode**: enables all feature-flagged modules at once |
+| `ENABLE_DASHBOARD` + `ENABLE_ANALYTICS`        | `VITE_ENABLE_DASHBOARD` + `VITE_ENABLE_ANALYTICS`        | Dashboard (requires analytics backend)                       |
+| `ENABLE_ANALYTICS`                             | `VITE_ENABLE_ANALYTICS`                                  | Analytics API (`/analytics/*`)                               |
+| `ENABLE_SCHEDULER`                             | `VITE_ENABLE_SCHEDULER`                                  | Generator jadwal dan preferensi guru                         |
+| `ENABLE_REPORTS`                               | `VITE_ENABLE_REPORTS`                                    | Pembuatan dan unduhan laporan                                |
+| `ENABLE_MUTATIONS`                             | `VITE_ENABLE_MUTATIONS`                                  | Alur mutasi siswa                                            |
+| `ENABLE_ARCHIVES`                              | `VITE_ENABLE_ARCHIVES`                                   | Arsip dan unduhan berkas                                     |
+| `ENABLE_HOMEROOMS`                             | `VITE_ENABLE_HOMEROOMS`                                  | Data wali kelas                                              |
+| `ENABLE_CONFIGURATION_API`                     | `VITE_ENABLE_CONFIGURATION_API`                          | Konfigurasi aplikasi                                         |
+| `ENABLE_CALENDAR_ALIAS`                        | `VITE_ENABLE_CALENDAR_ALIAS`                             | Alias `/calendar`                                            |
+| `ENABLE_ATTENDANCE_ALIAS`                      | `VITE_ENABLE_ATTENDANCE_ALIAS`                           | Rute attendance daily, lesson, generic writes, summary       |
+| `ENABLE_ATTENDANCE_ALIAS` + `ENABLE_ANALYTICS` | `VITE_ENABLE_ATTENDANCE_ALIAS` + `VITE_ENABLE_ANALYTICS` | Attendance analytics page                                    |
 
-`ENABLE_ANALYTICS` tidak memiliki flag Vite terpisah: analytics API adalah dependensi backend untuk dashboard (`ENABLE_DASHBOARD`/`VITE_ENABLE_DASHBOARD`). Layar analytics kehadiran menggunakan resource attendance dan mengikuti `ENABLE_ATTENDANCE_ALIAS`/`VITE_ENABLE_ATTENDANCE_ALIAS`.
+`ENABLE_ANALYTICS` kini memiliki flag Vite terpisah: `VITE_ENABLE_ANALYTICS`. Dashboard memerlukan keduanya (`ENABLE_DASHBOARD` + `ENABLE_ANALYTICS` / `VITE_ENABLE_DASHBOARD` + `VITE_ENABLE_ANALYTICS`). Layar analytics kehadiran memerlukan `ENABLE_ATTENDANCE_ALIAS` + `ENABLE_ANALYTICS` / `VITE_ENABLE_ATTENDANCE_ALIAS` + `VITE_ENABLE_ANALYTICS`.
 
 Flag API dan Vite dibaca saat proses masing-masing dijalankan. Setelah mengubahnya, restart Go API dan dev server/build admin. Resource inti seperti `/schedules` tetap tersedia terlepas dari flag opsional.
 
@@ -220,8 +222,8 @@ Gunakan `docker compose -f docker-compose.dev.yml down` untuk mematikannya. Data
 
 Saya menambahkan beberapa helper untuk memudahkan development lokal:
 
-- `docker-compose.seed.yml` — menjalankan seeder (`pnpm --filter @apps/api run seed`) di dalam container Node tanpa perlu menginstall pnpm secara lokal.
-- `docker-compose.dev.override.yml` — mengandung service untuk menjalankan API (dev) dan Admin (Vite) yang terhubung ke Postgres+Redis dari `docker-compose.dev.yml`.
+- `docker-compose.seed.yml` — menjalankan seeder di dalam container tanpa perlu menginstall pnpm secara lokal.
+- `docker-compose.dev.override.yml` — mengandung service untuk menjalankan Admin (Vite) yang terhubung ke Postgres+Redis dari `docker-compose.dev.yml`.
 
 Contoh perintah cepat:
 

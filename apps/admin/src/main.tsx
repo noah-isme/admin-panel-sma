@@ -400,13 +400,18 @@ const resourceFeature: Partial<Record<string, FeatureName>> = {
   reports: "reports",
 };
 
+const requiresAnalytics: Partial<Record<string, FeatureName>> = {
+  dashboard: "analytics",
+};
+
 // The API defaults optional capabilities to disabled, so a page whose module is
 // not mounted can only answer 404. Resolved at runtime from GET /features, with
 // the build-time VITE flags as the offline fallback.
 const selectResources = (features: FeatureFlags) =>
   allResources.filter((resource) => {
     const feature = resourceFeature[resource.name];
-    return !feature || features[feature];
+    const analyticsFeature = requiresAnalytics[resource.name];
+    return (!feature || features[feature]) && (!analyticsFeature || features[analyticsFeature]);
   });
 
 const resourceRouteConfig: Record<
@@ -582,7 +587,11 @@ async function bootstrap() {
                             ) : resource.name === "calendar" ? (
                               <CalendarPage />
                             ) : resource.name === "attendance" ? (
-                              <AttendanceAnalyticsPage />
+                              isFeatureEnabled("analytics") ? (
+                                <AttendanceAnalyticsPage />
+                              ) : (
+                                <ErrorComponent />
+                              )
                             ) : resource.name === "schedules" ? (
                               <SchedulesPage />
                             ) : resource.name === "grades" ? (

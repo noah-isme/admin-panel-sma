@@ -13,6 +13,7 @@ const allFalse = {
   reports: false,
   documents: false,
   audit: false,
+  analytics: false,
 };
 
 describe("mergeFeatures", () => {
@@ -184,6 +185,7 @@ describe("VITE_ENABLE_ALL_FEATURES", () => {
     vi.stubEnv("VITE_ENABLE_ARCHIVES", "");
     vi.stubEnv("VITE_ENABLE_REPORTS", "");
     vi.stubEnv("VITE_ENABLE_AUDIT", "");
+    vi.stubEnv("VITE_ENABLE_ANALYTICS", "");
 
     // Re-import to pick up new env
     const { buildTimeFeatures: buildTimeFeaturesFresh } = await import("../providers/features");
@@ -200,6 +202,7 @@ describe("VITE_ENABLE_ALL_FEATURES", () => {
     expect(features.reports).toBe(true);
     expect(features.documents).toBe(true);
     expect(features.audit).toBe(true);
+    expect(features.analytics).toBe(true);
   });
 
   it("respects individual flags when VITE_ENABLE_ALL_FEATURES=false", async () => {

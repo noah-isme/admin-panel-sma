@@ -24,7 +24,8 @@ export type FeatureName =
   | "archives"
   | "reports"
   | "documents"
-  | "audit";
+  | "audit"
+  | "analytics";
 
 /** Build-time env var backing each feature, used as the offline fallback. */
 const featureEnvKeys: Record<FeatureName, string> = {
@@ -39,6 +40,7 @@ const featureEnvKeys: Record<FeatureName, string> = {
   reports: "VITE_ENABLE_REPORTS",
   documents: "VITE_ENABLE_ARCHIVES",
   audit: "VITE_ENABLE_AUDIT",
+  analytics: "VITE_ENABLE_ANALYTICS",
 };
 
 /** Maps the API's feature keys onto the frontend's feature names. */
@@ -54,6 +56,7 @@ const apiFeatureKeys: Record<FeatureName, string> = {
   reports: "reports",
   documents: "documents",
   audit: "audit",
+  analytics: "analytics",
 };
 
 export type FeatureFlags = Record<FeatureName, boolean>;
