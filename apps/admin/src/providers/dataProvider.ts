@@ -57,18 +57,8 @@ const API_BASE_URL = (() => {
       }
       return fallback;
     }
-
-    if (import.meta.env.DEV && !isSameOrigin) {
-      console.warn(
-        "[dataProvider] Overriding API base for MSW development:",
-        envBaseUrl,
-        "→",
-        fallback
-      );
-      return fallback;
-    }
   } catch {
-    // ignore
+    console.error("[dataProvider] Failed to determine API_BASE_URL origin. Using default.");
   }
 
   return envBaseUrl;

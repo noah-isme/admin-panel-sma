@@ -1,5 +1,27 @@
 # Changelog - Build & Runtime Fixes
 
+## [2026-08-08] - Dashboard Resilience & E2E Testing ✅
+
+### 🎯 Objective
+
+Fix critical crash rendering issues on the Dashboard and standardize the E2E Playwright screenshot testing suite to capture proper desktop dimensions and valid routes.
+
+### ✏️ Changes
+
+1.  Fixed missing optional chaining on `dashboard.distribution` nested properties (e.g., `overallAverage`, `totalStudents`, `byRange`, `byClass`) in `dashboard.tsx` to prevent React fatal errors when the API is slow or data is incomplete.
+2.  Patched missing optional chaining on `dashboard.attendance` metrics.
+3.  Corrected Playwright `screenshot.spec.ts` to navigate precisely to `/admin/` prefixed paths, circumventing a bug where base URLs would incorrectly navigate to the root Vite server (resulting in a 404).
+4.  Isolated Playwright test execution to the `chromium` project to prevent mobile workers from overwriting desktop screenshots.
+
+### 🔍 Verification
+
+- Playwright tests run sequentially and successfully snapshot the desktop views of `/admin/`, `/admin/students`, `/admin/teachers`, and `/admin/classes` without rendering errors.
+
+### 📚 Related Documentation
+
+- `tests/e2e/screenshot.spec.ts`
+- `src/pages/dashboard.tsx`
+
 ## [2025-10-27] - Users & Wali Kelas Experience ✅
 
 ### 🎯 Objective

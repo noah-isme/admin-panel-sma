@@ -166,10 +166,10 @@ export const DashboardPage: React.FC = () => {
     return records[0];
   }, [dashboardQuery.data]);
 
-  const distributionByRange = dashboard?.distribution.byRange ?? [];
-  const classSummaryRaw = dashboard?.distribution.byClass ?? [];
-  const attendanceByClass = dashboard?.attendance.byClass ?? [];
-  const attendanceAlerts = dashboard?.attendance.alerts ?? [];
+  const distributionByRange = dashboard?.distribution?.byRange ?? [];
+  const classSummaryRaw = dashboard?.distribution?.byClass ?? [];
+  const attendanceByClass = dashboard?.attendance?.byClass ?? [];
+  const attendanceAlerts = dashboard?.attendance?.alerts ?? [];
 
   const [sortConfig] = React.useState<{ orderBy: keyof ClassSummary; order: Order }>(() => ({
     orderBy: "average",
@@ -301,8 +301,12 @@ export const DashboardPage: React.FC = () => {
           <Grid item xs={12} sm={6} lg={4}>
             <SummaryCard
               title="Rata-rata Nilai Sekolah"
-              value={dashboard ? dashboard.distribution.overallAverage.toFixed(1) : "0.0"}
-              subtitle={`Dari ${(dashboard?.distribution.totalStudents ?? 0).toLocaleString("id-ID")} siswa aktif`}
+              value={
+                dashboard?.distribution?.overallAverage
+                  ? dashboard.distribution.overallAverage.toFixed(1)
+                  : "0.0"
+              }
+              subtitle={`Dari ${(dashboard?.distribution?.totalStudents ?? 0).toLocaleString("id-ID")} siswa aktif`}
               icon={<BarChart3 aria-label="Ikon nilai" />}
               accentColor={themeTokens.accentBlue}
               loading={loading}
@@ -312,7 +316,9 @@ export const DashboardPage: React.FC = () => {
           <Grid item xs={12} sm={6} lg={4}>
             <SummaryCard
               title="Tingkat Kehadiran"
-              value={dashboard ? percent(dashboard.attendance.overall) : percent(0)}
+              value={
+                dashboard?.attendance?.overall ? percent(dashboard.attendance.overall) : percent(0)
+              }
               subtitle="Rata-rata semua kelas"
               icon={<Users aria-label="Ikon kehadiran" />}
               accentColor={themeTokens.accentGreen}
@@ -509,7 +515,9 @@ export const DashboardPage: React.FC = () => {
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
                   Rata-rata sekolah:{" "}
-                  {dashboard ? percent(dashboard.attendance.overall) : percent(0)}
+                  {dashboard?.attendance?.overall
+                    ? percent(dashboard.attendance.overall)
+                    : percent(0)}
                 </Typography>
               </Stack>
               {loading ? (

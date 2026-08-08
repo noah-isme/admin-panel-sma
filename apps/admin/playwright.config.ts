@@ -6,11 +6,11 @@ const isStaged = !!process.env.PLAYWRIGHT_STAGED;
 // Staged environment uses deployed URL, local uses dev server
 const baseURL = isStaged
   ? process.env.PLAYWRIGHT_BASE_URL || "https://admin-sma-staging.vercel.app"
-  : "http://localhost:5173";
+  : "http://localhost:5173/admin";
 
 const apiURL = isStaged
   ? process.env.PLAYWRIGHT_API_URL || "https://api-sma-staging.railway.app/api/v1"
-  : "http://localhost:8080/api/v1";
+  : "http://localhost:8081/api/v1";
 
 export default defineConfig({
   testDir: "./tests/e2e",

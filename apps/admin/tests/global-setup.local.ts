@@ -5,7 +5,7 @@ import path from "path";
 const AUTH_FILE = "playwright/.auth/user.json";
 
 async function globalSetup(config: FullConfig) {
-  const apiURL = process.env.VITE_API_URL || "http://localhost:8080/api/v1";
+  const apiURL = process.env.VITE_API_URL || "http://localhost:8081/api/v1";
   const { baseURL } = config.projects[0].use;
 
   // Ensure auth directory exists
@@ -26,7 +26,7 @@ async function globalSetup(config: FullConfig) {
     const loginResponse = page.waitForResponse(
       (r) => r.url().includes("/auth/login") && r.request().method() === "POST"
     );
-    await page.getByRole("button", { name: /login|masuk/i }).click();
+    await page.getByRole("button", { name: /sign in|login|masuk/i }).click();
     const response = await loginResponse;
 
     if (!response.ok()) {
