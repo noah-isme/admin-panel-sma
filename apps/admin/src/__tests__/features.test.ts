@@ -204,20 +204,4 @@ describe("VITE_ENABLE_ALL_FEATURES", () => {
     expect(features.audit).toBe(true);
     expect(features.analytics).toBe(true);
   });
-
-  it("respects individual flags when VITE_ENABLE_ALL_FEATURES=false", async () => {
-    vi.stubEnv("VITE_ENABLE_ALL_FEATURES", "false");
-    vi.stubEnv("VITE_ENABLE_DASHBOARD", "true");
-    vi.stubEnv("VITE_ENABLE_REPORTS", "true");
-    vi.stubEnv("VITE_ENABLE_SCHEDULER", "");
-    vi.stubEnv("VITE_ENABLE_MUTATIONS", "");
-
-    const { buildTimeFeatures: buildTimeFeaturesFresh } = await import("../providers/features");
-    const features = buildTimeFeaturesFresh();
-
-    expect(features.dashboard).toBe(true);
-    expect(features.reports).toBe(true);
-    expect(features.schedules).toBe(false);
-    expect(features.mutations).toBe(false);
-  });
 });

@@ -27,22 +27,6 @@ export type FeatureName =
   | "audit"
   | "analytics";
 
-/** Build-time env var backing each feature, used as the offline fallback. */
-const featureEnvKeys: Record<FeatureName, string> = {
-  dashboard: "VITE_ENABLE_DASHBOARD",
-  calendar: "VITE_ENABLE_CALENDAR_ALIAS",
-  attendance: "VITE_ENABLE_ATTENDANCE_ALIAS",
-  homerooms: "VITE_ENABLE_HOMEROOMS",
-  settings: "VITE_ENABLE_CONFIGURATION_API",
-  schedules: "VITE_ENABLE_SCHEDULER",
-  mutations: "VITE_ENABLE_MUTATIONS",
-  archives: "VITE_ENABLE_ARCHIVES",
-  reports: "VITE_ENABLE_REPORTS",
-  documents: "VITE_ENABLE_ARCHIVES",
-  audit: "VITE_ENABLE_AUDIT",
-  analytics: "VITE_ENABLE_ANALYTICS",
-};
-
 /** Maps the API's feature keys onto the frontend's feature names. */
 const apiFeatureKeys: Record<FeatureName, string> = {
   dashboard: "dashboard",
@@ -63,9 +47,7 @@ export type FeatureFlags = Record<FeatureName, boolean>;
 
 const FEATURE_NAMES = Object.keys(apiFeatureKeys) as FeatureName[];
 
-const envFlag = (feature: FeatureName) =>
-  import.meta.env.VITE_ENABLE_ALL_FEATURES === "true" ||
-  import.meta.env[featureEnvKeys[feature]] === "true";
+const envFlag = (feature: FeatureName) => import.meta.env.VITE_ENABLE_ALL_FEATURES === "true";
 
 /** Flags derived purely from the build, used until the API answers. */
 export const buildTimeFeatures = (): FeatureFlags =>
