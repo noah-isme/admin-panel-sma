@@ -71,8 +71,8 @@ import { AttendanceLessonPage } from "./pages/attendance-lesson";
 import { AttendanceAnalyticsPage } from "./pages/attendance-analytics";
 import { SetupWizard } from "./pages/setup-wizard";
 import { PreSemesterSnapshotPage } from "./pages/import-status";
-import { AnnouncementsPage } from "./pages/announcements";
-import { BehaviorNotesPage } from "./pages/behavior-notes";
+import { AnnouncementsList, AnnouncementsCreate, AnnouncementsEdit } from "./pages/announcements";
+import { BehaviorNotesList, BehaviorNotesCreate, BehaviorNotesEdit } from "./pages/behavior-notes";
 import { AppLayout } from "./components/layout/app-layout";
 import { ClassesPage } from "./pages/classes";
 import { ClassesShow } from "./pages/classes-show";
@@ -304,6 +304,8 @@ const allResources = [
   {
     name: "announcements",
     list: "/announcements",
+    create: "/announcements/create",
+    edit: "/announcements/edit/:id",
     meta: {
       label: "Pengumuman",
       canCreate: true,
@@ -316,6 +318,8 @@ const allResources = [
   {
     name: "behavior-notes",
     list: "/behavior-notes",
+    create: "/behavior-notes/create",
+    edit: "/behavior-notes/edit/:id",
     meta: {
       label: "Catatan Perilaku",
       canCreate: true,
@@ -455,8 +459,14 @@ const resourceRouteConfig: Record<
     edit: <GradeComponentsEdit />,
   },
   "grade-configs": {},
-  announcements: {},
-  "behavior-notes": {},
+  announcements: {
+    create: <AnnouncementsCreate />,
+    edit: <AnnouncementsEdit />,
+  },
+  "behavior-notes": {
+    create: <BehaviorNotesCreate />,
+    edit: <BehaviorNotesEdit />,
+  },
   grades: {
     edit: <GradesEdit />,
   },
@@ -581,9 +591,9 @@ async function bootstrap() {
                             ) : resource.name === "grade-configs" ? (
                               <GradeConfigPage />
                             ) : resource.name === "announcements" ? (
-                              <AnnouncementsPage />
+                              <AnnouncementsList />
                             ) : resource.name === "behavior-notes" ? (
-                              <BehaviorNotesPage />
+                              <BehaviorNotesList />
                             ) : resource.name === "calendar" ? (
                               <CalendarPage />
                             ) : resource.name === "attendance" ? (
