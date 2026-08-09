@@ -1,4 +1,4 @@
-export type GradeStatusCode = "PASS" | "CAUTION" | "REMEDIAL";
+export type GradeStatusCode = "PASS" | "REMEDIAL" | "FAIL";
 
 export type GradeStatusTone = "success" | "warning" | "danger";
 

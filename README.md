@@ -158,7 +158,7 @@ Resource dan route opsional di admin harus mengikuti feature flag API yang sama.
 
 Flag API dan Vite dibaca saat proses masing-masing dijalankan. Setelah mengubahnya, restart Go API dan dev server/build admin. Resource inti seperti `/schedules` tetap tersedia terlepas dari flag opsional.
 
-**New "All-On" Mode:** Set `ENABLE_ALL_FEATURES=true` (backend) and `VITE_ENABLE_ALL_FEATURES=true` (frontend) to enable all feature-flagged modules at once. Individual flags still work and can override the all-on mode if explicitly set to `false`.
+**All-On Mode:** Set `ENABLE_ALL_FEATURES=true` (backend) and `VITE_ENABLE_ALL_FEATURES=true` (frontend) to enable all feature-flagged modules at once. In an offline/MSW build, an explicit individual `VITE_ENABLE_<MODULE>` value takes precedence (both `true` and `false`); an unset individual flag falls back to `VITE_ENABLE_ALL_FEATURES`. When reachable, unauthenticated `GET /features` is authoritative and replaces the build-time fallback.
 
 Detail envelope response, alias backward-compatible (`/exam-events`, `/attendance`, `/teacher-preferences`, dan `PUT /enrollments/:id`), serta kontrak role/user relation ada di [`sma-adp-api/docs/GO_BACKEND_API_SPECIFICATION.md`](../sma-adp-api/docs/GO_BACKEND_API_SPECIFICATION.md).
 
@@ -181,11 +181,10 @@ Lihat `sma-adp-api/.env.example` untuk daftar lengkap.
 ### Catatan keamanan
 
 - **Rotasi refresh token** – setiap permintaan refresh menerbitkan token dengan JTI baru dan otomatis menandai token lama sebagai revoked lengkap dengan catatan IP serta User-Agent.
-- **Logout fleksibel** – endpoint `/auth/logout` dapat mencabut satu token (berdasarkan refresh token atau JTI) maupun seluruh sesi aktif pengguna.
-- **Rate limiting ketat** – `/auth/login`, `/auth/refresh`, dan `/storage/presign` diberi throttle khusus untuk mengecilkan peluang brute-force/presign abuse.
-- **Password policy kuat** – minimal 12 karakter dengan kombinasi huruf besar, huruf kecil, angka, dan simbol; admin default sudah mengikuti aturan ini.
-- **Lockout login** – percobaan gagal berulang (per IP + email) memicu lockout sementara sesuai `AUTH_MAX_LOGIN_ATTEMPTS` dan `AUTH_LOCKOUT_DURATION`.
-- **Argon2 parametrik** – `ARGON2_MEMORY_COST` dan `ARGON2_TIME_COST` bisa diatur agar hashing seimbang antara keamanan dan performa.
+- **Logout** – endpoint `/auth/logout` mencabut refresh token yang dikirim di body dan mengharuskan access token milik pengguna yang sama.
+- **Hashing password** – service saat ini menggunakan bcrypt dengan kebijakan minimum enam karakter pada payload perubahan/reset password.
+- **Rate limiting dan lockout** – belum diimplementasikan oleh Go API. Deployment production wajib menempatkan login, refresh, reset password, dan endpoint sensitif di gateway/WAF yang memiliki throttling dan lockout yang terukur.
+- **Argon2** – belum digunakan dan tidak memiliki konfigurasi runtime. Dokumentasi tidak boleh menyebut `ARGON2_*` sebagai kontrol aktif sampai migrasi benar-benar diimplementasikan.
 
 ## Menjalankan secara lokal
 
@@ -485,6 +484,28 @@ curl -X POST "$API_BASE/auth/login" \
 	-H "Content-Type: application/json" \
 	-d '{"email":"superadmin@sma.test","password":"admin123"}'
 ```
+
+### Auth session lifecycle
+
+The Go API returns the token pair inside `data`. Refresh and logout both use the
+snake_case `refresh_token` body; logout also requires the matching access token
+and returns `204 No Content`.
+
+```bash
+REFRESH_TOKEN="<refresh_token_from_login>"
+
+curl -X POST "$API_BASE/auth/refresh" \
+	-H "Content-Type: application/json" \
+	-d "{\"refresh_token\":\"$REFRESH_TOKEN\"}"
+
+curl -X POST "$API_BASE/auth/logout" \
+	-H "Content-Type: application/json" \
+	-H "Authorization: Bearer $TOKEN" \
+	-d "{\"refresh_token\":\"$REFRESH_TOKEN\"}"
+```
+
+The admin provider stores `data.access_token` and `data.refresh_token` after a
+successful refresh and clears both values after logout.
 
 ### 2. CRUD siswa (contoh: create)
 

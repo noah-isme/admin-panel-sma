@@ -88,7 +88,7 @@ const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue = [];
 };
 
-const refreshAccessToken = async (): Promise<string | null> => {
+export const refreshAccessToken = async (): Promise<string | null> => {
   const refreshToken = localStorage.getItem("refresh_token");
   if (!refreshToken) {
     return null;
@@ -99,23 +99,25 @@ const refreshAccessToken = async (): Promise<string | null> => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${refreshToken}`,
       },
+      body: JSON.stringify({ refresh_token: refreshToken }),
     });
 
     if (!response.ok) {
       return null;
     }
 
-    const data = await response.json();
-    const accessToken = data.accessToken ?? data.access_token;
-    const newRefreshToken = data.refreshToken ?? data.refresh_token;
+    // The Go API returns the token pair inside the common `{data: ...}`
+    // response envelope. Keep the legacy bare/camelCase shapes as a small
+    // compatibility concession for MSW and older deployments.
+    const body = await response.json();
+    const data = body?.data ?? body?.result ?? body;
+    const accessToken = data?.accessToken ?? data?.access_token;
+    const newRefreshToken = data?.refreshToken ?? data?.refresh_token;
 
-    if (accessToken) {
+    if (accessToken && newRefreshToken) {
       localStorage.setItem("access_token", accessToken);
-      if (newRefreshToken) {
-        localStorage.setItem("refresh_token", newRefreshToken);
-      }
+      localStorage.setItem("refresh_token", newRefreshToken);
       return accessToken;
     }
     return null;

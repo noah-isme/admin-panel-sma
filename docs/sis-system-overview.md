@@ -6,7 +6,7 @@
 >
 > - `../sma-adp-api/docs/PROJECT_STATUS.md` — per-phase progress & active blockers
 > - `../sma-adp-api/docs/FE_BE_MAPPING.md` — frontend ↔ backend endpoint map
-> - `../sma-adp-api/docs/BACKEND_MIGRATION_PLAN.md` — migration strategy
+> - `../sma-adp-api/docs/GO_BACKEND_API_SPECIFICATION.md` — API specification
 > - `../sma-adp-api/docs/operations.md` & `decommission.md` — cutover/rollback runbooks
 > - Root `README.md` — current setup & architecture
 >
@@ -69,7 +69,9 @@
 
 ## 4. Integrasi & Observability
 
-- **Auth**: JWT + RBAC guard per endpoint, refresh token, rate limit login.
+- **Auth**: JWT + RBAC guard per endpoint and refresh-token rotation. Login
+  throttling and lockout are deployment gateway/WAF controls; the current Go
+  application does not enforce them itself.
 - **Audit Log**: Interceptor menyimpan `actorId`, `entity`, perubahan (before/after), timestamp.
 - **Logging**: JSON format, correlation ID per request (middleware).
 - **Tracing**: Minimal request ID; optional OpenTelemetry.

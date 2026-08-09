@@ -285,7 +285,7 @@ export const authProvider: AuthProvider = {
             "Content-Type": "application/json",
             Authorization: `Bearer ${accessToken}`,
           },
-          body: JSON.stringify({ refreshToken }),
+          body: JSON.stringify({ refresh_token: refreshToken }),
         });
       } catch (error) {
         console.error("Logout API call failed:", error);

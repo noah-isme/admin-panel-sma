@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { buildTimeFeatures, fetchFeatures, mergeFeatures } from "../providers/features";
 
 const allFalse = {
@@ -203,5 +203,31 @@ describe("VITE_ENABLE_ALL_FEATURES", () => {
     expect(features.documents).toBe(true);
     expect(features.audit).toBe(true);
     expect(features.analytics).toBe(true);
+  });
+
+  it("supports individual feature flags when all-on mode is disabled", async () => {
+    vi.stubEnv("VITE_ENABLE_ALL_FEATURES", "false");
+    vi.stubEnv("VITE_ENABLE_REPORTS", "true");
+    vi.stubEnv("VITE_ENABLE_ANALYTICS", "true");
+    vi.stubEnv("VITE_ENABLE_DASHBOARD", "false");
+
+    const { buildTimeFeatures: buildTimeFeaturesFresh } = await import("../providers/features");
+    const features = buildTimeFeaturesFresh();
+
+    expect(features.reports).toBe(true);
+    expect(features.analytics).toBe(true);
+    expect(features.dashboard).toBe(false);
+    expect(features.mutations).toBe(false);
+  });
+
+  it("lets an explicit false individual flag override all-on mode", async () => {
+    vi.stubEnv("VITE_ENABLE_ALL_FEATURES", "true");
+    vi.stubEnv("VITE_ENABLE_REPORTS", "false");
+
+    const { buildTimeFeatures: buildTimeFeaturesFresh } = await import("../providers/features");
+    const features = buildTimeFeaturesFresh();
+
+    expect(features.dashboard).toBe(true);
+    expect(features.reports).toBe(false);
   });
 });

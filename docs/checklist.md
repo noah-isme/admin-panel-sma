@@ -1,49 +1,42 @@
-# Implementation Checklist
+# Admin/API Release Checklist
 
-- [ ] Inisialisasi repo monorepo (apps: api, web, worker)
-- [ ] Skema DB & migrasi awal; seed data contoh
-- [ ] Konfigurasi ENV (DB, REDIS, SMTP, WA provider dummy)
-- [ ] RBAC + guard + audit log interceptor (frontend guard selesai; backend pending)
-- [ ] Swagger & Postman collection
-- [ ] CRUD Tahun Ajar & Term + status
-- [x] Impor siswa (CSV) + validasi unik & laporan error (`POST /students/import`)
-- [x] Idempotensi impor siswa (`Idempotency-Key`, deterministic retry fallback, 5 MiB/10.000-row limit, duplicate row failures, best-effort row commits, `import_runs` + audit log)
-- [x] Idempotensi impor guru (shared `import_runs`/audit contract and retry behavior)
-- [x] Impor guru (CSV) + validasi (`POST /teachers/import`)
-- [x] CRUD Kelas + assign Wali Kelas (wizard mock ready)
-- [ ] Master Mapel; mapping Mapel ↔ Kelas ↔ Guru (wizard mock ready)
-- [ ] Jadwal manual & generator + konflik (wizard mock ready)
-- [x] Generator jadwal otomatis (drag & drop, fairness, preferensi)
-- [x] UI preferensi mengajar guru
-- [x] Kalender akademik (filter term, integrasi MSW)
-- [ ] Akun & kredensial: pembuatan user + notifikasi
-- [x] UI wizard setup pra-semester (upload CSV; pratinjau)
-- [x] Absensi harian Wali Kelas (with persistence, history, export)
-- [x] Absensi per jam Guru Mapel (with persistence, history, export)
-- [x] Rekap kehadiran & analitik kelas (grafik, ekspor)
-- [x] Absensi pembelajaran harian (autosave & sinkron jadwal)
-- [ ] Worker notifikasi ortu (A > X)
-- [x] GradeConfig + GradeItem + GradeScore + kalkulasi
-- [x] Pengumuman & dashboard audience
-- [x] Catatan perilaku tagging
-- [x] Validasi skema weighted/average
-- [x] Penetapan KKM & bobot finalisasi
-- [ ] Finalisasi guru & verifikasi wali
-- [ ] Batch rapor PDF worker
-- [x] Dashboard Kepsek (distribusi, outlier, remedial)
-- [x] Mutasi masuk/keluar & audit trail
-- [x] Arsip rapor & absensi (PDF/CSV)
-- [ ] Mutasi keluar → tidak muncul absensi
-- [ ] Arsip CSV round-trip
-- [ ] Audit log merekam aktor/perubahan
-- [ ] Logging JSON + correlation id
-- [ ] Health checks API/Worker/Redis
-- [ ] Backup & restore percobaan
-- [ ] Rate limit & kebijakan password
-- [ ] README dev + arsitektur + deploy
-- [x] Dokumentasi MSW + seed data (frontend dev)
-- [ ] SOP pengguna (PDF)
-- [x] Jadwal overlap test
-- [x] Nilai weighted test
-- [ ] Notifikasi A>X test
-- [ ] Mutasi tengah semester test
+> **Reviewed:** 2026-08-09
+> **Scope:** admin-panel-sma and sma-adp-api
+
+## Contract changes
+
+- [x] Auth refresh sends refresh_token, unwraps the Go envelope, and rotates storage.
+- [x] Auth logout sends refresh_token and server-side revocation is tested.
+- [x] Individual Vite feature flags and explicit false overrides are tested.
+- [x] Student/teacher roster status and sort aliases match the admin pages.
+- [x] Grade report filters, status predicates, joins, sort aliases, and totals are implemented.
+- [x] Browser CSV grade status filtering uses the same PASS/REMEDIAL/FAIL thresholds.
+- [x] Swagger regenerated after handler contract changes.
+
+## Verification
+
+- [x] Focused Go tests: internal/handler, internal/repository, internal/service.
+- [x] Frontend feature/auth contract tests.
+- [x] Swagger route validator.
+- [x] Static compatibility smoke.
+- [ ] Seeded login → refresh → logout → refresh rejection smoke.
+- [ ] Full Go test/vet/build run in a configured environment.
+- [ ] Full admin typecheck/build run in a configured environment.
+
+## Security and production gates
+
+- [ ] Name and verify the gateway/WAF owner for rate limiting and login lockout.
+- [ ] Keep password-hashing documentation aligned with the bcrypt implementation.
+- [ ] Complete portal password-reset token/email delivery.
+- [ ] Complete parent-student authorization checks for portal data routes.
+- [ ] Complete and test portal announcement pagination parsing.
+- [ ] Run the production rollback drill and record the result.
+
+## Regeneration commands
+
+```bash
+cd ../sma-adp-api
+swag init -g cmd/api-gateway/main.go -o api/swagger --parseDependency --parseInternal
+python3 scripts/validate_swagger_routes.py
+python3 scripts/compatibility_smoke.py
+```

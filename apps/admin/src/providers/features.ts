@@ -47,7 +47,31 @@ export type FeatureFlags = Record<FeatureName, boolean>;
 
 const FEATURE_NAMES = Object.keys(apiFeatureKeys) as FeatureName[];
 
-const envFlag = (feature: FeatureName) => import.meta.env.VITE_ENABLE_ALL_FEATURES === "true";
+// These names intentionally mirror the backend flags. Runtime discovery is
+// authoritative when available, but the fallback must still be useful for
+// offline/MSW builds and must not silently enable every module just because an
+// unrelated all-on flag is set.
+const envFeatureValues: Record<FeatureName, string | undefined> = {
+  dashboard: import.meta.env.VITE_ENABLE_DASHBOARD,
+  calendar: import.meta.env.VITE_ENABLE_CALENDAR_ALIAS,
+  attendance: import.meta.env.VITE_ENABLE_ATTENDANCE_ALIAS,
+  homerooms: import.meta.env.VITE_ENABLE_HOMEROOMS,
+  settings: import.meta.env.VITE_ENABLE_CONFIGURATION_API,
+  schedules: import.meta.env.VITE_ENABLE_SCHEDULER,
+  mutations: import.meta.env.VITE_ENABLE_MUTATIONS,
+  archives: import.meta.env.VITE_ENABLE_ARCHIVES,
+  reports: import.meta.env.VITE_ENABLE_REPORTS,
+  documents: import.meta.env.VITE_ENABLE_ARCHIVES,
+  audit: import.meta.env.VITE_ENABLE_AUDIT,
+  analytics: import.meta.env.VITE_ENABLE_ANALYTICS,
+};
+
+const envFlag = (feature: FeatureName) => {
+  const individual = envFeatureValues[feature];
+  if (individual === "true") return true;
+  if (individual === "false") return false;
+  return import.meta.env.VITE_ENABLE_ALL_FEATURES === "true";
+};
 
 /** Flags derived purely from the build, used until the API answers. */
 export const buildTimeFeatures = (): FeatureFlags =>

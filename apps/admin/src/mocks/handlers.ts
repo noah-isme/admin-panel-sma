@@ -799,15 +799,15 @@ const GRADE_STATUS_META: Record<GradeStatusCode, Omit<GradeStatusMeta, "code">> 
     tone: "success",
     icon: "check",
   },
-  CAUTION: {
-    label: "⚠️ Perlu perhatian",
-    description: "Nilai mendekati batas KKM dan perlu pemantauan.",
+  REMEDIAL: {
+    label: "⚠️ Remedial",
+    description: "Nilai berada di atas KKM tetapi belum mencapai nilai lulus.",
     tone: "warning",
     icon: "alert",
   },
-  REMEDIAL: {
-    label: "❌ Remedial",
-    description: "Nilai di bawah KKM dan membutuhkan tindak lanjut.",
+  FAIL: {
+    label: "❌ Tidak tuntas",
+    description: "Nilai berada di bawah KKM dan membutuhkan tindak lanjut.",
     tone: "danger",
     icon: "x",
   },
@@ -816,12 +816,12 @@ const GRADE_STATUS_META: Record<GradeStatusCode, Omit<GradeStatusMeta, "code">> 
 const resolveGradeStatus = (score: number, kkm: number): GradeStatusMeta => {
   const normalizedKkm = Number.isFinite(kkm) ? kkm : 75;
   let code: GradeStatusCode;
-  if (score >= normalizedKkm) {
+  if (score >= normalizedKkm + 10) {
     code = "PASS";
-  } else if (score >= Math.max(normalizedKkm - 10, 0)) {
-    code = "CAUTION";
-  } else {
+  } else if (score >= normalizedKkm) {
     code = "REMEDIAL";
+  } else {
+    code = "FAIL";
   }
   const meta = GRADE_STATUS_META[code];
   return {
@@ -1022,7 +1022,7 @@ const buildGradeReportResponse = (url: URL): GradeReportResponse => {
   const belowKkmCount = filteredRows.filter((row) => row.score < row.kkm).length;
   const remedialCount = filteredRows.filter((row) => row.status.code === "REMEDIAL").length;
   const componentCount = new Set(filteredRows.map((row) => row.componentId)).size;
-  const statusBreakdown = (["PASS", "CAUTION", "REMEDIAL"] as GradeStatusCode[]).map((code) => ({
+  const statusBreakdown = (["PASS", "REMEDIAL", "FAIL"] as GradeStatusCode[]).map((code) => ({
     code,
     label: GRADE_STATUS_META[code].label,
     count: filteredRows.filter((row) => row.status.code === code).length,
@@ -1121,8 +1121,8 @@ const buildGradeReportResponse = (url: URL): GradeReportResponse => {
     statuses: [
       { value: "ALL" as const, label: "Semua status" },
       { value: "PASS" as const, label: GRADE_STATUS_META.PASS.label },
-      { value: "CAUTION" as const, label: GRADE_STATUS_META.CAUTION.label },
       { value: "REMEDIAL" as const, label: GRADE_STATUS_META.REMEDIAL.label },
+      { value: "FAIL" as const, label: GRADE_STATUS_META.FAIL.label },
     ],
   };
 
