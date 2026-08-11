@@ -144,3 +144,50 @@ export const fetchFeatures = async (
     clearTimeout(timer);
   }
 };
+
+export const resourceFeature: Partial<Record<string, FeatureName>> = {
+  dashboard: "dashboard",
+  calendar: "calendar",
+  attendance: "attendance",
+  homerooms: "homerooms",
+  settings: "settings",
+  mutations: "mutations",
+  archives: "archives",
+  reports: "reports",
+  schedules: "schedules",
+};
+
+const requiresAnalytics: Partial<Record<string, FeatureName>> = {
+  dashboard: "analytics",
+};
+
+const defaultResourcesList = [
+  { name: "dashboard" },
+  { name: "students" },
+  { name: "teachers" },
+  { name: "classes" },
+  { name: "subjects" },
+  { name: "terms" },
+  { name: "schedules" },
+  { name: "enrollments" },
+  { name: "grade-components" },
+  { name: "grade-configs" },
+  { name: "grades" },
+  { name: "attendance" },
+  { name: "homerooms" },
+  { name: "users" },
+  { name: "settings" },
+  { name: "mutations" },
+  { name: "archives" },
+  { name: "reports" },
+];
+
+export const selectResources = <T extends { name: string }>(
+  features: FeatureFlags,
+  resourcesList: T[] = defaultResourcesList as T[]
+) =>
+  resourcesList.filter((resource) => {
+    const feature = resourceFeature[resource.name];
+    const analyticsFeature = requiresAnalytics[resource.name];
+    return (!feature || features[feature]) && (!analyticsFeature || features[analyticsFeature]);
+  });

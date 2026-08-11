@@ -15,6 +15,8 @@ const SLOTS = Array.from({ length: 8 }, (_, index) => index + 1);
 export type GeneratorFilters = {
   termId?: string;
   classId?: string;
+  classIds?: string[];
+  activeClassId?: string;
 };
 
 export type ScheduleSlot = {
@@ -29,6 +31,7 @@ export type ScheduleSlot = {
 };
 
 export type ScheduleSlotProposal = {
+  classId?: string;
   dayOfWeek: number;
   timeSlot: number;
   subjectId: string;
@@ -97,10 +100,16 @@ export type GenerateSummary = {
   backendStats?: ScheduleImprovementStats;
 };
 
-const buildSlotKey = (day: number, slot: number) => `${day}-${slot}`;
+const buildSlotKey = (day: number, slot: number, classId?: string) =>
+  classId ? `${classId}-${day}-${slot}` : `${day}-${slot}`;
 
 const slotKeyToParts = (key: string) => {
-  const [day, slot] = key.split("-").map((value) => Number(value));
+  const parts = key.split("-");
+  if (parts.length === 3) {
+    const [classId, day, slot] = parts;
+    return { classId, dayOfWeek: Number(day), slot: Number(slot) };
+  }
+  const [day, slot] = parts.map((value) => Number(value));
   return { dayOfWeek: day, slot };
 };
 
@@ -208,20 +217,45 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
     return map;
   }, [subjects]);
 
-  const classSubjectByTeacher = useMemo(() => {
-    if (!filters.classId) {
-      return new Map<string, { subjectId: string; classSubjectId: string }[]>();
+  const targetClassIds = useMemo(() => {
+    if (filters.classIds && filters.classIds.length > 0) {
+      return filters.classIds;
     }
-    const map = new Map<string, { subjectId: string; classSubjectId: string }[]>();
+    return filters.classId ? [filters.classId] : [];
+  }, [filters.classId, filters.classIds]);
+
+  const activeClassId = useMemo(() => {
+    if (filters.activeClassId) {
+      return filters.activeClassId;
+    }
+    if (filters.classId) {
+      return filters.classId;
+    }
+    if (filters.classIds && filters.classIds.length > 0) {
+      return filters.classIds[0];
+    }
+    return "";
+  }, [filters.activeClassId, filters.classId, filters.classIds]);
+
+  const classSubjectByTeacher = useMemo(() => {
+    if (targetClassIds.length === 0) {
+      return new Map<string, { subjectId: string; classSubjectId: string; classId: string }[]>();
+    }
+    const targetSet = new Set(targetClassIds);
+    const map = new Map<string, { subjectId: string; classSubjectId: string; classId: string }[]>();
     classSubjects
-      .filter((mapping) => mapping.classroomId === filters.classId)
+      .filter((mapping) => targetSet.has(mapping.classroomId))
       .forEach((mapping) => {
         const list = map.get(mapping.teacherId) ?? [];
-        list.push({ subjectId: mapping.subjectId, classSubjectId: mapping.id });
+        list.push({
+          subjectId: mapping.subjectId,
+          classSubjectId: mapping.id,
+          classId: mapping.classroomId,
+        });
         map.set(mapping.teacherId, list);
       });
     return map;
-  }, [classSubjects, filters.classId]);
+  }, [classSubjects, targetClassIds]);
 
   const [slotState, setSlotState] = useState<Record<string, ScheduleSlot>>({});
   const [hoveredTeacherId, setHoveredTeacherId] = useState<string | null>(null);
@@ -233,24 +267,24 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
   const initialiseSlots = useCallback((slots: ScheduleSlot[]) => {
     const map: Record<string, ScheduleSlot> = {};
     slots.forEach((slot) => {
-      const key = buildSlotKey(slot.dayOfWeek, slot.slot);
+      const key = buildSlotKey(slot.dayOfWeek, slot.slot, slot.classId);
       map[key] = { ...slot };
     });
     setSlotState(map);
   }, []);
 
   useEffect(() => {
-    if (!filters.classId) {
+    if (targetClassIds.length === 0) {
       setSlotState({});
       return;
     }
-    const matchingSlots = semesterSlots.filter((slot) => slot.classId === filters.classId);
+    const matchingSlots = semesterSlots.filter((slot) => targetClassIds.includes(slot.classId));
     if (matchingSlots.length > 0) {
       initialiseSlots(matchingSlots);
     } else {
       setSlotState({});
     }
-  }, [filters.classId, initialiseSlots, semesterSlots]);
+  }, [targetClassIds, initialiseSlots, semesterSlots]);
 
   const evaluateSlots = useCallback(
     (currentSlots: Record<string, ScheduleSlot>) => {
@@ -321,14 +355,16 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
     const evaluated = evaluateSlots(slotState);
     return DAYS.map((day) => {
       const slots = SLOTS.map((slot) => {
-        const key = buildSlotKey(day.value, slot);
-        const assignment = evaluated[key];
+        const classKey = buildSlotKey(day.value, slot, activeClassId);
+        const fallbackKey = buildSlotKey(day.value, slot);
+        const assignment = evaluated[classKey] || evaluated[fallbackKey];
+        const key = classKey;
         if (assignment) {
           return { ...assignment, key };
         }
         return {
-          id: `slot_${day.value}_${slot}`,
-          classId: filters.classId ?? "",
+          id: `slot_${activeClassId}_${day.value}_${slot}`,
+          classId: activeClassId,
           dayOfWeek: day.value,
           slot,
           teacherId: null,
@@ -340,7 +376,7 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
       });
       return { value: day.value, label: day.label, slots };
     });
-  }, [evaluateSlots, filters.classId, slotState]);
+  }, [evaluateSlots, activeClassId, slotState]);
 
   const fairnessSummary = useMemo<FairnessEntry[]>(() => {
     const uniqueDaysByTeacher = new Map<string, Set<number>>();
@@ -369,15 +405,47 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
     });
   }, [slotState, teacherCards]);
 
+  const crossClassConflicts = useMemo(() => {
+    const teacherTimeMap = new Map<string, string[]>();
+    const conflicts: { teacherId: string; dayOfWeek: number; slot: number; classIds: string[] }[] =
+      [];
+
+    Object.values(slotState).forEach((s) => {
+      if (!s.teacherId || s.status === "EMPTY") return;
+      const key = `${s.teacherId}-${s.dayOfWeek}-${s.slot}`;
+      const list = teacherTimeMap.get(key) ?? [];
+      list.push(s.classId);
+      teacherTimeMap.set(key, list);
+    });
+
+    teacherTimeMap.forEach((cIds, key) => {
+      if (cIds.length > 1) {
+        const [teacherId, dayStr, slotStr] = key.split("-");
+        conflicts.push({
+          teacherId,
+          dayOfWeek: Number(dayStr),
+          slot: Number(slotStr),
+          classIds: cIds,
+        });
+      }
+    });
+
+    return conflicts;
+  }, [slotState]);
+
   const assignTeacherToSlot = useCallback(
     (teacherId: string, slotKey: string) => {
-      const mapping = classSubjectByTeacher.get(teacherId)?.[0];
+      const { classId, dayOfWeek, slot } = slotKeyToParts(slotKey);
+      const targetClass = classId || activeClassId;
+      const teacherMappings = classSubjectByTeacher.get(teacherId);
+      const mapping =
+        teacherMappings?.find((m) => m.classId === targetClass) || teacherMappings?.[0];
+
       setSlotState((prev) => {
         const next = { ...prev };
-        const { dayOfWeek, slot } = slotKeyToParts(slotKey);
         const existing = next[slotKey] ?? {
-          id: `slot_${dayOfWeek}_${slot}`,
-          classId: filters.classId ?? "",
+          id: `slot_${targetClass}_${dayOfWeek}_${slot}`,
+          classId: targetClass,
           dayOfWeek,
           slot,
           teacherId: null,
@@ -392,7 +460,7 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
         return evaluateSlots(next);
       });
     },
-    [classSubjectByTeacher, evaluateSlots, filters.classId]
+    [activeClassId, classSubjectByTeacher, evaluateSlots]
   );
 
   const clearSlot = useCallback(
@@ -427,7 +495,7 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
   }, []);
 
   const generateSchedule = useCallback(async () => {
-    if (!filters.classId) {
+    if (targetClassIds.length === 0) {
       notify?.({
         type: "warning",
         message: "Pilih kelas terlebih dahulu",
@@ -436,6 +504,39 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
     }
     setIsGenerating(true);
     try {
+      const isMultiClass = targetClassIds.length > 1;
+      const subjectLoads = isMultiClass
+        ? classSubjects
+            .filter((m) => targetClassIds.includes(m.classroomId))
+            .map((m) => ({
+              classId: m.classroomId,
+              subjectId: m.subjectId,
+              teacherId: m.teacherId,
+              weeklyCount: 2,
+            }))
+        : classSubjects
+            .filter((m) => m.classroomId === targetClassIds[0])
+            .map((m) => ({
+              subjectId: m.subjectId,
+              teacherId: m.teacherId,
+              weeklyCount: 2,
+            }));
+
+      const payload: any = {
+        termId: filters.termId,
+        timeSlotsPerDay: 8,
+        days: [1, 2, 3, 4, 5],
+        subjectLoads,
+        hardConstraints: [],
+        softConstraints: [],
+      };
+
+      if (isMultiClass) {
+        payload.classIds = targetClassIds;
+      } else {
+        payload.classId = targetClassIds[0];
+      }
+
       const response = await customRequest?.<{
         mode: string;
         proposal: {
@@ -448,34 +549,23 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
       }>({
         url: "/schedules/generator",
         method: "post",
-        payload: {
-          classId: filters.classId,
-          termId: filters.termId,
-          timeSlotsPerDay: 8,
-          days: [1, 2, 3, 4, 5],
-          subjectLoads: classSubjects
-            .filter((m) => m.classroomId === filters.classId)
-            .map((m) => ({
-              subjectId: m.subjectId,
-              teacherId: m.teacherId,
-              weeklyCount: 2,
-            })),
-          hardConstraints: [],
-          softConstraints: [],
-        },
+        payload,
       });
       const proposal = response?.data?.proposal;
-      if (proposal?.slots?.length > 0) {
-        const slots: ScheduleSlot[] = proposal.slots.map((p, idx) => ({
-          id: `slot_${p.dayOfWeek}_${p.timeSlot}`,
-          classId: filters.classId ?? "",
-          dayOfWeek: p.dayOfWeek,
-          slot: p.timeSlot,
-          teacherId: p.teacherId,
-          subjectId: p.subjectId,
-          status: "PREFERENCE" as const,
-          locked: false,
-        }));
+      if (proposal && Array.isArray(proposal.slots) && proposal.slots.length > 0) {
+        const slots: ScheduleSlot[] = proposal.slots.map((p: any) => {
+          const slotClassId = p.classId || (targetClassIds.length === 1 ? targetClassIds[0] : "");
+          return {
+            id: `slot_${slotClassId}_${p.dayOfWeek}_${p.timeSlot}`,
+            classId: slotClassId,
+            dayOfWeek: p.dayOfWeek,
+            slot: p.timeSlot,
+            teacherId: p.teacherId,
+            subjectId: p.subjectId,
+            status: "PREFERENCE" as const,
+            locked: false,
+          };
+        });
         initialiseSlots(slots);
       }
       setGenerateSummary({
@@ -505,10 +595,10 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
     } finally {
       setIsGenerating(false);
     }
-  }, [customRequest, filters.classId, filters.termId, initialiseSlots, notify, classSubjects]);
+  }, [customRequest, targetClassIds, filters.termId, initialiseSlots, notify, classSubjects]);
 
   const saveSchedule = useCallback(async () => {
-    if (!filters.classId) {
+    if (targetClassIds.length === 0) {
       notify?.({
         type: "warning",
         message: "Pilih kelas terlebih dahulu",
@@ -539,7 +629,7 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
     } finally {
       setIsSaving(false);
     }
-  }, [customRequest, filters.classId, notify, lastProposalId]);
+  }, [customRequest, targetClassIds, notify, lastProposalId]);
 
   const terms = useMemo(() => termsQuery.data?.data ?? [], [termsQuery.data?.data]);
 
@@ -582,5 +672,8 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
     fairnessSummary,
     generateSummary,
     lastProposalId,
+    crossClassConflicts,
+    targetClassIds,
+    activeClassId,
   };
 };

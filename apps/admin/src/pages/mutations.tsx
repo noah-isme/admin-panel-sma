@@ -12,6 +12,7 @@ import {
   Menu,
   Modal,
   Row,
+  Col,
   Select,
   Space,
   Spin,
@@ -69,11 +70,13 @@ export const MutationListPage: React.FC = () => {
     sorters: [{ field: "createdAt", order: "desc" }],
     filters: [
       ...(searchValues.studentId
-        ? [{ field: "studentId", operator: "eq", value: searchValues.studentId }]
+        ? [{ field: "studentId", operator: "eq" as const, value: searchValues.studentId }]
         : []),
-      ...(searchValues.type ? [{ field: "type", operator: "eq", value: searchValues.type }] : []),
+      ...(searchValues.type
+        ? [{ field: "type", operator: "eq" as const, value: searchValues.type }]
+        : []),
       ...(searchValues.status
-        ? [{ field: "status", operator: "eq", value: searchValues.status }]
+        ? [{ field: "status", operator: "eq" as const, value: searchValues.status }]
         : []),
     ],
   });
@@ -85,7 +88,7 @@ export const MutationListPage: React.FC = () => {
         dataIndex: "studentName",
         key: "studentName",
         width: 180,
-        render: (_, record) => (
+        render: (_: any, record: any) => (
           <Space>
             <Avatar icon={<UserOutlined />} size={28} />
             <Space direction="vertical" size={0}>
@@ -208,6 +211,7 @@ export const MutationListPage: React.FC = () => {
         reviewAction === "approve"
           ? `mutations/${reviewMutation.id}/approve`
           : `mutations/${reviewMutation.id}/reject`;
+      if (!dataProvider.custom) return;
       await dataProvider.custom({
         url: endpoint,
         method: "patch",

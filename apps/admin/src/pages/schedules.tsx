@@ -17,6 +17,7 @@ import {
   CalendarOutlined,
   DeleteOutlined,
   EditOutlined,
+  FilePdfOutlined,
   PlusOutlined,
   RedoOutlined,
 } from "@ant-design/icons";
@@ -584,6 +585,16 @@ export const SchedulesPage: React.FC = () => {
     [deletingId, edit, handleDelete, handleDuplicate, isDuplicating]
   );
 
+  const handleExportPdf = useCallback(() => {
+    const termId =
+      matchingTermIds && matchingTermIds.length > 0
+        ? matchingTermIds[0]
+        : (terms.find(isTermActive)?.id ?? terms[0]?.id ?? "");
+    const classIdParam = selectedClass ?? "";
+    const url = `/api/v1/schedules/export/pdf?class_id=${encodeURIComponent(classIdParam)}&term_id=${encodeURIComponent(termId)}`;
+    window.open(url, "_blank");
+  }, [selectedClass, matchingTermIds, terms]);
+
   const isLoading =
     tableProps.loading ||
     loadingClassSubjects ||
@@ -603,6 +614,11 @@ export const SchedulesPage: React.FC = () => {
   return (
     <ResourceActionGuard action="list" resourceName="schedules">
       <List
+        headerButtons={() => (
+          <Button icon={<FilePdfOutlined />} onClick={handleExportPdf}>
+            Export PDF
+          </Button>
+        )}
         title={
           <Space direction="vertical" size={4}>
             <Typography.Title level={3} style={{ marginBottom: 0 }}>
@@ -685,13 +701,18 @@ export const SchedulesPage: React.FC = () => {
               align="center"
               style={{ width: "100%", justifyContent: "space-between", marginBottom: 16 }}
             >
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => navigateCreate("schedules")}
-              >
-                Tambah Jadwal
-              </Button>
+              <Space align="center">
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => navigateCreate("schedules")}
+                >
+                  Tambah Jadwal
+                </Button>
+                <Button icon={<FilePdfOutlined />} onClick={handleExportPdf}>
+                  Export PDF
+                </Button>
+              </Space>
               <Typography.Text type="secondary">
                 Total jadwal: {displayedData.length} entri
               </Typography.Text>

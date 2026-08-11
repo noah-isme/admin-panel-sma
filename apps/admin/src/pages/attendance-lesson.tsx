@@ -24,6 +24,7 @@ import {
 } from "@refinedev/core";
 import type { IdentityPayload } from "../types/identity";
 import { useAppNotification } from "../hooks/use-app-notification";
+import { httpClient } from "../providers/dataProvider";
 import { ResourceActionGuard } from "../components/resource-action-guard";
 import { usePersistentSelection } from "../hooks/use-persistent-selection";
 import { DownloadOutlined } from "@ant-design/icons";
@@ -422,29 +423,15 @@ export const AttendanceLessonPage: React.FC = () => {
 
   const downloadCsv = () => {
     if (!selectedMapping) return;
-    const headers = ["Tanggal", "Siswa", "Status", "Catatan"];
-    const rows = historyRecords
-      .sort((a, b) => dayjs(b.date).diff(dayjs(a.date)))
-      .map((record) => {
-        const enrollment = classEnrollments.find((item) => String(item.id) === record.enrollmentId);
-        const student = enrollment ? studentDictionary.get(String(enrollment.studentId)) : null;
-        const label =
-          STATUS_OPTIONS.find((item) => item.value === record.status)?.label ?? record.status;
-        return [
-          record.date,
-          student?.fullName ?? `ID ${record.enrollmentId}`,
-          label,
-          record.note ?? "",
-        ];
-      });
-    const csvContent = [headers, ...rows].map((cols) => cols.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `absensi-mapel-${selectedMapping.classroomId ?? "kelas"}-${date.format(DATE_FORMAT)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const url = httpClient.getUri({
+      url: "/export/attendance",
+      params: {
+        subjectId: selectedMapping.subjectId,
+        date: date.format(DATE_FORMAT),
+        classId: selectedMapping.classroomId,
+      },
+    });
+    window.location.href = url;
   };
 
   return (

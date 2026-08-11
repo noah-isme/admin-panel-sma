@@ -308,8 +308,8 @@ export const useAttendanceAnalyticsServer = (
       setWeeklyLoading(true);
       try {
         const params = new URLSearchParams();
-        params.set("termId", filters.termId);
-        params.set("classId", filters.classId);
+        params.set("termId", filters.termId ?? "");
+        params.set("classId", filters.classId ?? "");
         if (filters.range?.start) params.set("dateFrom", filters.range.start);
         if (filters.range?.end) params.set("dateTo", filters.range.end);
         params.set("pageSize", "1000"); // Fetch daily records for the class

@@ -29,10 +29,16 @@ import {
   FileOutlined,
   PlusOutlined,
   UploadOutlined,
+  WarningOutlined,
+  TagsOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useDataProvider, useList } from "@refinedev/core";
 import { useAppNotification } from "../hooks/use-app-notification";
+import { Viewer, Worker } from "@react-pdf-viewer/core";
+import { defaultLayoutPlugin } from "@react-pdf-viewer/default-layout";
+import "@react-pdf-viewer/core/lib/styles/index.css";
+import "@react-pdf-viewer/default-layout/lib/styles/index.css";
 
 const CATEGORY_COLORS: Record<string, string> = {
   RAPOR: "blue",
@@ -62,6 +68,7 @@ const ArchiveListPage: React.FC = () => {
   const getDataProvider = useDataProvider();
   const dataProvider = useMemo(() => getDataProvider(), [getDataProvider]);
   const { open: notify } = useAppNotification();
+  const defaultLayoutPluginInstance = defaultLayoutPlugin();
 
   const [searchForm] = Form.useForm();
   const [uploadForm] = Form.useForm();
@@ -69,6 +76,8 @@ const ArchiveListPage: React.FC = () => {
   const [previewVisible, setPreviewVisible] = useState(false);
   const [uploadVisible, setUploadVisible] = useState(false);
   const [uploadLoading, setUploadLoading] = useState(false);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
 
   const searchValues = useMemo(() => searchForm.getFieldsValue(), [searchForm]);
 
@@ -78,13 +87,13 @@ const ArchiveListPage: React.FC = () => {
     sorters: [{ field: "uploadedAt", order: "desc" }],
     filters: [
       ...(searchValues.category
-        ? [{ field: "category", operator: "eq", value: searchValues.category }]
+        ? [{ field: "category", operator: "eq" as const, value: searchValues.category }]
         : []),
       ...(searchValues.studentId
-        ? [{ field: "studentId", operator: "eq", value: searchValues.studentId }]
+        ? [{ field: "studentId", operator: "eq" as const, value: searchValues.studentId }]
         : []),
       ...(searchValues.termId
-        ? [{ field: "termId", operator: "eq", value: searchValues.termId }]
+        ? [{ field: "termId", operator: "eq" as const, value: searchValues.termId }]
         : []),
     ],
   });
@@ -96,7 +105,7 @@ const ArchiveListPage: React.FC = () => {
         dataIndex: "fileName",
         key: "fileName",
         width: 200,
-        render: (_, record: any) => (
+        render: (_: any, record: any) => (
           <Space>
             {getFileIcon(record.mimeType)}
             <Space direction="vertical" size={0}>
@@ -115,6 +124,28 @@ const ArchiveListPage: React.FC = () => {
         width: 120,
         render: (category: string) => (
           <Tag color={CATEGORY_COLORS[category] ?? "default"}>{category}</Tag>
+        ),
+      },
+      {
+        title: "Status",
+        key: "status",
+        width: 130,
+        render: (_: any, record: any) => (
+          <Space direction="vertical" size={2}>
+            {record.ocrStatus === "COMPLETED" && <Tag color="blue">OCR</Tag>}
+            {record.legalHold && (
+              <Tag icon={<WarningOutlined />} color="error">
+                Legal Hold
+              </Tag>
+            )}
+            {record.retainUntil && (
+              <Tooltip title={`Retain until ${dayjs(record.retainUntil).format("DD MMM YYYY")}`}>
+                <Tag color={dayjs(record.retainUntil).isBefore(dayjs()) ? "warning" : "success"}>
+                  Retention
+                </Tag>
+              </Tooltip>
+            )}
+          </Space>
         ),
       },
       {
@@ -187,51 +218,8 @@ const ArchiveListPage: React.FC = () => {
   const handlePreview = useCallback((record: any) => {
     setSelectedArchive(record);
     setPreviewVisible(true);
+    setPreviewVisible(true);
   }, []);
-
-  const handleUploadSubmit = useCallback(
-    async (values: any) => {
-      const { file, category, studentId, termId } = values;
-      if (!file) return;
-      await handleUpload(file, category, studentId, termId);
-    },
-    [handleUpload]
-  );
-
-  const handleDownload = useCallback(
-    async (record: any) => {
-      try {
-        const response = await dataProvider.custom({
-          url: `archives/${record.id}/download`,
-          method: "get",
-        });
-        if (response?.url) {
-          window.open(response.url, "_blank");
-        } else {
-          notify?.({ type: "error", message: "Gagal mendapatkan URL unduh" });
-        }
-      } catch (error) {
-        notify?.({ type: "error", message: "Gagal mengunduh dokumen" });
-      }
-    },
-    [dataProvider, notify]
-  );
-
-  const handleDelete = useCallback(
-    async (id: string) => {
-      try {
-        await dataProvider.custom({
-          url: `archives/${id}`,
-          method: "delete",
-        });
-        notify?.({ type: "success", message: "Arsip berhasil dihapus" });
-        archivesQuery.refetch();
-      } catch (error) {
-        notify?.({ type: "error", message: "Gagal menghapus arsip" });
-      }
-    },
-    [dataProvider, notify, archivesQuery]
-  );
 
   const handleUpload = useCallback(
     async (file: File, category: string, studentId: string, termId: string) => {
@@ -243,6 +231,7 @@ const ArchiveListPage: React.FC = () => {
         formData.append("studentId", studentId);
         formData.append("termId", termId);
 
+        if (!dataProvider.custom) return;
         await dataProvider.custom({
           url: "archives/upload",
           method: "post",
@@ -261,6 +250,97 @@ const ArchiveListPage: React.FC = () => {
     },
     [dataProvider, notify, archivesQuery]
   );
+
+  const handleUploadSubmit = useCallback(
+    async (values: any) => {
+      const { file, category, studentId, termId } = values;
+      if (!file) return;
+      await handleUpload(file, category, studentId, termId);
+    },
+    [handleUpload]
+  );
+
+  const handleDownload = useCallback(
+    async (record: any) => {
+      try {
+        if (!dataProvider.custom) return;
+        const response = await dataProvider.custom({
+          url: `archives/${record.id}/download`,
+          method: "get",
+        });
+        const url = (response as any)?.url;
+        if (url) {
+          window.open(url, "_blank");
+        } else {
+          notify?.({ type: "error", message: "Gagal mendapatkan URL unduh" });
+        }
+      } catch (error) {
+        notify?.({ type: "error", message: "Gagal mengunduh dokumen" });
+      }
+    },
+    [dataProvider, notify]
+  );
+
+  const handleDelete = useCallback(
+    async (id: string) => {
+      try {
+        if (!dataProvider.custom) return;
+        await dataProvider.custom({
+          url: `archives/${id}`,
+          method: "delete",
+        });
+        notify?.({ type: "success", message: "Arsip berhasil dihapus" });
+        archivesQuery.refetch();
+      } catch (error) {
+        notify?.({ type: "error", message: "Gagal menghapus arsip" });
+      }
+    },
+    [dataProvider, notify, archivesQuery]
+  );
+
+  const handleBulkAction = useCallback(
+    async (action: string) => {
+      if (!selectedRowKeys.length) return;
+      setBulkActionLoading(true);
+      try {
+        if (!dataProvider.custom) return;
+        if (action === "DELETE") {
+          await dataProvider.custom({
+            url: "archives/bulk",
+            method: "post",
+            payload: { action, ids: selectedRowKeys },
+          });
+          notify?.({
+            type: "success",
+            message: `${selectedRowKeys.length} arsip berhasil dihapus`,
+          });
+          setSelectedRowKeys([]);
+          archivesQuery.refetch();
+        } else if (action === "DOWNLOAD") {
+          await dataProvider.custom({
+            url: "archives/bulk",
+            method: "post",
+            payload: { action, ids: selectedRowKeys },
+          });
+          notify?.({ type: "success", message: "Permintaan unduh massal sedang diproses" });
+        }
+      } catch (error) {
+        notify?.({ type: "error", message: "Aksi massal gagal" });
+      } finally {
+        setBulkActionLoading(false);
+      }
+    },
+    [selectedRowKeys, dataProvider, notify, archivesQuery]
+  );
+
+  const onSelectChange = (newSelectedRowKeys: React.Key[]) => {
+    setSelectedRowKeys(newSelectedRowKeys);
+  };
+
+  const rowSelection = {
+    selectedRowKeys,
+    onChange: onSelectChange,
+  };
 
   const archives = archivesQuery.data?.data ?? [];
   const isLoading = archivesQuery.isLoading;
@@ -311,7 +391,28 @@ const ArchiveListPage: React.FC = () => {
       </Card>
 
       <Card>
+        {selectedRowKeys.length > 0 && (
+          <Space style={{ marginBottom: 16 }} className="bulk-actions-toolbar">
+            <Typography.Text strong>{selectedRowKeys.length} dipilih</Typography.Text>
+            <Button
+              icon={<DownloadOutlined />}
+              onClick={() => handleBulkAction("DOWNLOAD")}
+              loading={bulkActionLoading}
+            >
+              Unduh Massal
+            </Button>
+            <Popconfirm
+              title={`Hapus ${selectedRowKeys.length} dokumen terpilih?`}
+              onConfirm={() => handleBulkAction("DELETE")}
+            >
+              <Button danger icon={<DeleteOutlined />} loading={bulkActionLoading}>
+                Hapus Massal
+              </Button>
+            </Popconfirm>
+          </Space>
+        )}
         <Table
+          rowSelection={rowSelection}
           size="middle"
           rowKey="id"
           columns={columns}
@@ -376,11 +477,14 @@ const ArchiveListPage: React.FC = () => {
 
             <Card title="Pratinjau" size="small">
               {selectedArchive.mimeType?.includes("pdf") ? (
-                <iframe
-                  src={selectedArchive.url}
-                  style={{ width: "100%", height: 600, border: "none" }}
-                  title="PDF Preview"
-                />
+                <div style={{ height: "600px" }}>
+                  <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
+                    <Viewer
+                      fileUrl={selectedArchive.url || "sample"}
+                      plugins={[defaultLayoutPluginInstance]}
+                    />
+                  </Worker>
+                </div>
               ) : selectedArchive.mimeType?.includes("image") ? (
                 <img
                   src={selectedArchive.url}

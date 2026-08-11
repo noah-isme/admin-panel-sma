@@ -279,7 +279,7 @@ export const authProvider: AuthProvider = {
     if (accessToken && refreshToken) {
       try {
         // Call logout endpoint to invalidate tokens
-        await fetch(resolveEndpoint("auth/logout"), {
+        await fetch(resolveEndpoint("/auth/logout"), {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

@@ -210,6 +210,7 @@ describe("VITE_ENABLE_ALL_FEATURES", () => {
     vi.stubEnv("VITE_ENABLE_REPORTS", "true");
     vi.stubEnv("VITE_ENABLE_ANALYTICS", "true");
     vi.stubEnv("VITE_ENABLE_DASHBOARD", "false");
+    vi.stubEnv("VITE_ENABLE_MUTATIONS", "false");
 
     const { buildTimeFeatures: buildTimeFeaturesFresh } = await import("../providers/features");
     const features = buildTimeFeaturesFresh();
@@ -229,5 +230,26 @@ describe("VITE_ENABLE_ALL_FEATURES", () => {
 
     expect(features.dashboard).toBe(true);
     expect(features.reports).toBe(false);
+  });
+});
+
+describe("resourceFeature & selectResources schedules gating", () => {
+  it("maps schedules resource to schedules feature", async () => {
+    const { resourceFeature } = await import("../providers/features");
+    expect(resourceFeature.schedules).toBe("schedules");
+  });
+
+  it("filters out schedules resource when schedules feature flag is false", async () => {
+    const { selectResources } = await import("../providers/features");
+    const disabledFeatures = { ...allFalse, schedules: false };
+    const resources = selectResources(disabledFeatures);
+    expect(resources.some((r) => r.name === "schedules")).toBe(false);
+  });
+
+  it("includes schedules resource when schedules feature flag is true", async () => {
+    const { selectResources } = await import("../providers/features");
+    const enabledFeatures = { ...allFalse, schedules: true };
+    const resources = selectResources(enabledFeatures);
+    expect(resources.some((r) => r.name === "schedules")).toBe(true);
   });
 });

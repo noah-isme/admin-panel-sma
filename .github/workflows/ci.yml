@@ -34,5 +34,5 @@ jobs:
         with:
           node-version: 20
           cache: pnpm
-      - run: pnpm install --filter @apps/api
-      - run: pnpm --filter @apps/api migrate:push
+      - run: pnpm install
+      - run: cd ../sma-adp-api && make migrate-up

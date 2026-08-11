@@ -46,7 +46,7 @@ import { useNavigation } from "@refinedev/core";
 import { useAppNotification } from "../hooks/use-app-notification";
 import { useQuery } from "@tanstack/react-query";
 import { httpClient } from "../providers/dataProvider";
-import { downloadCsv } from "../utils/csv";
+
 import type {
   StudentGenderCode,
   StudentRosterResponse,
@@ -251,47 +251,41 @@ export const StudentsPage: React.FC = () => {
     []
   );
 
-  const handleBulkAction = useCallback((action: "import" | "export" | "bulk-status") => {
-    if (action === "import") {
-      const input = document.createElement("input");
-      input.type = "file";
-      input.accept = ".csv,text/csv";
-      input.onchange = () => {
-        const file = input.files?.[0];
-        if (!file) return;
-        void httpClient
-          .post("/students/import", file, {
-            headers: {
-              "Content-Type": "text/csv",
-              "Idempotency-Key": createImportIdempotencyKey(),
-            },
-          })
-          .then(({ data }) => {
-            const result = (data as { data?: { created?: number; failed?: number } }).data ?? data;
-            message.success(
-              `Import selesai: ${result.created ?? 0} dibuat, ${result.failed ?? 0} gagal.`
-            );
-          })
-          .catch(() => message.error("Import CSV siswa gagal."));
-      };
-      input.click();
-    } else if (action === "export") {
-      downloadCsv(
-        "students.csv",
-        rows.map(({ id, nis, fullName, gender, birthDate, className, status }) => ({
-          id,
-          nis,
-          fullName,
-          gender,
-          birthDate,
-          className,
-          status,
-        }))
-      );
-    } else {
-      message.info("Perubahan status massal membutuhkan endpoint khusus.");
-    }
-  }, []);
+  const handleBulkAction = useCallback(
+    (action: "import" | "export" | "bulk-status") => {
+      if (action === "import") {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = ".csv,text/csv";
+        input.onchange = () => {
+          const file = input.files?.[0];
+          if (!file) return;
+          void httpClient
+            .post("/students/import", file, {
+              headers: {
+                "Content-Type": "text/csv",
+                "Idempotency-Key": createImportIdempotencyKey(),
+              },
+            })
+            .then(({ data }) => {
+              const result =
+                (data as { data?: { created?: number; failed?: number } }).data ?? data;
+              message.success(
+                `Import selesai: ${result.created ?? 0} dibuat, ${result.failed ?? 0} gagal.`
+              );
+            })
+            .catch(() => message.error("Import CSV siswa gagal."));
+        };
+        input.click();
+      } else if (action === "export") {
+        const url = httpClient.getUri({ url: "/export/students", params: queryParams });
+        window.location.href = url;
+      } else {
+        message.info("Perubahan status massal membutuhkan endpoint khusus.");
+      }
+    },
+    [queryParams]
+  );
 
   const handleRowAction = useCallback(
     (action: "view" | "edit" | "status", record: StudentRosterRow) => {

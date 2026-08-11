@@ -71,8 +71,8 @@ import { AttendanceLessonPage } from "./pages/attendance-lesson";
 import { AttendanceAnalyticsPage } from "./pages/attendance-analytics";
 import { SetupWizard } from "./pages/setup-wizard";
 import { PreSemesterSnapshotPage } from "./pages/import-status";
-import { AnnouncementsList, AnnouncementsCreate, AnnouncementsEdit } from "./pages/announcements";
-import { BehaviorNotesList, BehaviorNotesCreate, BehaviorNotesEdit } from "./pages/behavior-notes";
+import { AnnouncementsPage } from "./pages/announcements";
+import { BehaviorNotesPage } from "./pages/behavior-notes";
 import { AppLayout } from "./components/layout/app-layout";
 import { ClassesPage } from "./pages/classes";
 import { ClassesShow } from "./pages/classes-show";
@@ -88,6 +88,8 @@ import { HomeroomAssignmentsPage } from "./pages/homeroom-assignments";
 import ConfigurationPage from "./pages/configuration";
 import { StudentsPage } from "./pages/students";
 import { TeachersPage } from "./pages/teachers";
+import { GradesAnalyticsPage } from "./pages/grades-analytics";
+import { BehaviorAnalyticsPage } from "./pages/behavior-analytics";
 
 import "@refinedev/antd/dist/reset.css";
 import "antd/dist/reset.css";
@@ -393,30 +395,8 @@ const allResources = [
   },
 ] as const;
 
-const resourceFeature: Partial<Record<string, FeatureName>> = {
-  dashboard: "dashboard",
-  calendar: "calendar",
-  attendance: "attendance",
-  homerooms: "homerooms",
-  settings: "settings",
-  mutations: "mutations",
-  archives: "archives",
-  reports: "reports",
-};
-
-const requiresAnalytics: Partial<Record<string, FeatureName>> = {
-  dashboard: "analytics",
-};
-
-// The API defaults optional capabilities to disabled, so a page whose module is
-// not mounted can only answer 404. Resolved at runtime from GET /features, with
-// the build-time VITE flags as the offline fallback.
-const selectResources = (features: FeatureFlags) =>
-  allResources.filter((resource) => {
-    const feature = resourceFeature[resource.name];
-    const analyticsFeature = requiresAnalytics[resource.name];
-    return (!feature || features[feature]) && (!analyticsFeature || features[analyticsFeature]);
-  });
+import { resourceFeature, selectResources } from "./providers/features";
+export { resourceFeature, selectResources };
 
 const resourceRouteConfig: Record<
   (typeof allResources)[number]["name"],
@@ -459,14 +439,8 @@ const resourceRouteConfig: Record<
     edit: <GradeComponentsEdit />,
   },
   "grade-configs": {},
-  announcements: {
-    create: <AnnouncementsCreate />,
-    edit: <AnnouncementsEdit />,
-  },
-  "behavior-notes": {
-    create: <BehaviorNotesCreate />,
-    edit: <BehaviorNotesEdit />,
-  },
+  announcements: {},
+  "behavior-notes": {},
   grades: {
     edit: <GradesEdit />,
   },
@@ -503,6 +477,14 @@ if (disableCustomLayout) {
 const LayoutWrapper: React.FC = () => (disableCustomLayout ? <Outlet /> : <AppLayout />);
 
 async function bootstrap() {
+  if (
+    (typeof process !== "undefined" && (process.env.NODE_ENV === "test" || process.env.VITEST)) ||
+    (import.meta as any)?.env?.MODE === "test" ||
+    typeof window === "undefined" ||
+    !document.getElementById("root")
+  ) {
+    return;
+  }
   if (ENABLE_MSW) {
     try {
       // prefer a start helper if present, otherwise call worker.start()
@@ -539,195 +521,210 @@ async function bootstrap() {
     // ignore
   }
 
-  ReactDOM.createRoot(document.getElementById("root")!).render(
-    <React.StrictMode>
-      <ErrorBoundary>
-        <BrowserRouter basename="/admin">
-          <QueryClientProvider client={queryClient}>
-            <ThemeProvider>
-              <Refine
-                dataProvider={dataProvider}
-                authProvider={authProvider}
-                accessControlProvider={accessControlProvider}
-                notificationProvider={notificationProvider}
-                routerProvider={routerProvider}
-                resources={resources.map((resource) => ({
-                  name: resource.name,
-                  list: resource.list,
-                  create: "create" in resource ? resource.create : undefined,
-                  edit: "edit" in resource ? resource.edit : undefined,
-                  show: "show" in resource ? resource.show : undefined,
-                  meta: resource.meta,
-                }))}
-                options={{
-                  syncWithLocation: true,
-                  warnWhenUnsavedChanges: false,
-                }}
-              >
-                <Routes>
-                  <Route
-                    element={
-                      <Authenticated key="authenticated-routes" fallback={<LoginPage />}>
-                        <LayoutWrapper />
-                      </Authenticated>
-                    }
-                  >
-                    <Route index element={<NavigateToResource resource={resources[0].name} />} />
-                    {resources.map((resource) => (
-                      <Route key={resource.name} path={resource.name}>
-                        <Route
-                          index
-                          element={
-                            resource.name === "dashboard" ? (
-                              <DashboardPage />
-                            ) : resource.name === "students" ? (
-                              <StudentsPage />
-                            ) : resource.name === "teachers" ? (
-                              <TeachersPage />
-                            ) : resource.name === "users" ? (
-                              <UsersPage />
-                            ) : resource.name === "homerooms" ? (
-                              <HomeroomAssignmentsPage />
-                            ) : resource.name === "grade-configs" ? (
-                              <GradeConfigPage />
-                            ) : resource.name === "announcements" ? (
-                              <AnnouncementsList />
-                            ) : resource.name === "behavior-notes" ? (
-                              <BehaviorNotesList />
-                            ) : resource.name === "calendar" ? (
-                              <CalendarPage />
-                            ) : resource.name === "attendance" ? (
-                              isFeatureEnabled("analytics") ? (
-                                <AttendanceAnalyticsPage />
+  if (typeof window !== "undefined" && document.getElementById("root")) {
+    ReactDOM.createRoot(document.getElementById("root")!).render(
+      <React.StrictMode>
+        <ErrorBoundary>
+          <BrowserRouter basename="/admin">
+            <QueryClientProvider client={queryClient}>
+              <ThemeProvider>
+                <Refine
+                  dataProvider={dataProvider}
+                  authProvider={authProvider}
+                  accessControlProvider={accessControlProvider}
+                  notificationProvider={notificationProvider}
+                  routerProvider={routerProvider}
+                  resources={resources.map((resource) => ({
+                    name: resource.name,
+                    list: resource.list,
+                    create: "create" in resource ? resource.create : undefined,
+                    edit: "edit" in resource ? resource.edit : undefined,
+                    show: "show" in resource ? resource.show : undefined,
+                    meta: resource.meta,
+                  }))}
+                  options={{
+                    syncWithLocation: true,
+                    warnWhenUnsavedChanges: false,
+                  }}
+                >
+                  <Routes>
+                    <Route
+                      element={
+                        <Authenticated key="authenticated-routes" fallback={<LoginPage />}>
+                          <LayoutWrapper />
+                        </Authenticated>
+                      }
+                    >
+                      <Route index element={<NavigateToResource resource={resources[0].name} />} />
+                      {resources.map((resource) => (
+                        <Route key={resource.name} path={resource.name}>
+                          <Route
+                            index
+                            element={
+                              resource.name === "dashboard" ? (
+                                <DashboardPage />
+                              ) : resource.name === "students" ? (
+                                <StudentsPage />
+                              ) : resource.name === "teachers" ? (
+                                <TeachersPage />
+                              ) : resource.name === "users" ? (
+                                <UsersPage />
+                              ) : resource.name === "homerooms" ? (
+                                <HomeroomAssignmentsPage />
+                              ) : resource.name === "grade-configs" ? (
+                                <GradeConfigPage />
+                              ) : resource.name === "announcements" ? (
+                                <AnnouncementsPage />
+                              ) : resource.name === "behavior-notes" ? (
+                                <BehaviorNotesPage />
+                              ) : resource.name === "calendar" ? (
+                                <CalendarPage />
+                              ) : resource.name === "attendance" ? (
+                                isFeatureEnabled("analytics") ? (
+                                  <AttendanceAnalyticsPage />
+                                ) : (
+                                  <ErrorComponent />
+                                )
+                              ) : resource.name === "schedules" ? (
+                                <SchedulesPage />
+                              ) : resource.name === "grades" ? (
+                                <GradesPage />
+                              ) : resource.name === "classes" ? (
+                                <ClassesPage />
+                              ) : resource.name === "mutations" ? (
+                                <MutationsPage />
+                              ) : resource.name === "archives" ? (
+                                <ArchivesPage />
+                              ) : resource.name === "reports" ? (
+                                <ReportsPage />
                               ) : (
-                                <ErrorComponent />
+                                <ResourceList />
                               )
-                            ) : resource.name === "schedules" ? (
-                              <SchedulesPage />
-                            ) : resource.name === "grades" ? (
-                              <GradesPage />
-                            ) : resource.name === "classes" ? (
-                              <ClassesPage />
-                            ) : resource.name === "mutations" ? (
-                              <MutationsPage />
-                            ) : resource.name === "archives" ? (
-                              <ArchivesPage />
-                            ) : resource.name === "reports" ? (
-                              <ReportsPage />
-                            ) : (
-                              <ResourceList />
-                            )
-                          }
-                        />
-                        {resourceRouteConfig[resource.name]?.create ? (
-                          <Route
-                            path="create"
-                            element={resourceRouteConfig[resource.name]!.create}
+                            }
                           />
-                        ) : null}
-                        {resourceRouteConfig[resource.name]?.edit ? (
-                          <Route
-                            path="edit/:id"
-                            element={resourceRouteConfig[resource.name]!.edit}
-                          />
-                        ) : null}
-                        {resource.name === "classes" ? (
-                          <Route path="show/:id" element={<ClassesShow />} />
-                        ) : null}
-                        {resource.name === "attendance" ? (
-                          <>
+                          {resourceRouteConfig[resource.name]?.create ? (
                             <Route
-                              path="daily"
-                              element={
-                                <ResourceActionGuard action="create" resourceName="attendance">
-                                  <AttendanceDailyPage />
-                                </ResourceActionGuard>
-                              }
+                              path="create"
+                              element={resourceRouteConfig[resource.name]!.create}
                             />
+                          ) : null}
+                          {resourceRouteConfig[resource.name]?.edit ? (
                             <Route
-                              path="lesson"
-                              element={
-                                <ResourceActionGuard action="create" resourceName="attendance">
-                                  <AttendanceLessonPage />
-                                </ResourceActionGuard>
-                              }
+                              path="edit/:id"
+                              element={resourceRouteConfig[resource.name]!.edit}
                             />
-                          </>
-                        ) : resource.name === "schedules" && isFeatureEnabled("schedules") ? (
-                          <>
-                            <Route
-                              path="generator"
-                              element={
-                                <ResourceActionGuard action="edit" resourceName="schedules">
-                                  <ScheduleGeneratorPage />
-                                </ResourceActionGuard>
-                              }
-                            />
+                          ) : null}
+                          {resource.name === "classes" ? (
+                            <Route path="show/:id" element={<ClassesShow />} />
+                          ) : null}
+                          {resource.name === "grades" ? (
+                            <Route path="analytics" element={<GradesAnalyticsPage />} />
+                          ) : null}
+                          {resource.name === "behavior-notes" ? (
+                            <Route path="analytics" element={<BehaviorAnalyticsPage />} />
+                          ) : null}
+                          {resource.name === "attendance" ? (
+                            <>
+                              <Route
+                                path="daily"
+                                element={
+                                  <ResourceActionGuard action="create" resourceName="attendance">
+                                    <AttendanceDailyPage />
+                                  </ResourceActionGuard>
+                                }
+                              />
+                              <Route
+                                path="lesson"
+                                element={
+                                  <ResourceActionGuard action="create" resourceName="attendance">
+                                    <AttendanceLessonPage />
+                                  </ResourceActionGuard>
+                                }
+                              />
+                            </>
+                          ) : resource.name === "schedules" && isFeatureEnabled("schedules") ? (
+                            <>
+                              <Route
+                                path="generator"
+                                element={
+                                  <ResourceActionGuard action="edit" resourceName="schedules">
+                                    <ScheduleGeneratorPage />
+                                  </ResourceActionGuard>
+                                }
+                              />
 
-                            <Route
-                              path="preferences"
-                              element={
-                                <ResourceActionGuard
-                                  action="edit"
-                                  resourceName="teacher-preferences"
-                                >
-                                  <TeacherPreferencesPage />
-                                </ResourceActionGuard>
-                              }
-                            />
-                          </>
-                        ) : null}
-                      </Route>
-                    ))}
-                    <Route
-                      path="setup"
-                      element={
-                        <ResourceActionGuard action="create" resourceName="terms">
-                          <SetupWizard />
-                        </ResourceActionGuard>
-                      }
-                    />
-                    <Route
-                      path="setup/pre-semester-snapshot"
-                      element={
-                        <ResourceActionGuard action="list" resourceName="students">
-                          <PreSemesterSnapshotPage />
-                        </ResourceActionGuard>
-                      }
-                    />
-                    <Route
-                      path="setup/import-status"
-                      element={
-                        <ResourceActionGuard action="list" resourceName="students">
-                          <PreSemesterSnapshotPage />
-                        </ResourceActionGuard>
-                      }
-                    />
-                    {isFeatureEnabled("settings") ? (
+                              <Route
+                                path="preferences"
+                                element={
+                                  <ResourceActionGuard
+                                    action="edit"
+                                    resourceName="teacher-preferences"
+                                  >
+                                    <TeacherPreferencesPage />
+                                  </ResourceActionGuard>
+                                }
+                              />
+                            </>
+                          ) : null}
+                        </Route>
+                      ))}
                       <Route
-                        path="configuration"
+                        path="setup"
                         element={
-                          <ResourceActionGuard action="edit" resourceName="settings">
-                            <ConfigurationPage />
+                          <ResourceActionGuard action="create" resourceName="terms">
+                            <SetupWizard />
                           </ResourceActionGuard>
                         }
                       />
-                    ) : null}
-                  </Route>
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="*" element={<ErrorComponent />} />
-                </Routes>
+                      <Route
+                        path="setup/pre-semester-snapshot"
+                        element={
+                          <ResourceActionGuard action="list" resourceName="students">
+                            <PreSemesterSnapshotPage />
+                          </ResourceActionGuard>
+                        }
+                      />
+                      <Route
+                        path="setup/import-status"
+                        element={
+                          <ResourceActionGuard action="list" resourceName="students">
+                            <PreSemesterSnapshotPage />
+                          </ResourceActionGuard>
+                        }
+                      />
+                      {isFeatureEnabled("settings") ? (
+                        <Route
+                          path="configuration"
+                          element={
+                            <ResourceActionGuard action="edit" resourceName="settings">
+                              <ConfigurationPage />
+                            </ResourceActionGuard>
+                          }
+                        />
+                      ) : null}
+                    </Route>
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="*" element={<ErrorComponent />} />
+                  </Routes>
 
-                <DocumentTitleHandler />
-                <UnsavedChangesNotifier />
-                <RouteDebugger />
-              </Refine>
-            </ThemeProvider>
-          </QueryClientProvider>
-        </BrowserRouter>
-      </ErrorBoundary>
-    </React.StrictMode>
-  );
+                  <DocumentTitleHandler />
+                  <UnsavedChangesNotifier />
+                  <RouteDebugger />
+                </Refine>
+              </ThemeProvider>
+            </QueryClientProvider>
+          </BrowserRouter>
+        </ErrorBoundary>
+      </React.StrictMode>
+    );
+  }
 }
 
-void bootstrap();
+if (
+  !(typeof process !== "undefined" && (process.env.NODE_ENV === "test" || process.env.VITEST)) &&
+  (import.meta as any)?.env?.MODE !== "test" &&
+  typeof window !== "undefined" &&
+  document.getElementById("root")
+) {
+  void bootstrap();
+}

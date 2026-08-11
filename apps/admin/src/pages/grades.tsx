@@ -54,7 +54,7 @@ import { useDelete, useNavigation } from "@refinedev/core";
 import { useAppNotification } from "../hooks/use-app-notification";
 import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
-import { downloadCsv } from "../utils/csv";
+
 import { httpClient } from "../providers/dataProvider";
 import type { GradeReportResponse, GradeReportRow, GradeStatusCode } from "../types/grade-report";
 
@@ -577,32 +577,13 @@ export const GradesPage: React.FC = () => {
     [pagination.current, pagination.pageSize, totalRecords]
   );
 
-  const handleExport = useCallback((kind: "pdf" | "xlsx" | "summary") => {
-    downloadCsv(
-      `grades-${kind}.csv`,
-      rows.map(
-        ({
-          id,
-          studentName,
-          studentNis,
-          className,
-          subjectName,
-          componentName,
-          score,
-          status,
-        }) => ({
-          id,
-          studentName,
-          studentNis,
-          className,
-          subjectName,
-          componentName,
-          score,
-          status: status?.code,
-        })
-      )
-    );
-  }, []);
+  const handleExport = useCallback(
+    (kind: "pdf" | "xlsx" | "summary") => {
+      const url = httpClient.getUri({ url: "/export/grades", params: { ...queryParams, kind } });
+      window.location.href = url;
+    },
+    [queryParams]
+  );
 
   const enterpriseCardStyle: React.CSSProperties = {
     border: "1px solid #e2e8f0",

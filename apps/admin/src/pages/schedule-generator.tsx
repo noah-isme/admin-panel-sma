@@ -10,6 +10,7 @@ import {
   Input,
   Progress,
   Row,
+  Segmented,
   Select,
   Space,
   Spin,
@@ -23,6 +24,7 @@ import {
   AppstoreAddOutlined,
   CheckOutlined,
   ExclamationCircleOutlined,
+  FilePdfOutlined,
   LockOutlined,
   ReloadOutlined,
   SaveOutlined,
@@ -208,10 +210,22 @@ const FairnessTable: React.FC<{
 
 export const ScheduleGeneratorPage: React.FC = () => {
   const [termId, setTermId] = useState<string | undefined>();
-  const [classId, setClassId] = useState<string | undefined>();
+  const [classIds, setClassIds] = useState<string[]>([]);
+  const [activePreviewClassId, setActivePreviewClassId] = useState<string | undefined>();
   const [searchValue, setSearchValue] = useState<string>("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsForm] = Form.useForm();
+
+  const handleClassIdsChange = (selectedIds: string[]) => {
+    setClassIds(selectedIds);
+    if (selectedIds.length > 0) {
+      if (!activePreviewClassId || !selectedIds.includes(activePreviewClassId)) {
+        setActivePreviewClassId(selectedIds[0]);
+      }
+    } else {
+      setActivePreviewClassId(undefined);
+    }
+  };
 
   const {
     isLoading,
@@ -234,7 +248,13 @@ export const ScheduleGeneratorPage: React.FC = () => {
     fairnessSummary,
     generateSummary,
     lastProposalId,
-  } = useScheduleGenerator({ termId, classId });
+    crossClassConflicts,
+  } = useScheduleGenerator({
+    termId,
+    classId: classIds[0],
+    classIds,
+    activeClassId: activePreviewClassId || classIds[0],
+  });
 
   const [showConflicts, setShowConflicts] = useState(false);
 
@@ -246,10 +266,11 @@ export const ScheduleGeneratorPage: React.FC = () => {
   }, [termId, terms]);
 
   useEffect(() => {
-    if (!classId && classes.length > 0) {
-      setClassId(classes[0].id);
+    if (classIds.length === 0 && classes.length > 0) {
+      setClassIds([classes[0].id]);
+      setActivePreviewClassId(classes[0].id);
     }
-  }, [classId, classes]);
+  }, [classIds.length, classes]);
 
   const teacherNameMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -294,10 +315,16 @@ export const ScheduleGeneratorPage: React.FC = () => {
 
   const summaryBadge = generateSummary ? (
     <Space wrap>
+      {classIds.length > 1 && <Tag color="purple">{classIds.length} Kelas Dipilih</Tag>}
       <Tag color="green">Preferensi {generateSummary.preferenceMatches}</Tag>
       <Tag color="gold">Kompromi {generateSummary.compromise}</Tag>
       <Tag color="red">Konflik {generateSummary.conflicts}</Tag>
       <Tag color="default">Kosong {generateSummary.empty}</Tag>
+      {crossClassConflicts.length === 0 ? (
+        <Tag color="cyan">0 Bentrokan Guru Antar-Kelas</Tag>
+      ) : (
+        <Tag color="volcano">{crossClassConflicts.length} Bentrokan Guru Antar-Kelas</Tag>
+      )}
       <Badge status="processing" text={`Confidence ${generateSummary.confidence}%`} />
       {generateSummary.proposalId && (
         <Tag color="blue">ID: {generateSummary.proposalId.slice(0, 8)}...</Tag>
@@ -312,6 +339,13 @@ export const ScheduleGeneratorPage: React.FC = () => {
       )}
     </Space>
   ) : null;
+
+  const handleExportPdf = useCallback(() => {
+    const targetClassId = activePreviewClassId || classIds[0] || "";
+    const targetTermId = termId || "";
+    const url = `/api/v1/schedules/export/pdf?class_id=${encodeURIComponent(targetClassId)}&term_id=${encodeURIComponent(targetTermId)}`;
+    window.open(url, "_blank");
+  }, [activePreviewClassId, classIds, termId]);
 
   return (
     <Space direction="vertical" size="large" style={{ width: "100%" }}>
@@ -337,19 +371,24 @@ export const ScheduleGeneratorPage: React.FC = () => {
             />
           </Col>
           <Col xs={24} md={6}>
-            <Typography.Text type="secondary">Kelas</Typography.Text>
+            <Typography.Text type="secondary">Kelas (Bisa Pilih Banyak)</Typography.Text>
             <Select
+              mode="multiple"
+              maxTagCount="responsive"
               style={{ width: "100%", marginTop: 6 }}
-              placeholder="Pilih kelas"
-              value={classId}
+              placeholder="Pilih satu atau beberapa kelas"
+              value={classIds}
               options={classes.map((klass) => ({ label: klass.name, value: klass.id }))}
-              onChange={setClassId}
+              onChange={handleClassIdsChange}
             />
           </Col>
           <Col xs={24} md={12}>
             <Space style={{ marginTop: 24, width: "100%", justifyContent: "flex-end" }} size={8}>
               <Button icon={<SettingOutlined />} onClick={() => setSettingsOpen(true)}>
                 Aturan & Preferensi
+              </Button>
+              <Button icon={<FilePdfOutlined />} onClick={handleExportPdf}>
+                Export PDF
               </Button>
               <Button
                 loading={isGenerating}
@@ -409,7 +448,35 @@ export const ScheduleGeneratorPage: React.FC = () => {
           </Card>
         </Col>
         <Col xs={24} lg={17} xl={18}>
-          <Card title="Grid Jadwal Mingguan">
+          <Card
+            title={
+              <Space align="center">
+                <span>Grid Jadwal Mingguan</span>
+                {activePreviewClassId && classes.find((c) => c.id === activePreviewClassId) && (
+                  <Tag color="blue">
+                    Kelas: {classes.find((c) => c.id === activePreviewClassId)?.name}
+                  </Tag>
+                )}
+              </Space>
+            }
+            extra={
+              classIds.length > 1 ? (
+                <Space align="center">
+                  <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+                    Pilih Grid Kelas:
+                  </Typography.Text>
+                  <Segmented
+                    value={activePreviewClassId}
+                    onChange={(val) => setActivePreviewClassId(val as string)}
+                    options={classIds.map((cId) => ({
+                      label: classes.find((c) => c.id === cId)?.name || cId,
+                      value: cId,
+                    }))}
+                  />
+                </Space>
+              ) : null
+            }
+          >
             {isLoading ? (
               <Space style={{ width: "100%", justifyContent: "center" }}>
                 <Spin />
