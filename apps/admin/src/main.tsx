@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Outlet, Route, Routes } from "react-router-dom";
-import { Refine, Authenticated } from "@refinedev/core";
+import { Refine, Authenticated, type ResourceProps } from "@refinedev/core";
 import { ResourceActionGuard } from "./components/resource-action-guard";
 import routerProvider, {
   DocumentTitleHandler,
@@ -25,6 +25,7 @@ import {
 } from "./providers/features";
 import { ResourceList } from "./pages/resource-list";
 import { LoginPage } from "./pages/login";
+import { ForgotPasswordPage, ResetPasswordPage } from "./pages/password-reset";
 import { RouteDebugger } from "./components/route-debugger";
 import { StudentsCreate } from "./pages/students-create";
 import { StudentsEdit } from "./pages/students-edit";
@@ -512,7 +513,19 @@ async function bootstrap() {
   const features: FeatureFlags = ENABLE_MSW
     ? buildTimeFeatures()
     : await fetchFeatures(dataProvider.getApiUrl());
-  const resources = selectResources(features);
+  // Preserve the route/resource metadata from the concrete registry while
+  // applying the runtime feature flags. Calling without the list falls back
+  // to the name-only discovery list and widens the result to `{ name: string
+  // }[]`, which loses Refine route types during the production typecheck.
+  const selectedResources = selectResources(features, allResources);
+  const refineResources: ResourceProps[] = selectedResources.map((resource) => ({
+    name: resource.name,
+    list: resource.list,
+    create: ("create" in resource ? resource.create : undefined) as ResourceProps["create"],
+    edit: ("edit" in resource ? resource.edit : undefined) as ResourceProps["edit"],
+    show: ("show" in resource ? resource.show : undefined) as ResourceProps["show"],
+    meta: resource.meta,
+  }));
   const isFeatureEnabled = (feature: FeatureName) => features[feature];
 
   try {
@@ -534,14 +547,7 @@ async function bootstrap() {
                   accessControlProvider={accessControlProvider}
                   notificationProvider={notificationProvider}
                   routerProvider={routerProvider}
-                  resources={resources.map((resource) => ({
-                    name: resource.name,
-                    list: resource.list,
-                    create: "create" in resource ? resource.create : undefined,
-                    edit: "edit" in resource ? resource.edit : undefined,
-                    show: "show" in resource ? resource.show : undefined,
-                    meta: resource.meta,
-                  }))}
+                  resources={refineResources}
                   options={{
                     syncWithLocation: true,
                     warnWhenUnsavedChanges: false,
@@ -555,8 +561,11 @@ async function bootstrap() {
                         </Authenticated>
                       }
                     >
-                      <Route index element={<NavigateToResource resource={resources[0].name} />} />
-                      {resources.map((resource) => (
+                      <Route
+                        index
+                        element={<NavigateToResource resource={selectedResources[0].name} />}
+                      />
+                      {selectedResources.map((resource) => (
                         <Route key={resource.name} path={resource.name}>
                           <Route
                             index
@@ -704,6 +713,8 @@ async function bootstrap() {
                       ) : null}
                     </Route>
                     <Route path="/login" element={<LoginPage />} />
+                    <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                    <Route path="/reset-password" element={<ResetPasswordPage />} />
                     <Route path="*" element={<ErrorComponent />} />
                   </Routes>
 

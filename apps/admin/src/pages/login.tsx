@@ -3,6 +3,7 @@ import { ThemedTitleV2 } from "@refinedev/antd";
 import { Form, Input, Button, Card, Typography, Layout, Space, Alert } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const { Title, Text } = Typography;
 
@@ -13,6 +14,7 @@ interface LoginFormValues {
 
 export const LoginPage: React.FC = () => {
   const { mutate: login, isLoading } = useLogin<LoginFormValues>();
+  const navigate = useNavigate();
   const [errorMessage, setErrorMessage] = useState<string>("");
 
   const onFinish = (values: LoginFormValues) => {
@@ -104,6 +106,12 @@ export const LoginPage: React.FC = () => {
             <Form.Item style={{ marginBottom: 0 }}>
               <Button type="primary" htmlType="submit" loading={isLoading} size="large" block>
                 Sign In
+              </Button>
+            </Form.Item>
+
+            <Form.Item style={{ marginBottom: 0, textAlign: "center" }}>
+              <Button type="link" onClick={() => navigate("/forgot-password")}>
+                Lupa kata sandi?
               </Button>
             </Form.Item>
           </Form>

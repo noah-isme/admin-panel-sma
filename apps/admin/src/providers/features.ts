@@ -184,7 +184,7 @@ const defaultResourcesList = [
 
 export const selectResources = <T extends { name: string }>(
   features: FeatureFlags,
-  resourcesList: T[] = defaultResourcesList as T[]
+  resourcesList: readonly T[] = defaultResourcesList as unknown as readonly T[]
 ) =>
   resourcesList.filter((resource) => {
     const feature = resourceFeature[resource.name];

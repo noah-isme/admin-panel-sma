@@ -53,6 +53,53 @@ try {
 
 const resolveEndpoint = (path: string) => `${API_URL}${path.startsWith("/") ? path : `/${path}`}`;
 
+const readAPIErrorMessage = async (response: Response, fallback: string) => {
+  try {
+    const payload = await response.json();
+    return payload?.error?.message ?? payload?.message ?? fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+/** Request a password-reset email without revealing whether an account exists. */
+export const requestPasswordReset = async (email: string): Promise<void> => {
+  let response: Response;
+  try {
+    response = await fetch(resolveEndpoint("auth/forgot-password"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+  } catch {
+    throw new Error("Tidak dapat terhubung ke server. Silakan coba lagi.");
+  }
+
+  if (!response.ok) {
+    throw new Error(await readAPIErrorMessage(response, "Permintaan reset password gagal."));
+  }
+};
+
+/** Complete a password reset using the one-time token from the email link. */
+export const resetPassword = async (token: string, newPassword: string): Promise<void> => {
+  let response: Response;
+  try {
+    response = await fetch(resolveEndpoint("auth/reset-password"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, new_password: newPassword }),
+    });
+  } catch {
+    throw new Error("Tidak dapat terhubung ke server. Silakan coba lagi.");
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      await readAPIErrorMessage(response, "Reset password gagal atau token sudah kedaluwarsa.")
+    );
+  }
+};
+
 interface LoginParams {
   email: string;
   password: string;
