@@ -52,10 +52,10 @@ const ROLES = [
 
 const setRole = (role: string | null) => {
   if (role === null) {
-    window.localStorage.removeItem("user");
+    window.localStorage.removeItem("auth_role");
     return;
   }
-  window.localStorage.setItem("user", JSON.stringify({ role }));
+  window.localStorage.setItem("auth_role", role);
 };
 
 const can = (resource: string, action: string) =>

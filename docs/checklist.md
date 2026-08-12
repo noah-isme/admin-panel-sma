@@ -1,12 +1,12 @@
 # Admin/API Release Checklist
 
-> **Reviewed:** 2026-08-09
+> **Reviewed:** 2026-08-12
 > **Scope:** admin-panel-sma and sma-adp-api
 
 ## Contract changes
 
-- [x] Auth refresh sends refresh_token, unwraps the Go envelope, and rotates storage.
-- [x] Auth logout sends refresh_token and server-side revocation is tested.
+- [x] Auth refresh includes credentials, unwraps the Go envelope, and rotates the HttpOnly cookie.
+- [x] Auth logout includes credentials, clears/revokes the cookie, and remains callable after access expiry.
 - [x] Individual Vite feature flags and explicit false overrides are tested.
 - [x] Student/teacher roster status and sort aliases match the admin pages.
 - [x] Grade report filters, status predicates, joins, sort aliases, and totals are implemented.
@@ -20,8 +20,8 @@
 - [x] Swagger route validator.
 - [x] Static compatibility smoke.
 - [ ] Seeded login → refresh → logout → refresh rejection smoke.
-- [ ] Full Go test/vet/build run in a configured environment.
-- [ ] Full admin typecheck/build run in a configured environment.
+- [x] Full Go test/vet/build run in a configured environment.
+- [x] Full admin typecheck/build run in a configured environment.
 
 ## Security and production gates
 

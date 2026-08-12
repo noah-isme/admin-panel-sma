@@ -71,6 +71,20 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// Access tokens are intentionally process-local. Refresh tokens are owned by
+// the HttpOnly cookie set by the API and must never be read by JavaScript.
+let accessToken: string | null = null;
+
+export const getAccessToken = () => accessToken;
+
+export const setAccessToken = (token: string | null) => {
+  accessToken = token;
+};
+
+export const clearAccessToken = () => {
+  accessToken = null;
+};
+
 let isRefreshing = false;
 let failedQueue: Array<{
   resolve: (token: string) => void;
@@ -89,39 +103,33 @@ const processQueue = (error: unknown, token: string | null = null) => {
 };
 
 export const refreshAccessToken = async (): Promise<string | null> => {
-  const refreshToken = localStorage.getItem("refresh_token");
-  if (!refreshToken) {
-    return null;
-  }
-
   try {
     const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ refresh_token: refreshToken }),
+      credentials: "include",
     });
 
     if (!response.ok) {
+      clearAccessToken();
       return null;
     }
 
-    // The Go API returns the token pair inside the common `{data: ...}`
+    // The Go API returns the access token inside the common `{data: ...}`
     // response envelope. Keep the legacy bare/camelCase shapes as a small
-    // compatibility concession for MSW and older deployments.
+    // compatibility concession for MSW and older deployments, but never
+    // persist a refresh token returned by an older server.
     const body = await response.json();
     const data = body?.data ?? body?.result ?? body;
     const accessToken = data?.accessToken ?? data?.access_token;
-    const newRefreshToken = data?.refreshToken ?? data?.refresh_token;
 
-    if (accessToken && newRefreshToken) {
-      localStorage.setItem("access_token", accessToken);
-      localStorage.setItem("refresh_token", newRefreshToken);
+    if (accessToken) {
+      setAccessToken(accessToken);
       return accessToken;
     }
+    clearAccessToken();
     return null;
   } catch {
+    clearAccessToken();
     return null;
   }
 };
@@ -158,7 +166,7 @@ api.interceptors.request.use(
     } catch {
       // ignore
     }
-    const token = localStorage.getItem("access_token");
+    const token = getAccessToken();
     if (token) {
       if (config.headers instanceof AxiosHeaders) {
         config.headers.set("Authorization", `Bearer ${token}`);
@@ -174,6 +182,9 @@ api.interceptors.request.use(
 );
 
 const clearStoredSession = () => {
+  clearAccessToken();
+  // Remove keys created by pre-cookie releases during migration. New code
+  // never writes these values and does not use them for authentication.
   localStorage.removeItem("access_token");
   localStorage.removeItem("refresh_token");
   localStorage.removeItem("accessToken");

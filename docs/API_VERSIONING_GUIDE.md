@@ -68,8 +68,9 @@ Within v1:
 - Use GET /features before rendering optional navigation. Build-time Vite
   flags are an offline/MSW fallback, not a second runtime route registry.
 - Use the common response envelope and the documented snake_case API payload.
-- For auth, refresh sends { "refresh_token": "..." }, unwraps the response
-  data, and logout sends the same field to the protected logout route.
+- For auth, the access token is memory-only; refresh/logout send browser
+  credentials so the API can rotate or clear its HttpOnly `refresh_token` cookie.
+  Refresh responses are unwrapped from `data`, and logout is a public 204 route.
 - Prefer canonical resource routes. Use compatibility routes only when their
   matrix row is marked integrated and the required aliases are documented.
 

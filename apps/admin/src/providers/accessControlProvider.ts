@@ -1,6 +1,6 @@
 import type { AccessControlProvider } from "@refinedev/core";
 
-const STORAGE_USER_KEY = "user";
+const STORAGE_ROLE_KEY = "auth_role";
 
 const ROLE_KEYS = [
   "SUPERADMIN",
@@ -211,12 +211,11 @@ const getStoredRole = (): Role | "GUEST" => {
   }
 
   try {
-    const userRaw = window.localStorage.getItem(STORAGE_USER_KEY);
-    if (!userRaw) {
+    const role = window.localStorage.getItem(STORAGE_ROLE_KEY);
+    if (!role) {
       return "GUEST";
     }
-    const payload = JSON.parse(userRaw) as { role?: string } | null;
-    return normalizeRole(payload?.role);
+    return normalizeRole(role);
   } catch (error) {
     console.warn("[accessControl] Failed to read stored role from localStorage", error);
     return "GUEST";

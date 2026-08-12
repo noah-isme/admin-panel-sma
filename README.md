@@ -470,7 +470,8 @@ Set variabel bantu:
 
 ```bash
 API_BASE=http://localhost:8081/api/v1
-TOKEN="$(curl -s -X POST "$API_BASE/auth/login" \
+COOKIE_JAR="$(mktemp)"
+TOKEN="$(curl -s -c "$COOKIE_JAR" -X POST "$API_BASE/auth/login" \
 	-H "Content-Type: application/json" \
 	-d '{"email":"superadmin@sma.test","password":"admin123"}' | jq -r '.data.access_token')"
 ```
@@ -487,25 +488,18 @@ curl -X POST "$API_BASE/auth/login" \
 
 ### Auth session lifecycle
 
-The Go API returns the token pair inside `data`. Refresh and logout both use the
-snake_case `refresh_token` body; logout also requires the matching access token
-and returns `204 No Content`.
+The Go API returns the access token inside `data` and sets an HttpOnly
+`refresh_token` cookie. The admin provider keeps the access token in memory and
+sends browser credentials for refresh/logout; neither endpoint accepts a token
+JSON body, and logout is idempotent with a `204 No Content` response.
 
 ```bash
-REFRESH_TOKEN="<refresh_token_from_login>"
+curl -b "$COOKIE_JAR" -c "$COOKIE_JAR" -X POST "$API_BASE/auth/refresh"
 
-curl -X POST "$API_BASE/auth/refresh" \
-	-H "Content-Type: application/json" \
-	-d "{\"refresh_token\":\"$REFRESH_TOKEN\"}"
-
-curl -X POST "$API_BASE/auth/logout" \
-	-H "Content-Type: application/json" \
-	-H "Authorization: Bearer $TOKEN" \
-	-d "{\"refresh_token\":\"$REFRESH_TOKEN\"}"
+curl -b "$COOKIE_JAR" -c "$COOKIE_JAR" -X POST "$API_BASE/auth/logout"
 ```
 
-The admin provider stores `data.access_token` and `data.refresh_token` after a
-successful refresh and clears both values after logout.
+The refresh cookie is browser-managed and never exposed to frontend JavaScript.
 
 ### 2. CRUD siswa (contoh: create)
 

@@ -1,4 +1,10 @@
 import type { AuthProvider } from "@refinedev/core";
+import {
+  clearAccessToken,
+  getAccessToken,
+  refreshAccessToken,
+  setAccessToken,
+} from "./dataProvider";
 
 const sanitizeBaseUrl = (rawUrl?: string) => {
   // Prefer explicit env var when provided
@@ -101,7 +107,9 @@ export const resetPassword = async (token: string, newPassword: string): Promise
 };
 
 interface LoginParams {
-  email: string;
+  email?: string;
+  /** Refine's generic login form historically called this field username. */
+  username?: string;
   password: string;
 }
 
@@ -139,17 +147,18 @@ type MeEnvelope = Partial<MeResponse> & {
   class_id?: string | null;
 };
 
-// Helper to get tokens from localStorage
-const getAccessToken = () => localStorage.getItem("access_token");
-const getRefreshToken = () => localStorage.getItem("refresh_token");
-const setTokens = (accessToken: string, refreshToken: string) => {
-  localStorage.setItem("access_token", accessToken);
-  localStorage.setItem("refresh_token", refreshToken);
-};
+const AUTH_ROLE_KEY = "auth_role";
+let currentUser: MeResponse | null = null;
+
 const clearTokens = () => {
+  clearAccessToken();
+  // Remove keys created by pre-cookie releases during migration. New code
+  // never writes these values and does not use them for authentication.
   localStorage.removeItem("access_token");
   localStorage.removeItem("refresh_token");
   localStorage.removeItem("user");
+  localStorage.removeItem(AUTH_ROLE_KEY);
+  currentUser = null;
 };
 
 const unwrapTokenPayload = (payload: TokenResponse | null | undefined): TokenResponse | null => {
@@ -175,13 +184,11 @@ const normalizeTokens = (tokens: TokenResponse | null | undefined) => {
   }
 
   const accessToken = payload.accessToken ?? payload.access_token;
-  const refreshToken = payload.refreshToken ?? payload.refresh_token;
-
-  if (!accessToken || !refreshToken) {
+  if (!accessToken) {
     return null;
   }
 
-  return { accessToken, refreshToken };
+  return { accessToken };
 };
 
 const normalizeUser = (payload: MeEnvelope | null | undefined): MeResponse | null => {
@@ -205,25 +212,25 @@ const normalizeUser = (payload: MeEnvelope | null | undefined): MeResponse | nul
   };
 };
 
-const readStoredUser = (): MeResponse | null => {
-  const value = localStorage.getItem("user");
-  if (!value) return null;
-
-  try {
-    return normalizeUser(JSON.parse(value) as MeEnvelope);
-  } catch {
-    return null;
-  }
+const rememberUser = (user: MeResponse) => {
+  currentUser = user;
+  // Role is authorization metadata, not a user profile. Keep only this small
+  // value across reloads; names, emails, and identifiers stay out of storage.
+  localStorage.setItem(AUTH_ROLE_KEY, user.role);
 };
 
+const readCurrentRole = (): string | null =>
+  currentUser?.role ?? localStorage.getItem(AUTH_ROLE_KEY);
+
 export const authProvider: AuthProvider = {
-  login: async ({ email, password }: LoginParams) => {
+  login: async ({ email, username, password }: LoginParams) => {
     try {
       const url = resolveEndpoint("auth/login");
+      const loginEmail = email ?? username ?? "";
 
       // Log the outgoing login attempt (mask password)
       try {
-        console.info("[authProvider] POST", url, { email, password: "••••" });
+        console.info("[authProvider] POST", url, { email: loginEmail, password: "••••" });
       } catch {
         // ignore
       }
@@ -231,7 +238,8 @@ export const authProvider: AuthProvider = {
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        credentials: "include",
+        body: JSON.stringify({ email: loginEmail, password }),
       });
 
       if (!response.ok) {
@@ -273,37 +281,39 @@ export const authProvider: AuthProvider = {
         };
       }
 
-      const { accessToken, refreshToken } = normalizedTokens;
+      const { accessToken } = normalizedTokens;
 
-      // Store tokens first
-      setTokens(accessToken, refreshToken);
+      // Keep the access token only in process memory. The API has already set
+      // the refresh token as an HttpOnly cookie.
+      setAccessToken(accessToken);
 
       // If backend already returned user, store it. Otherwise try fetching /auth/me
       const loginPayload = unwrapTokenPayload(body);
       const loginUser = normalizeUser(loginPayload?.user);
       if (loginUser) {
-        localStorage.setItem("user", JSON.stringify(loginUser));
+        rememberUser(loginUser);
       }
 
       try {
         const meResponse = await fetch(resolveEndpoint("auth/me"), {
+          credentials: "include",
           headers: { Authorization: `Bearer ${accessToken}` },
         });
 
         if (meResponse.ok) {
           const user = normalizeUser((await meResponse.json()) as MeEnvelope);
           if (user) {
-            localStorage.setItem("user", JSON.stringify(user));
+            rememberUser(user);
           } else if (!loginUser) {
-            localStorage.removeItem("user");
+            currentUser = null;
           }
         } else if (!loginUser) {
-          localStorage.removeItem("user");
+          currentUser = null;
         }
       } catch (error) {
         console.error("Failed to fetch user profile after login", error);
         if (!loginUser) {
-          localStorage.removeItem("user");
+          currentUser = null;
         }
       }
 
@@ -321,18 +331,16 @@ export const authProvider: AuthProvider = {
 
   logout: async () => {
     const accessToken = getAccessToken();
-    const refreshToken = getRefreshToken();
 
-    if (accessToken && refreshToken) {
+    if (accessToken) {
       try {
-        // Call logout endpoint to invalidate tokens
+        // The API reads and revokes the HttpOnly refresh cookie.
         await fetch(resolveEndpoint("/auth/logout"), {
           method: "POST",
+          credentials: "include",
           headers: {
-            "Content-Type": "application/json",
             Authorization: `Bearer ${accessToken}`,
           },
-          body: JSON.stringify({ refresh_token: refreshToken }),
         });
       } catch (error) {
         console.error("Logout API call failed:", error);
@@ -347,7 +355,13 @@ export const authProvider: AuthProvider = {
   },
 
   check: async () => {
-    const token = getAccessToken();
+    let token = getAccessToken();
+
+    // A full-page reload clears the in-memory access token. Bootstrap it from
+    // the HttpOnly refresh cookie before checking the authenticated user.
+    if (!token) {
+      token = await refreshAccessToken();
+    }
 
     console.info("[auth] checkAuth", {
       hasToken: Boolean(token),
@@ -362,6 +376,7 @@ export const authProvider: AuthProvider = {
     // Optionally verify token with backend
     try {
       const response = await fetch(resolveEndpoint("auth/me"), {
+        credentials: "include",
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -382,11 +397,11 @@ export const authProvider: AuthProvider = {
   },
 
   getPermissions: async () => {
-    return readStoredUser()?.role ?? null;
+    return readCurrentRole();
   },
 
   getIdentity: async () => {
-    const user = readStoredUser();
+    const user = currentUser;
     if (user) {
       return {
         id: user.id,
@@ -396,13 +411,17 @@ export const authProvider: AuthProvider = {
       };
     }
 
-    const token = getAccessToken();
+    let token = getAccessToken();
+    if (!token) {
+      token = await refreshAccessToken();
+    }
     if (!token) {
       return null;
     }
 
     try {
       const response = await fetch(resolveEndpoint("auth/me"), {
+        credentials: "include",
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -412,7 +431,7 @@ export const authProvider: AuthProvider = {
 
       const user = normalizeUser((await response.json()) as MeEnvelope);
       if (!user) return null;
-      localStorage.setItem("user", JSON.stringify(user));
+      rememberUser(user);
 
       return {
         id: user.id,

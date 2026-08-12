@@ -203,10 +203,9 @@ export const CalendarPage: React.FC = () => {
     }
     if (typeof window !== "undefined") {
       try {
-        const raw = window.localStorage.getItem("user");
-        if (raw) {
-          const parsed = JSON.parse(raw) as { role?: string } | null;
-          return parsed?.role ?? undefined;
+        const role = window.localStorage.getItem("auth_role");
+        if (role) {
+          return role;
         }
       } catch {
         // ignore localStorage issues
