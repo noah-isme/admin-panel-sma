@@ -8,6 +8,7 @@
     "dev": "concurrently -n admin,landing -c cyan,yellow \"pnpm --filter @apps/admin dev\" \"pnpm --filter @apps/landing dev\"",
     "dev:admin": "pnpm --filter @apps/admin dev",
     "dev:landing": "pnpm --filter @apps/landing dev",
+    "dev:portal": "pnpm --filter @apps/portal dev",
     "build": "pnpm -r build",
     "lint": "eslint .",
     "test": "pnpm -r test",
