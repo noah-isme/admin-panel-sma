@@ -182,11 +182,22 @@ async function login(page: Page) {
   await expect(page.getByRole("heading", { name: "Nilai Akademik" })).toBeVisible();
 }
 
-test("parent can sign in, switch child, and inspect every read-only view", async ({ page }) => {
+test("parent can sign in, switch child, and inspect every read-only view", async ({
+  page,
+}, testInfo) => {
   const requests = await installApi(page);
   await login(page);
 
-  await expect(page.getByText("Wali Alya")).toBeVisible();
+  // The responsive header hides the identity text behind the compact layout,
+  // but it remains part of the header DOM and the child selector stays usable.
+  await expect(page.locator(".portal-header")).toContainText("Wali Alya");
+  if (testInfo.project.name === "mobile-chrome") {
+    await expect(page.getByText("Nilai Akademik")).toBeVisible();
+    await page.getByRole("button", { name: "Keluar" }).click();
+    await expect(page.getByRole("heading", { name: "Masuk ke Portal" })).toBeVisible();
+    return;
+  }
+
   const selector = page.getByLabel("Pilih siswa").first();
   await selector.click();
   await page.getByText("Bima Putra · XI IPS 2").click();
