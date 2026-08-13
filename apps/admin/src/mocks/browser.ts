@@ -35,8 +35,19 @@ export const worker = {
     const { createHandlers } = await import("./handlers");
     const handlers = await createHandlers();
     const w = setupWorkerFn(...(Array.isArray(handlers) ? handlers : []));
-    return w.start({ onUnhandledRequest: "bypass", ...(opts ?? {}) }).then(() => {
-      console.info("MSW started (dev)");
-    });
+    // The combined Vercel deployment copies the worker to the output root so
+    // it can control the /api mock endpoint from the /admin application.
+    const serviceWorker =
+      import.meta.env.VITE_VERCEL_ENV === "preview" ? { url: "/mockServiceWorker.js" } : undefined;
+
+    return w
+      .start({
+        ...(serviceWorker ? { serviceWorker } : {}),
+        onUnhandledRequest: "bypass",
+        ...(opts ?? {}),
+      })
+      .then(() => {
+        console.info("MSW started (dev)");
+      });
   },
 };

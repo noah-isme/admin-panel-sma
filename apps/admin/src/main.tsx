@@ -466,12 +466,12 @@ const resourceRouteConfig: Record<
 
 const dataProvider = resolveDataProvider();
 // In production, MSW must NEVER be active — it can crash the app when
-// importing ./mocks/browser in a bundled context.  Only enable when
-// explicitly running in dev mode or when the flag is truthy AND we are
-// actually in dev.
+// importing ./mocks/browser in a bundled context. It is allowed for local
+// development and Vercel previews, where the top-level deployment config
+// sets VITE_VERCEL_ENV=preview and points API requests at the same origin.
 const ENABLE_MSW =
   (import.meta.env.VITE_USE_MSW ?? import.meta.env.VITE_ENABLE_MSW) === "true" &&
-  import.meta.env.DEV;
+  (import.meta.env.DEV || import.meta.env.VITE_VERCEL_ENV === "preview");
 
 // Feature flag untuk mematikan layout kustom via env
 const disableCustomLayout = import.meta.env.VITE_DISABLE_CUSTOM_LAYOUT === "true";

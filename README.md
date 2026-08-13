@@ -244,25 +244,35 @@ Catatan: scripts `compose:*` tersedia di `package.json` pada root.
 
 ## Alur deploy
 
-### Admin (Vercel)
+### Frontend gabungan (Vercel)
 
-1. Hubungkan repository ke Vercel.
-2. Di **Project Settings** → **General**, set:
-   - **Root Directory**: `apps/admin` (penting untuk monorepo!)
-   - **Framework Preset**: Other (atau Vite jika tersedia)
-3. Vercel akan otomatis mendeteksi `vercel.json` di `apps/admin/`:
-   - **Install Command**: `cd ../.. && pnpm install`
-   - **Build Command**: `cd ../.. && pnpm --filter @apps/shared build && pnpm --filter @apps/admin build`
-   - **Output Directory**: `dist`
-4. Di **Environment Variables**, tambahkan:
-   - `VITE_API_URL`: URL Go API produksi (mis. `https://api.example.sch.id/api/v1`)
-5. Deploy; Vercel akan melayani aplikasi admin statis.
+Konfigurasi produksi menggunakan `admin-panel-sma/vercel.json` dari root proyek
+Vercel. Satu deployment menerbitkan landing page pada `/` dan admin pada `/admin`.
 
-> **Catatan Penting**:
->
-> - Root Directory harus di-set ke `apps/admin` karena ini monorepo
-> - Build command perlu `cd ../..` untuk kembali ke root agar pnpm workspace bekerja
-> - Shared package di-build terlebih dahulu sebelum admin
+1. Hubungkan repository ke Vercel dan set **Root Directory** ke `admin-panel-sma`.
+2. Gunakan **Framework Preset** `Other`, **Production Branch** `main`, dan
+   **Node.js Version** `20.x`.
+3. Jangan mengganti perintah dari `vercel.json`:
+   - **Install Command**: `pnpm install --frozen-lockfile`
+   - Build menjalankan `@apps/shared`, `@apps/landing`, dan `@apps/admin`, lalu
+     menggabungkan hasilnya menjadi `deploy/` (`/` dan `/admin/`).
+   - Output directory: `deploy`.
+4. Atur Environment Variables di **Project Settings** (jangan commit URL API):
+
+   | Environment | `VITE_API_URL`                      | `VITE_BASE_PATH` | `VITE_USE_MSW` | `VITE_ENABLE_MSW` | `VITE_VERCEL_ENV` |
+   | ----------- | ----------------------------------- | ---------------- | -------------- | ----------------- | ----------------- |
+   | Production  | `https://api.example.sch.id/api/v1` | `/admin/`        | `false`        | `false`           | `production`      |
+   | Preview     | `/api`                              | `/admin/`        | `true`         | `true`            | `preview`         |
+
+   Preview wajib menggunakan `/api` dan MSW, sehingga tidak pernah membawa URL
+   API produksi ke bundle preview. `apps/admin/vite.config.ts` juga memaksa
+   nilai aman berdasarkan `VERCEL_ENV` sebagai guardrail build-time.
+
+5. Setelah deploy, verifikasi `/`, `/admin/`, `/admin/login`, dan satu route
+   admin langsung (misalnya `/admin/students`) setelah refresh.
+
+Panduan lengkap, termasuk perintah audit environment variable dan rollback
+Vercel, tersedia di [`docs/VERCEL_DEPLOYMENT.md`](docs/VERCEL_DEPLOYMENT.md).
 
 ### Go API & Worker (Railway/Production)
 
@@ -293,17 +303,17 @@ Backend API sekarang menggunakan Go (sma-adp-api repository terpisah). Deploy me
 
 ## Troubleshooting
 
-### Error: "No Output Directory named 'dist' found" di Vercel
+### Error: "No Output Directory named 'deploy' found" di Vercel
 
 **Masalah**: Vercel tidak menemukan output directory setelah build selesai.
 
 **Solusi**:
 
-1. Pastikan **Root Directory** di-set ke `apps/admin` di Project Settings → General di dashboard Vercel
-2. Output Directory harus `dist` (relatif dari root directory yang sudah di-set, bukan `apps/admin/dist`)
-3. Build command harus `cd ../.. && pnpm --filter @apps/shared build && pnpm --filter @apps/admin build`
-4. Install command harus `cd ../.. && pnpm install`
-5. Vercel akan membaca konfigurasi dari `apps/admin/vercel.json`
+1. Pastikan **Root Directory** di-set ke `admin-panel-sma` di Project Settings → General.
+2. Output Directory harus `deploy` dan install command harus menggunakan `--frozen-lockfile`.
+3. Pastikan build menghasilkan `deploy/index.html`, `deploy/admin/index.html`, dan
+   `deploy/mockServiceWorker.js`.
+4. Vercel hanya membaca konfigurasi gabungan dari `admin-panel-sma/vercel.json`.
 
 ### Build Error: "is not exported by" saat deploy ke Vercel
 

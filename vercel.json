@@ -1,22 +1,14 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "pnpm --filter @apps/shared build && pnpm --filter @apps/landing build && pnpm --filter @apps/admin build && rm -rf deploy && mkdir -p deploy/admin && cp -r apps/landing/dist/* deploy/ && cp -r apps/admin/dist/* deploy/admin/",
+  "buildCommand": "pnpm --filter @apps/shared build && pnpm --filter @apps/landing build && pnpm --filter @apps/admin build && rm -rf deploy && mkdir -p deploy/admin && cp -r apps/landing/dist/* deploy/ && cp -r apps/admin/dist/* deploy/admin/ && cp apps/admin/dist/mockServiceWorker.js deploy/mockServiceWorker.js",
   "outputDirectory": "deploy",
-  "installCommand": "pnpm install",
+  "installCommand": "pnpm install --frozen-lockfile",
   "rewrites": [
     { "handle": "filesystem" },
+    { "source": "/admin", "destination": "/admin/index.html" },
     { "source": "/admin/(.*)", "destination": "/admin/index.html" },
-    { "source": "/((?!admin/).*)", "destination": "/index.html" }
+    { "source": "/((?!admin(?:/|$)).*)", "destination": "/index.html" }
   ],
-  "env": {
-    "VITE_BASE_PATH": "/admin/"
-  },
-  "preview": {
-    "env": {
-      "VITE_ENABLE_MSW": "true",
-      "VITE_USE_MSW": "true"
-    }
-  },
   "headers": [
     {
       "source": "/(.*)",

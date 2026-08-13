@@ -3,12 +3,25 @@ import react from "@vitejs/plugin-react";
 import path from "node:path";
 
 export default defineConfig(({ mode }) => ({
-  // In production, Vercel serves this app at the root (/) when using
-  // Root Directory = apps/admin (the standard setup documented in README).
-  // In that case, base should be "/".  For the combined deployment (root
-  // vercel.json serving admin at /admin/), override this by setting
-  // VITE_BASE_PATH="/admin/" as a Vercel Environment Variable.
-  base: process.env.VITE_BASE_PATH ?? (mode === "production" ? "/" : "/admin/"),
+  // The top-level Vercel project publishes the admin bundle below /admin/.
+  // Vercel's system VERCEL_ENV is available during the build, so this stays
+  // correct even when VITE_BASE_PATH is not duplicated in Project Settings.
+  base:
+    process.env.VITE_BASE_PATH ??
+    (process.env.VERCEL_ENV ? "/admin/" : mode === "production" ? "/" : "/admin/"),
+  // Keep preview bundles hermetic: they must never inherit the production API
+  // URL and always use the committed MSW fixtures. Production explicitly
+  // disables MSW while retaining its configured VITE_API_URL.
+  define: process.env.VERCEL_ENV
+    ? {
+        "import.meta.env.VITE_VERCEL_ENV": JSON.stringify(process.env.VERCEL_ENV),
+        "import.meta.env.VITE_USE_MSW": JSON.stringify(process.env.VERCEL_ENV === "preview"),
+        "import.meta.env.VITE_ENABLE_MSW": JSON.stringify(process.env.VERCEL_ENV === "preview"),
+        ...(process.env.VERCEL_ENV === "preview"
+          ? { "import.meta.env.VITE_API_URL": JSON.stringify("/api") }
+          : {}),
+      }
+    : undefined,
   plugins: [react()],
   resolve: {
     alias: {

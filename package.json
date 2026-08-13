@@ -4,6 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "packageManager": "pnpm@9.7.1",
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "dev": "concurrently -n admin,landing -c cyan,yellow \"pnpm --filter @apps/admin dev\" \"pnpm --filter @apps/landing dev\"",
     "dev:admin": "pnpm --filter @apps/admin dev",
