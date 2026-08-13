@@ -35,14 +35,18 @@ import { ClassesCreate } from "./pages/classes-create";
 import { ClassesEdit } from "./pages/classes-edit";
 import { SubjectsCreate } from "./pages/subjects-create";
 import { SubjectsEdit } from "./pages/subjects-edit";
+import { SubjectsPage } from "./pages/subjects";
 import { TermsCreate } from "./pages/terms-create";
 import { TermsEdit } from "./pages/terms-edit";
+import { TermsPage } from "./pages/terms";
 import { SchedulesCreate } from "./pages/schedules-create";
 import { SchedulesEdit } from "./pages/schedules-edit";
 import { EnrollmentsCreate } from "./pages/enrollments-create";
 import { EnrollmentsEdit } from "./pages/enrollments-edit";
+import { EnrollmentsPage } from "./pages/enrollments";
 import { GradeComponentsCreate } from "./pages/grade-components-create";
 import { GradeComponentsEdit } from "./pages/grade-components-edit";
+import { GradeComponentsPage } from "./pages/grade-components";
 import { GradesEdit } from "./pages/grades-edit";
 import {
   BookOutlined,
@@ -91,6 +95,7 @@ import { StudentsPage } from "./pages/students";
 import { TeachersPage } from "./pages/teachers";
 import { GradesAnalyticsPage } from "./pages/grades-analytics";
 import { BehaviorAnalyticsPage } from "./pages/behavior-analytics";
+import { AnalyticsDrilldownPage } from "./pages/analytics-drilldown";
 
 import "@refinedev/antd/dist/reset.css";
 import "antd/dist/reset.css";
@@ -576,6 +581,14 @@ async function bootstrap() {
                                 <StudentsPage />
                               ) : resource.name === "teachers" ? (
                                 <TeachersPage />
+                              ) : resource.name === "subjects" ? (
+                                <SubjectsPage />
+                              ) : resource.name === "terms" ? (
+                                <TermsPage />
+                              ) : resource.name === "enrollments" ? (
+                                <EnrollmentsPage />
+                              ) : resource.name === "grade-components" ? (
+                                <GradeComponentsPage />
                               ) : resource.name === "users" ? (
                                 <UsersPage />
                               ) : resource.name === "homerooms" ? (
@@ -677,6 +690,16 @@ async function bootstrap() {
                           ) : null}
                         </Route>
                       ))}
+                      <Route
+                        path="analytics/:resource/:id"
+                        element={
+                          isFeatureEnabled("analytics") ? (
+                            <AnalyticsDrilldownPage />
+                          ) : (
+                            <ErrorComponent />
+                          )
+                        }
+                      />
                       <Route
                         path="setup"
                         element={

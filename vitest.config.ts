@@ -5,12 +5,17 @@ export default defineConfig({
   resolve: {
     alias: {
       "@shared": resolve(__dirname, "apps/shared/dist"),
-      "@api": resolve(__dirname, "apps/api/src"),
     },
   },
   test: {
-    include: ["apps/api/**/*.spec.ts"],
-    environment: "node",
-    setupFiles: ["apps/api/test/setup.ts"],
+    include: [
+      "apps/admin/**/*.test.ts",
+      "apps/admin/**/*.test.tsx",
+      "apps/shared/**/*.test.ts",
+      "src/tests/contracts/**/*.test.ts",
+      "src/tests/contracts/**/*.ts",
+    ],
+    environment: "jsdom",
+    setupFiles: ["apps/admin/test/setupTests.ts"],
   },
 });

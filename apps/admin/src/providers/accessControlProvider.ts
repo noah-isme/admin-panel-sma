@@ -62,6 +62,7 @@ const RBAC_MATRIX: Record<Role | "GUEST", RolePermissions> = {
     settings: CRUD_ACTIONS,
     documents: CRUD_ACTIONS,
     reports: RW_ACTIONS,
+    analytics: READ_ACTIONS,
     mutations: CRUD_ACTIONS,
     archives: RW_ACTIONS,
     "audit-logs": EMPTY_ACTIONS,
@@ -70,6 +71,7 @@ const RBAC_MATRIX: Record<Role | "GUEST", RolePermissions> = {
     attendance: RW_ACTIONS,
     grades: RW_ACTIONS,
     reports: RW_ACTIONS,
+    analytics: READ_ACTIONS,
     mutations: READ_ACTIONS,
     archives: READ_ACTIONS,
     classes: READ_ACTIONS,
@@ -101,6 +103,7 @@ const RBAC_MATRIX: Record<Role | "GUEST", RolePermissions> = {
     mutations: READ_ACTIONS,
     archives: READ_ACTIONS,
     reports: RW_ACTIONS,
+    analytics: READ_ACTIONS,
   },
   KEPALA_SEKOLAH: {
     // GET /dashboard returns school-wide aggregates, which is the principal's
@@ -111,6 +114,7 @@ const RBAC_MATRIX: Record<Role | "GUEST", RolePermissions> = {
     archives: READ_ACTIONS,
     attendance: READ_ACTIONS,
     grades: READ_ACTIONS,
+    analytics: READ_ACTIONS,
     students: READ_ACTIONS,
     announcements: ["approve"],
     "class-subjects": READ_ACTIONS,
@@ -126,6 +130,7 @@ const RBAC_MATRIX: Record<Role | "GUEST", RolePermissions> = {
   SISWA: {
     attendance: READ_ACTIONS,
     grades: READ_ACTIONS,
+    analytics: READ_ACTIONS,
     classes: READ_ACTIONS,
     announcements: READ_ACTIONS,
     schedules: READ_ACTIONS,

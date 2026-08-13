@@ -2358,6 +2358,21 @@ export async function createHandlers() {
       })
     ),
 
+    http.post(/\/api(?:\/v1)?\/terms\/set-active$/, async ({ request }) => {
+      const body = (await request.json().catch(() => ({}))) as { id?: string };
+      const id = String(body.id ?? "");
+      const activeTerm = terms.find((term) => term.id === id);
+      if (!activeTerm) {
+        return HttpResponse.json({ message: "Not found" }, { status: 404 });
+      }
+      terms.forEach((term) => {
+        term.isActive = term.id === id;
+        term.active = term.isActive;
+      });
+      stores.terms = terms;
+      return HttpResponse.json(activeTerm, { status: 200 });
+    }),
+
     http.get(resourcePathRegex, ({ request }) => {
       const parsed = parseResourceRequest(request);
       if (!parsed) {

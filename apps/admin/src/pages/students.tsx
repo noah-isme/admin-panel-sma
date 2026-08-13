@@ -46,6 +46,7 @@ import { useNavigation } from "@refinedev/core";
 import { useAppNotification } from "../hooks/use-app-notification";
 import { useQuery } from "@tanstack/react-query";
 import { httpClient } from "../providers/dataProvider";
+import { downloadAuthenticatedFile } from "../utils/download";
 
 import type {
   StudentGenderCode,
@@ -278,13 +279,24 @@ export const StudentsPage: React.FC = () => {
         };
         input.click();
       } else if (action === "export") {
-        const url = httpClient.getUri({ url: "/export/students", params: queryParams });
-        window.location.href = url;
+        const params: Record<string, string> = {};
+        if (filtersState.classId) params.classId = filtersState.classId;
+        if (filtersState.status && filtersState.status !== "all") {
+          params.status = filtersState.status;
+        }
+        if (filtersState.gender && filtersState.gender !== "all") {
+          params.gender = filtersState.gender;
+        }
+        void downloadAuthenticatedFile({
+          url: "/export/students",
+          params,
+          filename: "students.csv",
+        }).catch(() => message.error("Export CSV siswa gagal."));
       } else {
         message.info("Perubahan status massal membutuhkan endpoint khusus.");
       }
     },
-    [queryParams]
+    [filtersState]
   );
 
   const handleRowAction = useCallback(
@@ -597,7 +609,7 @@ export const StudentsPage: React.FC = () => {
                   Import CSV
                 </Button>
                 <Button icon={<DownloadOutlined />} onClick={() => handleBulkAction("export")}>
-                  Export Excel
+                  Export CSV
                 </Button>
                 <Button icon={<EditOutlined />} onClick={() => handleBulkAction("bulk-status")}>
                   Ubah status massal

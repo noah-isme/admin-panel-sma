@@ -9,6 +9,7 @@ import { accessControlProvider, declaredResources } from "../providers/accessCon
  * Sourced from the route table in sma-adp-api/cmd/api-gateway/main.go.
  */
 const API_RESOURCES = new Set([
+  "analytics",
   "announcements",
   "archives",
   "attendance",

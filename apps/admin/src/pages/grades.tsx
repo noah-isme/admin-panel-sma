@@ -10,8 +10,6 @@ import {
   EditOutlined,
   ExclamationCircleFilled,
   EyeOutlined,
-  FileExcelOutlined,
-  FilePdfOutlined,
   FilterOutlined,
   MoreOutlined,
   ReloadOutlined,
@@ -56,6 +54,7 @@ import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
 
 import { httpClient } from "../providers/dataProvider";
+import { downloadAuthenticatedFile } from "../utils/download";
 import type { GradeReportResponse, GradeReportRow, GradeStatusCode } from "../types/grade-report";
 
 type TabKey = "list" | "distribution" | "export";
@@ -577,13 +576,25 @@ export const GradesPage: React.FC = () => {
     [pagination.current, pagination.pageSize, totalRecords]
   );
 
-  const handleExport = useCallback(
-    (kind: "pdf" | "xlsx" | "summary") => {
-      const url = httpClient.getUri({ url: "/export/grades", params: { ...queryParams, kind } });
-      window.location.href = url;
-    },
-    [queryParams]
-  );
+  const handleExport = useCallback(() => {
+    const params: Record<string, string> = {};
+    if (filtersState.classId) params.classId = filtersState.classId;
+    if (filtersState.subjectId) params.subjectId = filtersState.subjectId;
+    if (filtersState.componentId) params.componentId = filtersState.componentId;
+    if (filtersState.status !== "ALL") params.status = filtersState.status;
+
+    void downloadAuthenticatedFile({
+      url: "/export/grades",
+      params,
+      filename: "grades.csv",
+    }).catch(() => {
+      notifyOpen?.({
+        type: "error",
+        message: "Export CSV nilai gagal",
+        description: "Periksa filter atau coba lagi setelah beberapa saat.",
+      });
+    });
+  }, [filtersState, notifyOpen]);
 
   const enterpriseCardStyle: React.CSSProperties = {
     border: "1px solid #e2e8f0",
@@ -902,22 +913,12 @@ export const GradesPage: React.FC = () => {
           <Card title="Cetak dan ekspor laporan" style={enterpriseCardStyle}>
             <Space direction="vertical" size="large" style={{ width: "100%" }}>
               <Typography.Paragraph>
-                Ekspor laporan nilai berbasis filter aktif untuk dibagikan ke TU atau kepala
-                sekolah. Integrasi dengan backend akan menambahkan penomoran dan metadata otomatis.
+                Ekspor CSV mengikuti filter kelas, mata pelajaran, komponen, dan status yang sedang
+                aktif pada daftar nilai.
               </Typography.Paragraph>
               <Space wrap>
-                <Button
-                  icon={<FilePdfOutlined />}
-                  type="primary"
-                  onClick={() => handleExport("pdf")}
-                >
-                  Cetak PDF laporan kelas
-                </Button>
-                <Button icon={<FileExcelOutlined />} onClick={() => handleExport("xlsx")}>
-                  Ekspor Excel data mentah
-                </Button>
-                <Button icon={<BarChartOutlined />} onClick={() => handleExport("summary")}>
-                  Rekap ringkas (KKM & remedial)
+                <Button icon={<DownloadOutlined />} type="primary" onClick={handleExport}>
+                  Ekspor CSV sesuai filter
                 </Button>
               </Space>
             </Space>

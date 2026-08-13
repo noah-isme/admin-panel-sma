@@ -25,6 +25,7 @@ import {
 import type { IdentityPayload } from "../types/identity";
 import { useAppNotification } from "../hooks/use-app-notification";
 import { httpClient } from "../providers/dataProvider";
+import { downloadAuthenticatedFile } from "../utils/download";
 import { ResourceActionGuard } from "../components/resource-action-guard";
 import { usePersistentSelection } from "../hooks/use-persistent-selection";
 import { DownloadOutlined } from "@ant-design/icons";
@@ -423,15 +424,23 @@ export const AttendanceLessonPage: React.FC = () => {
 
   const downloadCsv = () => {
     if (!selectedMapping) return;
-    const url = httpClient.getUri({
+    const dateTo = date.format(DATE_FORMAT);
+    const dateFrom = date.clone().subtract(6, "day").format(DATE_FORMAT);
+    void downloadAuthenticatedFile({
       url: "/export/attendance",
       params: {
-        subjectId: selectedMapping.subjectId,
-        date: date.format(DATE_FORMAT),
         classId: selectedMapping.classroomId,
+        date_from: dateFrom,
+        date_to: dateTo,
       },
+      filename: `attendance-${dateFrom}-${dateTo}.csv`,
+    }).catch(() => {
+      notify?.({
+        type: "error",
+        message: "Export CSV absensi gagal",
+        description: "Periksa koneksi atau coba lagi setelah beberapa saat.",
+      });
     });
-    window.location.href = url;
   };
 
   return (
