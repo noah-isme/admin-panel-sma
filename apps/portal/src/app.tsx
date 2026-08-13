@@ -265,7 +265,11 @@ function PortalShell() {
               {selectedStudent.className ? ` · ${selectedStudent.className}` : ""}
             </Text>
           )}
-          <PortalView view={view} studentId={activeStudentId} />
+          <PortalView
+            key={`${view}:${activeStudentId ?? ""}`}
+            view={view}
+            studentId={activeStudentId}
+          />
         </Content>
       </Layout>
     </Layout>
@@ -280,6 +284,7 @@ function PortalView({ view, studentId }: { view: View; studentId?: string }) {
   useEffect(() => {
     let active = true;
     setLoading(true);
+    setData(undefined);
     setError(undefined);
     const token = session!.accessToken;
     const query = { studentId };
