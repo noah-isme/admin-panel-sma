@@ -11,7 +11,14 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: [["html", { open: "never", outputFolder: "playwright-report" }], ["list"]],
   timeout: 60_000,
-  expect: { timeout: 10_000 },
+  expect: {
+    timeout: 10_000,
+    toHaveScreenshot: {
+      maxDiffPixelRatio: 0.01,
+      threshold: 0.2,
+      animations: "disabled",
+    },
+  },
   use: {
     baseURL,
     trace: "retain-on-failure",
