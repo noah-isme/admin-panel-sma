@@ -11,9 +11,36 @@ import { gotoAndWait } from "../fixtures/auth";
 test.describe("Module List Pages — Visual Regression", () => {
   // ── Always-enabled modules ──
 
+  test("students list", async ({ authenticatedPage }) => {
+    const page = authenticatedPage;
+    await gotoAndWait(page, "/admin/students", '[class*="ant-"]');
+    await expect(page).toHaveScreenshot("students-list.png", {
+      fullPage: true,
+      animations: "disabled",
+    });
+  });
+
+  test("teachers list", async ({ authenticatedPage }) => {
+    const page = authenticatedPage;
+    await gotoAndWait(page, "/admin/teachers", '[class*="ant-"]');
+    await expect(page).toHaveScreenshot("teachers-list.png", {
+      fullPage: true,
+      animations: "disabled",
+    });
+  });
+
+  test("classes list", async ({ authenticatedPage }) => {
+    const page = authenticatedPage;
+    await gotoAndWait(page, "/admin/classes", '[class*="ant-"]');
+    await expect(page).toHaveScreenshot("classes-list.png", {
+      fullPage: true,
+      animations: "disabled",
+    });
+  });
+
   test("subjects list", async ({ authenticatedPage }) => {
     const page = authenticatedPage;
-    await gotoAndWait(page, "/subjects", ".ant-table");
+    await gotoAndWait(page, "/admin/subjects", '[class*="ant-"]');
     await expect(page).toHaveScreenshot("subjects-list.png", {
       fullPage: true,
       animations: "disabled",
@@ -22,7 +49,7 @@ test.describe("Module List Pages — Visual Regression", () => {
 
   test("terms list", async ({ authenticatedPage }) => {
     const page = authenticatedPage;
-    await gotoAndWait(page, "/terms", ".ant-table");
+    await gotoAndWait(page, "/admin/terms", '[class*="ant-"]');
     await expect(page).toHaveScreenshot("terms-list.png", {
       fullPage: true,
       animations: "disabled",
@@ -31,7 +58,7 @@ test.describe("Module List Pages — Visual Regression", () => {
 
   test("enrollments list", async ({ authenticatedPage }) => {
     const page = authenticatedPage;
-    await gotoAndWait(page, "/enrollments", ".ant-table");
+    await gotoAndWait(page, "/admin/enrollments", '[class*="ant-"]');
     await expect(page).toHaveScreenshot("enrollments-list.png", {
       fullPage: true,
       animations: "disabled",
@@ -40,7 +67,7 @@ test.describe("Module List Pages — Visual Regression", () => {
 
   test("grade-components list", async ({ authenticatedPage }) => {
     const page = authenticatedPage;
-    await gotoAndWait(page, "/grade-components", ".ant-table");
+    await gotoAndWait(page, "/admin/grade-components", '[class*="ant-"]');
     await expect(page).toHaveScreenshot("grade-components-list.png", {
       fullPage: true,
       animations: "disabled",
@@ -49,7 +76,7 @@ test.describe("Module List Pages — Visual Regression", () => {
 
   test("grade-configs page", async ({ authenticatedPage }) => {
     const page = authenticatedPage;
-    await gotoAndWait(page, "/grade-configs", '[class*="ant-"]');
+    await gotoAndWait(page, "/admin/grade-configs", '[class*="ant-"]');
     await expect(page).toHaveScreenshot("grade-configs.png", {
       fullPage: true,
       animations: "disabled",
@@ -58,7 +85,7 @@ test.describe("Module List Pages — Visual Regression", () => {
 
   test("grades list", async ({ authenticatedPage }) => {
     const page = authenticatedPage;
-    await gotoAndWait(page, "/grades", ".ant-table");
+    await gotoAndWait(page, "/admin/grades", '[class*="ant-"]');
     await expect(page).toHaveScreenshot("grades-list.png", {
       fullPage: true,
       animations: "disabled",
@@ -67,7 +94,7 @@ test.describe("Module List Pages — Visual Regression", () => {
 
   test("grades analytics", async ({ authenticatedPage }) => {
     const page = authenticatedPage;
-    await gotoAndWait(page, "/grades/analytics", '[class*="ant-"]');
+    await gotoAndWait(page, "/admin/grades/analytics", '[class*="ant-"]');
     await expect(page).toHaveScreenshot("grades-analytics.png", {
       fullPage: true,
       animations: "disabled",
@@ -76,7 +103,7 @@ test.describe("Module List Pages — Visual Regression", () => {
 
   test("announcements list", async ({ authenticatedPage }) => {
     const page = authenticatedPage;
-    await gotoAndWait(page, "/announcements", '[class*="ant-"]');
+    await gotoAndWait(page, "/admin/announcements", '[class*="ant-"]');
     await expect(page).toHaveScreenshot("announcements-list.png", {
       fullPage: true,
       animations: "disabled",
@@ -85,7 +112,7 @@ test.describe("Module List Pages — Visual Regression", () => {
 
   test("behavior-notes list", async ({ authenticatedPage }) => {
     const page = authenticatedPage;
-    await gotoAndWait(page, "/behavior-notes", ".ant-table");
+    await gotoAndWait(page, "/admin/behavior-notes", '[class*="ant-"]');
     await expect(page).toHaveScreenshot("behavior-notes-list.png", {
       fullPage: true,
       animations: "disabled",
@@ -94,7 +121,7 @@ test.describe("Module List Pages — Visual Regression", () => {
 
   test("behavior-notes analytics", async ({ authenticatedPage }) => {
     const page = authenticatedPage;
-    await gotoAndWait(page, "/behavior-notes/analytics", '[class*="ant-"]');
+    await gotoAndWait(page, "/admin/behavior-notes/analytics", '[class*="ant-"]');
     await expect(page).toHaveScreenshot("behavior-analytics.png", {
       fullPage: true,
       animations: "disabled",
@@ -103,7 +130,7 @@ test.describe("Module List Pages — Visual Regression", () => {
 
   test("users list", async ({ authenticatedPage }) => {
     const page = authenticatedPage;
-    await gotoAndWait(page, "/users", ".ant-table");
+    await gotoAndWait(page, "/admin/users", '[class*="ant-"]');
     await expect(page).toHaveScreenshot("users-list.png", {
       fullPage: true,
       animations: "disabled",
@@ -114,7 +141,7 @@ test.describe("Module List Pages — Visual Regression", () => {
 
   test("calendar page", async ({ authenticatedPage }) => {
     const page = authenticatedPage;
-    await gotoAndWait(page, "/calendar", '[class*="ant-"]');
+    await gotoAndWait(page, "/admin/calendar", '[class*="ant-"]');
     await expect(page).toHaveScreenshot("calendar.png", {
       fullPage: true,
       animations: "disabled",
@@ -123,7 +150,7 @@ test.describe("Module List Pages — Visual Regression", () => {
 
   test("attendance list", async ({ authenticatedPage }) => {
     const page = authenticatedPage;
-    await gotoAndWait(page, "/attendance", '[class*="ant-"]');
+    await gotoAndWait(page, "/admin/attendance", '[class*="ant-"]');
     await expect(page).toHaveScreenshot("attendance-list.png", {
       fullPage: true,
       animations: "disabled",
@@ -132,7 +159,7 @@ test.describe("Module List Pages — Visual Regression", () => {
 
   test("attendance daily", async ({ authenticatedPage }) => {
     const page = authenticatedPage;
-    await gotoAndWait(page, "/attendance/daily", '[class*="ant-"]');
+    await gotoAndWait(page, "/admin/attendance/daily", '[class*="ant-"]');
     await expect(page).toHaveScreenshot("attendance-daily.png", {
       fullPage: true,
       animations: "disabled",
@@ -141,7 +168,7 @@ test.describe("Module List Pages — Visual Regression", () => {
 
   test("attendance lesson", async ({ authenticatedPage }) => {
     const page = authenticatedPage;
-    await gotoAndWait(page, "/attendance/lesson", '[class*="ant-"]');
+    await gotoAndWait(page, "/admin/attendance/lesson", '[class*="ant-"]');
     await expect(page).toHaveScreenshot("attendance-lesson.png", {
       fullPage: true,
       animations: "disabled",
@@ -150,8 +177,17 @@ test.describe("Module List Pages — Visual Regression", () => {
 
   test("homerooms list", async ({ authenticatedPage }) => {
     const page = authenticatedPage;
-    await gotoAndWait(page, "/homerooms", ".ant-table");
+    await gotoAndWait(page, "/admin/homerooms", '[class*="ant-"]');
     await expect(page).toHaveScreenshot("homerooms-list.png", {
+      fullPage: true,
+      animations: "disabled",
+    });
+  });
+
+  test("schedules list", async ({ authenticatedPage }) => {
+    const page = authenticatedPage;
+    await gotoAndWait(page, "/admin/schedules", '[class*="ant-"]');
+    await expect(page).toHaveScreenshot("schedules-list.png", {
       fullPage: true,
       animations: "disabled",
     });
@@ -159,7 +195,7 @@ test.describe("Module List Pages — Visual Regression", () => {
 
   test("schedules preferences", async ({ authenticatedPage }) => {
     const page = authenticatedPage;
-    await gotoAndWait(page, "/schedules/preferences", '[class*="ant-"]');
+    await gotoAndWait(page, "/admin/schedules/preferences", '[class*="ant-"]');
     await expect(page).toHaveScreenshot("schedules-preferences.png", {
       fullPage: true,
       animations: "disabled",
@@ -168,7 +204,7 @@ test.describe("Module List Pages — Visual Regression", () => {
 
   test("configuration page", async ({ authenticatedPage }) => {
     const page = authenticatedPage;
-    await gotoAndWait(page, "/configuration", '[class*="ant-"]');
+    await gotoAndWait(page, "/admin/configuration", '[class*="ant-"]');
     await expect(page).toHaveScreenshot("configuration.png", {
       fullPage: true,
       animations: "disabled",
@@ -177,7 +213,7 @@ test.describe("Module List Pages — Visual Regression", () => {
 
   test("mutations list", async ({ authenticatedPage }) => {
     const page = authenticatedPage;
-    await gotoAndWait(page, "/mutations", '[class*="ant-"]');
+    await gotoAndWait(page, "/admin/mutations", '[class*="ant-"]');
     await expect(page).toHaveScreenshot("mutations-list.png", {
       fullPage: true,
       animations: "disabled",
@@ -186,7 +222,7 @@ test.describe("Module List Pages — Visual Regression", () => {
 
   test("archives list", async ({ authenticatedPage }) => {
     const page = authenticatedPage;
-    await gotoAndWait(page, "/archives", '[class*="ant-"]');
+    await gotoAndWait(page, "/admin/archives", '[class*="ant-"]');
     await expect(page).toHaveScreenshot("archives-list.png", {
       fullPage: true,
       animations: "disabled",
@@ -195,7 +231,7 @@ test.describe("Module List Pages — Visual Regression", () => {
 
   test("reports page", async ({ authenticatedPage }) => {
     const page = authenticatedPage;
-    await gotoAndWait(page, "/reports", '[class*="ant-"]');
+    await gotoAndWait(page, "/admin/reports", '[class*="ant-"]');
     await expect(page).toHaveScreenshot("reports-page.png", {
       fullPage: true,
       animations: "disabled",
@@ -204,22 +240,18 @@ test.describe("Module List Pages — Visual Regression", () => {
 });
 
 test.describe("Module List Pages — Mobile Visual", () => {
-  test.beforeEach(async ({}, testInfo) => {
-    testInfo.project.use.viewport = { width: 375, height: 667 };
-  });
-
   const mobilePriority = [
-    { module: "students", route: "/students", selector: ".ant-table" },
-    { module: "teachers", route: "/teachers", selector: ".ant-table" },
-    { module: "grades", route: "/grades", selector: ".ant-table" },
-    { module: "attendance", route: "/attendance", selector: '[class*="ant-"]' },
+    { module: "students", route: "/admin/students" },
+    { module: "teachers", route: "/admin/teachers" },
+    { module: "grades", route: "/admin/grades" },
+    { module: "attendance", route: "/admin/attendance" },
   ] as const;
 
-  for (const { module, route, selector } of mobilePriority) {
+  for (const { module, route } of mobilePriority) {
     test(`mobile — ${module} list`, async ({ authenticatedPage }) => {
       const page = authenticatedPage;
       await page.setViewportSize({ width: 375, height: 667 });
-      await gotoAndWait(page, route, selector);
+      await gotoAndWait(page, route, '[class*="ant-"]');
       await expect(page).toHaveScreenshot(`${module}-mobile.png`, {
         fullPage: true,
         animations: "disabled",

@@ -1,4 +1,4 @@
-import { test as base, Page, BrowserContext } from "@playwright/test";
+import { test as base, expect, Page, BrowserContext } from "@playwright/test";
 import fs from "fs";
 import path from "path";
 
@@ -57,7 +57,15 @@ export async function waitForPageReady(page: Page, readySelector: string) {
 }
 
 // Helper to navigate and wait for specific content
-export async function gotoAndWait(page: Page, url: string, contentSelector: string) {
-  await page.goto(url, { waitUntil: "domcontentloaded" });
-  await expect(page.locator(contentSelector)).toBeVisible({ timeout: 30_000 });
+export async function gotoAndWait(page: Page, url: string, contentSelector?: string) {
+  const cleanUrl = url.startsWith("/admin") ? url : `/admin${url.startsWith("/") ? "" : "/"}${url}`;
+  await page.goto(cleanUrl, { waitUntil: "domcontentloaded" });
+  if (contentSelector) {
+    await expect(page.locator(contentSelector).first()).toBeVisible({ timeout: 15_000 });
+  } else {
+    // Wait for the app container or layout to mount
+    await expect(page.locator(".ant-layout, #root, [class*='ant-']").first()).toBeVisible({
+      timeout: 15_000,
+    });
+  }
 }

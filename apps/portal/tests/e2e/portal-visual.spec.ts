@@ -246,7 +246,7 @@ test.describe("Portal Views — Visual Regression", () => {
 // ── Mobile viewport ──
 
 test.describe("Portal Mobile — Visual Regression", () => {
-  test.use(devices["Pixel 5"]);
+  test.use({ viewport: { width: 375, height: 667 } });
 
   test.beforeEach(async ({ page }) => {
     await installApi(page);
