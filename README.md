@@ -31,14 +31,33 @@ Package `@apps/shared` berisi:
 
 Package ini di-build sebagai ES Modules (ESM) agar kompatibel dengan Vite dan bundler modern.
 
+## 📚 Peta Dokumentasi Proyek (Documentation Map)
+
+```
+  Why are we building this?       → [PRD.md](PRD.md)
+              ↓
+  What does the system look like? → [ARCHITECTURE.md](ARCHITECTURE.md)
+              ↓
+  What decisions constrain us?    → [ADRs](ADRS.md) (docs/adr/)
+              ↓
+  How should the UI behave/look?  → [DESIGN.md](DESIGN.md)
+              ↓
+  How should agents work here?    → [AGENTS.md](AGENTS.md)
+              ↓
+  How do I actually run/develop?  → [README.md](README.md)
+              ↓
+  What work remains?              → [ROADMAP.md](ROADMAP.md) / [TODO.md](TODO.md)
+```
+
 ## Daftar isi
 
-1. [Prasyarat](#prasyarat)
-2. [Langkah setup](#langkah-setup)
-3. [Konfigurasi environment](#konfigurasi-environment)
-4. [Menjalankan secara lokal](#menjalankan-secara-lokal)
-5. [Alur deploy](#alur-deploy)
-6. [Contoh curl endpoint utama](#contoh-curl-endpoint-utama)
+1. [Peta Dokumentasi](#-peta-dokumentasi-proyek-documentation-map)
+2. [Prasyarat](#prasyarat)
+3. [Langkah setup](#langkah-setup)
+4. [Konfigurasi environment](#konfigurasi-environment)
+5. [Menjalankan secara lokal](#menjalankan-secara-lokal)
+6. [Alur deploy](#alur-deploy)
+7. [Contoh curl endpoint utama](#contoh-curl-endpoint-utama)
 
 ## Prasyarat
 
@@ -135,24 +154,31 @@ pnpm --filter @apps/admin exec msw init ./apps/admin/public --save
 | `VITE_API_URL` | Base URL Go API (termasuk prefix `/api/v1`)                        | `http://localhost:8081/api/v1` |
 | `VITE_USE_MSW` | Aktifkan Mock Service Worker (`true`/`false`) untuk dashboard baru | `true`                         |
 
-#### Feature flags admin/API
+#### Feature flags admin/API & Authoritative Runtime Discovery
 
-Resource dan route opsional di admin harus mengikuti feature flag API yang sama. Nilai default semua flag adalah `false`; aktifkan pasangan berikut bersama-sama agar halaman tidak memanggil endpoint yang tidak terdaftar:
+Resource dan route opsional di admin dikelola melalui feature flag.
 
-| Go API (`sma-adp-api/.env`)                    | Admin (`apps/admin/.env`)                                | Cakupan                                                      |
-| ---------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------ |
-| `ENABLE_ALL_FEATURES`                          | `VITE_ENABLE_ALL_FEATURES`                               | **All-on mode**: enables all feature-flagged modules at once |
-| `ENABLE_DASHBOARD` + `ENABLE_ANALYTICS`        | `VITE_ENABLE_DASHBOARD` + `VITE_ENABLE_ANALYTICS`        | Dashboard (requires analytics backend)                       |
-| `ENABLE_ANALYTICS`                             | `VITE_ENABLE_ANALYTICS`                                  | Analytics API (`/analytics/*`)                               |
-| `ENABLE_SCHEDULER`                             | `VITE_ENABLE_SCHEDULER`                                  | Generator jadwal dan preferensi guru                         |
-| `ENABLE_REPORTS`                               | `VITE_ENABLE_REPORTS`                                    | Pembuatan dan unduhan laporan                                |
-| `ENABLE_MUTATIONS`                             | `VITE_ENABLE_MUTATIONS`                                  | Alur mutasi siswa                                            |
-| `ENABLE_ARCHIVES`                              | `VITE_ENABLE_ARCHIVES`                                   | Arsip dan unduhan berkas                                     |
-| `ENABLE_HOMEROOMS`                             | `VITE_ENABLE_HOMEROOMS`                                  | Data wali kelas                                              |
-| `ENABLE_CONFIGURATION_API`                     | `VITE_ENABLE_CONFIGURATION_API`                          | Konfigurasi aplikasi                                         |
-| `ENABLE_CALENDAR_ALIAS`                        | `VITE_ENABLE_CALENDAR_ALIAS`                             | Alias `/calendar`                                            |
-| `ENABLE_ATTENDANCE_ALIAS`                      | `VITE_ENABLE_ATTENDANCE_ALIAS`                           | Rute attendance daily, lesson, generic writes, summary       |
-| `ENABLE_ATTENDANCE_ALIAS` + `ENABLE_ANALYTICS` | `VITE_ENABLE_ATTENDANCE_ALIAS` + `VITE_ENABLE_ANALYTICS` | Attendance analytics page                                    |
+##### Sumber Kebenaran Runtime vs Fallback Build-Time
+
+- **Authoritative Source of Truth**: Respon dari endpoint runtime `GET /api/v1/features` adalah sumber kebenaran utama untuk fungsi `selectResources()` saat aplikasi berjalan di browser. Endpoint ini bersifat publik (unauthenticated) dan mengembalikan status aktif (`boolean`) setiap modul yang dimuat oleh backend.
+- **Build-Time Fallbacks**: Variabel lingkungan `VITE_ENABLE_*` di `apps/admin/.env` bertindak sebagai fallback saat endpoint `GET /api/v1/features` tidak dapat dijangkau (misalnya pada mode pengembangan offline, pengujian MSW, atau gangguan jaringan sementara).
+
+##### Tabel Pemetaan Lengkap (Mapping Table)
+
+| Frontend Feature (`FeatureName`) | Runtime Flag Key (`GET /api/v1/features`) | Go API Env (`sma-adp-api/.env`)         | Frontend Env (`apps/admin/.env`)                  | Deskripsi / Cakupan                               |
+| -------------------------------- | ----------------------------------------- | --------------------------------------- | ------------------------------------------------- | ------------------------------------------------- |
+| `dashboard`                      | `dashboard`                               | `ENABLE_DASHBOARD` + `ENABLE_ANALYTICS` | `VITE_ENABLE_DASHBOARD` + `VITE_ENABLE_ANALYTICS` | Dasbor utama (memerlukan backend analytics)       |
+| `calendar`                       | `calendarAlias`                           | `ENABLE_CALENDAR_ALIAS`                 | `VITE_ENABLE_CALENDAR_ALIAS`                      | Kalender akademik                                 |
+| `attendance`                     | `attendanceAlias`                         | `ENABLE_ATTENDANCE_ALIAS`               | `VITE_ENABLE_ATTENDANCE_ALIAS`                    | Modul absensi harian dan per mata pelajaran       |
+| `homerooms`                      | `homerooms`                               | `ENABLE_HOMEROOMS`                      | `VITE_ENABLE_HOMEROOMS`                           | Penugasan wali kelas                              |
+| `settings`                       | `configuration`                           | `ENABLE_CONFIGURATION_API`              | `VITE_ENABLE_CONFIGURATION_API`                   | Halaman konfigurasi aplikasi (`/configuration`)   |
+| `schedules`                      | `scheduler`                               | `ENABLE_SCHEDULER`                      | `VITE_ENABLE_SCHEDULER`                           | Generator jadwal dan preferensi guru              |
+| `mutations`                      | `mutations`                               | `ENABLE_MUTATIONS`                      | `VITE_ENABLE_MUTATIONS`                           | Alur mutasi siswa                                 |
+| `archives`                       | `archives`                                | `ENABLE_ARCHIVES`                       | `VITE_ENABLE_ARCHIVES`                            | Arsip dokumen dan berkas                          |
+| `reports`                        | `reports`                                 | `ENABLE_REPORTS`                        | `VITE_ENABLE_REPORTS`                             | Pembuatan dan unduhan laporan / rapor             |
+| `documents`                      | `documents`                               | `ENABLE_ARCHIVES`                       | `VITE_ENABLE_ARCHIVES`                            | Alias dokumen untuk penyimpanan arsip             |
+| `audit`                          | `audit`                                   | (Selalu aktif / `c.Audit`)              | `VITE_ENABLE_AUDIT`                               | Viewer log audit sistem                           |
+| `analytics`                      | `analytics`                               | `ENABLE_ANALYTICS`                      | `VITE_ENABLE_ANALYTICS`                           | Analytics API (`/analytics/*`) & grafik kehadiran |
 
 `ENABLE_ANALYTICS` kini memiliki flag Vite terpisah: `VITE_ENABLE_ANALYTICS`. Dashboard memerlukan keduanya (`ENABLE_DASHBOARD` + `ENABLE_ANALYTICS` / `VITE_ENABLE_DASHBOARD` + `VITE_ENABLE_ANALYTICS`). Layar analytics kehadiran memerlukan `ENABLE_ATTENDANCE_ALIAS` + `ENABLE_ANALYTICS` / `VITE_ENABLE_ATTENDANCE_ALIAS` + `VITE_ENABLE_ANALYTICS`.
 

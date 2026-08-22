@@ -14,7 +14,7 @@
     "dev:portal": "pnpm --filter @apps/portal dev",
     "build": "pnpm -r build",
     "lint": "eslint .",
-    "test": "pnpm -r test",
+    "test": "vitest run",
     "typecheck": "tsc -b --pretty false",
     "format": "pnpm -r format",
     "prepare": "husky install",

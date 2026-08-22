@@ -6,6 +6,7 @@ export default [
     ignores: [
       "**/dist/**",
       "**/build/**",
+      "**/deploy/**",
       "**/drizzle/**",
       "**/coverage/**",
       "**/.omo/**",
