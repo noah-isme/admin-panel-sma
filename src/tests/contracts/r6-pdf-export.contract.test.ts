@@ -15,10 +15,11 @@ const findProjectRoot = (): string => {
 
 describe("R6 PDF Export Contract Tests", () => {
   const rootDir = findProjectRoot();
+  const backendDir = path.resolve(rootDir, "..", "sma-adp-api");
 
   describe("Tier 1: Feature Coverage (R6.1, R6.2)", () => {
     it("R6.1-T1-01: Backend export package implements TimetableGrid PDF generation", () => {
-      const pdfGenPath = path.join(rootDir, "sma-adp-api", "pkg", "export", "pdf_exporter.go");
+      const pdfGenPath = path.join(backendDir, "pkg", "export", "pdf_exporter.go");
       expect(fs.existsSync(pdfGenPath)).toBe(true);
       const content = fs.readFileSync(pdfGenPath, "utf-8");
 
@@ -27,7 +28,7 @@ describe("R6 PDF Export Contract Tests", () => {
     });
 
     it("R6.1-T1-02: Export PDF handler endpoint is registered in Go HTTP gateway router", () => {
-      const mainPath = path.join(rootDir, "sma-adp-api", "cmd", "api-gateway", "main.go");
+      const mainPath = path.join(backendDir, "cmd", "api-gateway", "main.go");
       expect(fs.existsSync(mainPath)).toBe(true);
       const content = fs.readFileSync(mainPath, "utf-8");
 
@@ -35,24 +36,16 @@ describe("R6 PDF Export Contract Tests", () => {
     });
 
     it("R6.1-T1-03: Export PDF handler sets Content-Type application/pdf and Content-Disposition attachment", () => {
-      const handlerPath = path.join(
-        rootDir,
-        "sma-adp-api",
-        "internal",
-        "handler",
-        "schedule_export_handler.go"
-      );
-      if (fs.existsSync(handlerPath)) {
-        const content = fs.readFileSync(handlerPath, "utf-8");
-        expect(content).toContain("application/pdf");
-        expect(content).toContain("attachment");
-      }
+      const handlerPath = path.join(backendDir, "internal", "handler", "schedule_handler.go");
+      expect(fs.existsSync(handlerPath)).toBe(true);
+      const content = fs.readFileSync(handlerPath, "utf-8");
+      expect(content).toContain("application/pdf");
+      expect(content).toContain("attachment");
     });
 
     it("R6.2-T1-04: Frontend schedule page contains Export PDF button component", () => {
       const scheduleViewPath = path.join(
         rootDir,
-        "admin-panel-sma",
         "apps",
         "admin",
         "src",
@@ -76,7 +69,7 @@ describe("R6 PDF Export Contract Tests", () => {
         const header = new TextDecoder().decode(buf.slice(0, 4));
         expect(header).toBe("%PDF");
       } else {
-        const pdfGenPath = path.join(rootDir, "sma-adp-api", "pkg", "export", "pdf_exporter.go");
+        const pdfGenPath = path.join(backendDir, "pkg", "export", "pdf_exporter.go");
         const content = fs.readFileSync(pdfGenPath, "utf-8");
         expect(content).toContain("pdf");
       }
@@ -97,14 +90,14 @@ describe("R6 PDF Export Contract Tests", () => {
     });
 
     it("R6.1-T2-03: PDF exporter handles special characters in title and room names without escaping errors", () => {
-      const pdfGenPath = path.join(rootDir, "sma-adp-api", "pkg", "export", "pdf_exporter.go");
+      const pdfGenPath = path.join(backendDir, "pkg", "export", "pdf_exporter.go");
       const content = fs.readFileSync(pdfGenPath, "utf-8");
       expect(content).toContain("Title");
       expect(content).toContain("Days");
     });
 
     it("R6.1-T2-04: PDF exporter formats timetable entries into weekly day/slot matrix grid", () => {
-      const pdfGenPath = path.join(rootDir, "sma-adp-api", "pkg", "export", "pdf_exporter.go");
+      const pdfGenPath = path.join(backendDir, "pkg", "export", "pdf_exporter.go");
       const content = fs.readFileSync(pdfGenPath, "utf-8");
       expect(content).toContain("GridEntries");
       expect(content).toContain("TimeSlots");
@@ -113,7 +106,6 @@ describe("R6 PDF Export Contract Tests", () => {
     it("R6.2-T2-05: Frontend PDF download trigger attaches correct filename with class identifier", () => {
       const scheduleViewPath = path.join(
         rootDir,
-        "admin-panel-sma",
         "apps",
         "admin",
         "src",

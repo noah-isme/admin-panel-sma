@@ -1,5 +1,5 @@
-import { test as authTest, expect as authExpect } from "../fixtures/auth";
-import { gotoAndWait } from "../fixtures/auth";
+import { test as authTest, expect as authExpect } from "../fixtures/auth.js";
+import { gotoAndWait } from "../fixtures/auth.js";
 import { test, expect } from "@playwright/test";
 
 /**

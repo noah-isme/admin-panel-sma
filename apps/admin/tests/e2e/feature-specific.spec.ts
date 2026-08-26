@@ -1,5 +1,5 @@
-import { test, expect } from "./fixtures/auth";
-import { waitForApiResponse, gotoAndWait } from "./fixtures/auth";
+import { test, expect } from "../fixtures/auth.js";
+import { waitForApiResponse, gotoAndWait } from "../fixtures/auth.js";
 
 test.describe("Scheduler Feature", () => {
   test.beforeEach(async ({ authenticatedPage: _authenticatedPage }) => {

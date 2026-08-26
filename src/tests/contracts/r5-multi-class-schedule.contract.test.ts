@@ -15,10 +15,11 @@ const findProjectRoot = (): string => {
 
 describe("R5 Multi-Class Schedule Generation Contract Tests", () => {
   const rootDir = findProjectRoot();
+  const backendDir = path.resolve(rootDir, "..", "sma-adp-api");
 
   describe("Tier 1: Feature Coverage (R5.1, R5.2)", () => {
     it("R5.1-T1-01: Go DTO GenerateScheduleRequest includes ClassIDs string array field", () => {
-      const dtoPath = path.join(rootDir, "sma-adp-api", "internal", "dto", "schedule_dto.go");
+      const dtoPath = path.join(backendDir, "internal", "dto", "schedule_dto.go");
       expect(fs.existsSync(dtoPath)).toBe(true);
       const content = fs.readFileSync(dtoPath, "utf-8");
 
@@ -28,8 +29,7 @@ describe("R5 Multi-Class Schedule Generation Contract Tests", () => {
 
     it("R5.1-T1-02: Schedule solver service enforces cross-class teacher conflict constraints", () => {
       const servicePath = path.join(
-        rootDir,
-        "sma-adp-api",
+        backendDir,
         "internal",
         "service",
         "schedule_generator_service.go"
@@ -41,7 +41,7 @@ describe("R5 Multi-Class Schedule Generation Contract Tests", () => {
     });
 
     it("R5.1-T1-03: GenerateScheduleResponse includes proposal ID, score, slots, and conflicts", () => {
-      const dtoPath = path.join(rootDir, "sma-adp-api", "internal", "dto", "schedule_dto.go");
+      const dtoPath = path.join(backendDir, "internal", "dto", "schedule_dto.go");
       const content = fs.readFileSync(dtoPath, "utf-8");
 
       expect(content).toContain("GenerateScheduleResponse");
@@ -52,7 +52,6 @@ describe("R5 Multi-Class Schedule Generation Contract Tests", () => {
     it("R5.2-T1-04: Frontend schedule generator hook supports multi-class selection", () => {
       const hookPath = path.join(
         rootDir,
-        "admin-panel-sma",
         "apps",
         "admin",
         "src",
@@ -68,7 +67,6 @@ describe("R5 Multi-Class Schedule Generation Contract Tests", () => {
     it("R5.2-T1-05: Frontend schedule generator page renders class selection controls", () => {
       const pagePath = path.join(
         rootDir,
-        "admin-panel-sma",
         "apps",
         "admin",
         "src",
@@ -121,8 +119,7 @@ describe("R5 Multi-Class Schedule Generation Contract Tests", () => {
 
     it("R5.1-T2-03: Generator handler deduplicates duplicate class IDs in request payload", () => {
       const handlerPath = path.join(
-        rootDir,
-        "sma-adp-api",
+        backendDir,
         "internal",
         "handler",
         "schedule_generator_handler.go"
@@ -135,8 +132,7 @@ describe("R5 Multi-Class Schedule Generation Contract Tests", () => {
 
     it("R5.1-T2-04: Solver detects overbooked teacher assigned to more slots than available in week", () => {
       const servicePath = path.join(
-        rootDir,
-        "sma-adp-api",
+        backendDir,
         "internal",
         "service",
         "schedule_generator_service.go"
@@ -148,7 +144,6 @@ describe("R5 Multi-Class Schedule Generation Contract Tests", () => {
     it("R5.2-T2-05: Frontend schedule generator page handles empty class selection state gracefully", () => {
       const pagePath = path.join(
         rootDir,
-        "admin-panel-sma",
         "apps",
         "admin",
         "src",

@@ -27,6 +27,7 @@ const findProjectRoot = (): string => {
 
 describe("R3 Known Bug Fixes Contract Tests (G-01, G-02, G-09)", () => {
   const rootDir = findProjectRoot();
+  const backendDir = path.resolve(rootDir, "..", "sma-adp-api");
 
   beforeEach(() => {
     localStorage.clear();
@@ -158,14 +159,14 @@ describe("R3 Known Bug Fixes Contract Tests (G-01, G-02, G-09)", () => {
 
   describe("Tier 2: Boundary & Swagger Annotations (G-09)", () => {
     it("R3.3-T2-01: Swagger route validation script exists and is configured", () => {
-      const scriptPath = path.join(rootDir, "sma-adp-api", "scripts", "validate_swagger_routes.py");
+      const scriptPath = path.join(backendDir, "scripts", "validate_swagger_routes.py");
       expect(fs.existsSync(scriptPath)).toBe(true);
       const content = fs.readFileSync(scriptPath, "utf-8");
       expect(content).toContain("swagger");
     });
 
     it("R3.3-T2-02: Public routes in Go handlers are unauthenticated in Swagger docs", () => {
-      const swaggerJsonPath = path.join(rootDir, "sma-adp-api", "api", "swagger", "swagger.json");
+      const swaggerJsonPath = path.join(backendDir, "api", "swagger", "swagger.json");
       if (fs.existsSync(swaggerJsonPath)) {
         const content = fs.readFileSync(swaggerJsonPath, "utf-8");
         const json = JSON.parse(content);

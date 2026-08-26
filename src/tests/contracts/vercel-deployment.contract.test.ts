@@ -49,8 +49,8 @@ describe("Vercel combined frontend deployment contract", () => {
     expect(packageJson.engines?.node).toBe("20.x");
     expect(deploymentDoc).toMatch(/Root Directory\s+\|\s+`admin-panel-sma`/);
     expect(deploymentDoc).toContain("`pnpm install --frozen-lockfile`");
-    expect(deploymentDoc).toContain(
-      "| `VITE_API_URL` | `https://api.example.sch.id/api/v1` | `/api` |"
+    expect(deploymentDoc).toMatch(
+      /\|\s*`VITE_API_URL`\s*\|\s*`https:\/\/api\.example\.sch\.id\/api\/v1`\s*\|\s*`\/api`\s*\|/
     );
     expect(deploymentDoc).toContain("`/admin/login`");
     expect(deploymentDoc).toContain("`/admin/students`");

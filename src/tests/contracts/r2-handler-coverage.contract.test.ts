@@ -15,7 +15,8 @@ const findProjectRoot = (): string => {
 
 describe("R2 Handler Test Coverage Expansion Contract Tests", () => {
   const rootDir = findProjectRoot();
-  const handlerDir = path.join(rootDir, "sma-adp-api", "internal", "handler");
+  const backendDir = path.resolve(rootDir, "..", "sma-adp-api");
+  const handlerDir = path.join(backendDir, "internal", "handler");
 
   const requiredHandlers = [
     "analytics_handler",

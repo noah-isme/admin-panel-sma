@@ -15,10 +15,12 @@ const findProjectRoot = (): string => {
 
 describe("R1 Pre-Production Tooling Contract Tests", () => {
   const rootDir = findProjectRoot();
+  // The Go API is maintained in the sibling repository documented by AGENTS.md.
+  const backendDir = path.resolve(rootDir, "..", "sma-adp-api");
 
   describe("Tier 1: Feature Coverage (R1.1, R1.2, R1.3)", () => {
     it("R1.1-T1-01: Makefile contains automated rollback target with required operations", () => {
-      const makefilePath = path.join(rootDir, "sma-adp-api", "Makefile");
+      const makefilePath = path.join(backendDir, "Makefile");
       expect(fs.existsSync(makefilePath)).toBe(true);
       const content = fs.readFileSync(makefilePath, "utf-8");
 
@@ -29,7 +31,7 @@ describe("R1 Pre-Production Tooling Contract Tests", () => {
     });
 
     it("R1.1-T1-02: Toggle Go routing script exists and handles true/false arguments", () => {
-      const scriptPath = path.join(rootDir, "sma-adp-api", "scripts", "toggle_go.sh");
+      const scriptPath = path.join(backendDir, "scripts", "toggle_go.sh");
       expect(fs.existsSync(scriptPath)).toBe(true);
       const content = fs.readFileSync(scriptPath, "utf-8");
 
@@ -37,7 +39,7 @@ describe("R1 Pre-Production Tooling Contract Tests", () => {
     });
 
     it("R1.2-T1-03: CI workflow contract-tests.yml exists and triggers on pull_request", () => {
-      const workflowPath = path.join(rootDir, ".github", "workflows", "contract-tests.yml");
+      const workflowPath = path.join(backendDir, ".github", "workflows", "contract-tests.yml");
       expect(fs.existsSync(workflowPath)).toBe(true);
       const content = fs.readFileSync(workflowPath, "utf-8");
 
@@ -46,17 +48,23 @@ describe("R1 Pre-Production Tooling Contract Tests", () => {
       expect(content).toContain("jobs:");
     });
 
-    it("R1.2-T1-04: CI workflow configures PostgreSQL and Redis service containers", () => {
-      const workflowPath = path.join(rootDir, ".github", "workflows", "contract-tests.yml");
-      const content = fs.readFileSync(workflowPath, "utf-8");
+    it("R1.2-T1-04: CI pipeline provisions PostgreSQL and Redis for seeded contract checks", () => {
+      const workflowPath = path.join(backendDir, ".github", "workflows", "ci.yml");
+      const workflow = fs.readFileSync(workflowPath, "utf-8");
+      const composePath = path.join(backendDir, "docker", "docker-compose.yml");
+      const compose = fs.readFileSync(composePath, "utf-8");
+      const makefilePath = path.join(backendDir, "Makefile");
+      const makefile = fs.readFileSync(makefilePath, "utf-8");
 
-      expect(content).toContain("postgres:");
-      expect(content).toContain("redis:");
-      expect(content).toContain("make contract-test");
+      expect(workflow).toContain("docker compose -f docker/docker-compose.yml up -d");
+      expect(workflow).toContain("make migrate-up");
+      expect(compose).toContain("postgres:");
+      expect(compose).toContain("redis:");
+      expect(makefile).toContain("contract-test:");
     });
 
     it("R1.3-T1-05: Makefile contains seed-reset target for clean-slate testing", () => {
-      const makefilePath = path.join(rootDir, "sma-adp-api", "Makefile");
+      const makefilePath = path.join(backendDir, "Makefile");
       const content = fs.readFileSync(makefilePath, "utf-8");
 
       expect(content).toContain("seed-reset:");
@@ -69,14 +77,14 @@ describe("R1 Pre-Production Tooling Contract Tests", () => {
 
   describe("Tier 2: Boundary & Error Handling (R1)", () => {
     it("R1.1-T2-01: Rollback target handles Redis flush errors gracefully with fallback", () => {
-      const makefilePath = path.join(rootDir, "sma-adp-api", "Makefile");
+      const makefilePath = path.join(backendDir, "Makefile");
       const content = fs.readFileSync(makefilePath, "utf-8");
 
       expect(content).toMatch(/redis-cli.*||.*echo/);
     });
 
     it("R1.3-T2-02: Seed script contains idempotent DDL/DML statements or cleanup", () => {
-      const seedPath = path.join(rootDir, "sma-adp-api", "scripts", "seed.sql");
+      const seedPath = path.join(backendDir, "scripts", "seed.sql");
       expect(fs.existsSync(seedPath)).toBe(true);
       const content = fs.readFileSync(seedPath, "utf-8");
 
@@ -84,23 +92,27 @@ describe("R1 Pre-Production Tooling Contract Tests", () => {
       expect(content).toMatch(/INSERT|TRUNCATE|DELETE/i);
     });
 
-    it("R1.2-T2-03: CI workflow specifies health check options for PostgreSQL and Redis", () => {
-      const workflowPath = path.join(rootDir, ".github", "workflows", "contract-tests.yml");
-      const content = fs.readFileSync(workflowPath, "utf-8");
+    it("R1.2-T2-03: PostgreSQL and Redis containers specify health checks", () => {
+      const composePath = path.join(backendDir, "docker", "docker-compose.yml");
+      const content = fs.readFileSync(composePath, "utf-8");
 
-      expect(content).toContain("options:");
-      expect(content).toContain("health");
+      expect(content).toContain("healthcheck:");
+      expect(content).toContain("pg_isready");
+      expect(content).toContain("redis-cli");
+      expect(content).toContain("interval:");
+      expect(content).toContain("timeout:");
+      expect(content).toContain("retries:");
     });
 
     it("R1.1-T2-04: Toggle script verifies argument presence and exits with error code if missing", () => {
-      const scriptPath = path.join(rootDir, "sma-adp-api", "scripts", "toggle_go.sh");
+      const scriptPath = path.join(backendDir, "scripts", "toggle_go.sh");
       const content = fs.readFileSync(scriptPath, "utf-8");
 
       expect(content).toMatch(/if \[ -z "\$1" \]|Usage:|exit 1/);
     });
 
     it("R1.3-T2-05: Seed-reset target sequences drop, migrate, and seed in deterministic order", () => {
-      const makefilePath = path.join(rootDir, "sma-adp-api", "Makefile");
+      const makefilePath = path.join(backendDir, "Makefile");
       const content = fs.readFileSync(makefilePath, "utf-8");
       const lines = content.split("\n");
       const seedResetIdx = lines.findIndex((l) => l.startsWith("seed-reset:"));

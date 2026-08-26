@@ -18,6 +18,7 @@ const findProjectRoot = (): string => {
 
 describe("Tiers 1-4 Comprehensive Integration & Scenario Contract Tests", () => {
   const rootDir = findProjectRoot();
+  const backendDir = path.resolve(rootDir, "..", "sma-adp-api");
 
   beforeEach(() => {
     localStorage.clear();
@@ -88,7 +89,7 @@ describe("Tiers 1-4 Comprehensive Integration & Scenario Contract Tests", () => 
         ],
       };
 
-      const pdfGenPath = path.join(rootDir, "sma-adp-api", "pkg", "export", "pdf_exporter.go");
+      const pdfGenPath = path.join(backendDir, "pkg", "export", "pdf_exporter.go");
       expect(fs.existsSync(pdfGenPath)).toBe(true);
       expect(scheduleProposal.slots).toHaveLength(2);
       expect(scheduleProposal.slots[0].teacherId).not.toBe(scheduleProposal.slots[1].teacherId);
@@ -112,13 +113,7 @@ describe("Tiers 1-4 Comprehensive Integration & Scenario Contract Tests", () => 
     });
 
     it("Pair-04: Schedule generation and PDF export operations append entries to audit log repository", () => {
-      const auditRepoPath = path.join(
-        rootDir,
-        "sma-adp-api",
-        "internal",
-        "repository",
-        "audit_repository.go"
-      );
+      const auditRepoPath = path.join(backendDir, "internal", "repository", "audit_repository.go");
       expect(fs.existsSync(auditRepoPath)).toBe(true);
       const content = fs.readFileSync(auditRepoPath, "utf-8");
 
@@ -127,7 +122,7 @@ describe("Tiers 1-4 Comprehensive Integration & Scenario Contract Tests", () => 
     });
 
     it("Pair-05: Seed-reset target purges stale database state and refreshes audit logs schema", () => {
-      const makefilePath = path.join(rootDir, "sma-adp-api", "Makefile");
+      const makefilePath = path.join(backendDir, "Makefile");
       const content = fs.readFileSync(makefilePath, "utf-8");
 
       expect(content).toContain("seed-reset:");
@@ -135,7 +130,7 @@ describe("Tiers 1-4 Comprehensive Integration & Scenario Contract Tests", () => 
     });
 
     it("Pair-06: Swagger route validation covers feature flag and schedule export endpoints", () => {
-      const scriptPath = path.join(rootDir, "sma-adp-api", "scripts", "validate_swagger_routes.py");
+      const scriptPath = path.join(backendDir, "scripts", "validate_swagger_routes.py");
       const content = fs.readFileSync(scriptPath, "utf-8");
 
       expect(content).toContain("swagger");
@@ -204,7 +199,7 @@ describe("Tiers 1-4 Comprehensive Integration & Scenario Contract Tests", () => 
     });
 
     it("Scenario-02: Deployment Rollback & Database Recovery Pipeline", () => {
-      const makefilePath = path.join(rootDir, "sma-adp-api", "Makefile");
+      const makefilePath = path.join(backendDir, "Makefile");
       const content = fs.readFileSync(makefilePath, "utf-8");
 
       expect(content).toContain("rollback:");
@@ -214,8 +209,7 @@ describe("Tiers 1-4 Comprehensive Integration & Scenario Contract Tests", () => 
 
     it("Scenario-03: High-Concurrency Multi-Class Solver Conflict Escalation", () => {
       const e2eTestPath = path.join(
-        rootDir,
-        "sma-adp-api",
+        backendDir,
         "internal",
         "handler",
         "e2e_requirements_r1_r6_test.go"
@@ -250,7 +244,7 @@ describe("Tiers 1-4 Comprehensive Integration & Scenario Contract Tests", () => 
     });
 
     it("Scenario-05: Worker Queue Monitoring & Health Audit Pipeline", () => {
-      const workerPath = path.join(rootDir, "admin-panel-sma", "apps", "worker", "src", "index.ts");
+      const workerPath = path.join(rootDir, "apps", "worker", "src", "index.ts");
       expect(fs.existsSync(workerPath)).toBe(true);
       const content = fs.readFileSync(workerPath, "utf-8");
 
