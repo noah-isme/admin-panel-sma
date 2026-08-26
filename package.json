@@ -7,6 +7,22 @@
   "engines": {
     "node": "20.x"
   },
+  "pnpm": {
+    "overrides": {
+      "@smithy/config-resolver": "4.7.2",
+      "brace-expansion": "2.1.4",
+      "fast-xml-parser": "5.7.0",
+      "follow-redirects": "1.16.0",
+      "form-data": "4.0.6",
+      "lodash": "4.18.1",
+      "lodash-es": "4.18.1",
+      "minimatch": "5.1.8",
+      "@ant-design/pro-layout>path-to-regexp": "8.4.0",
+      "qs": "6.15.3",
+      "uuid": "11.1.1",
+      "yaml": "1.10.3"
+    }
+  },
   "scripts": {
     "dev": "concurrently -n admin,landing -c cyan,yellow \"pnpm --filter @apps/admin dev\" \"pnpm --filter @apps/landing dev\"",
     "dev:admin": "pnpm --filter @apps/admin dev",

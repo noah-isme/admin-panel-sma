@@ -40,7 +40,7 @@
     "format": "prettier --write src"
   },
   "dependencies": {
-    "drizzle-orm": "0.44.5",
+    "drizzle-orm": "0.45.2",
     "pg": "8.11.5",
     "zod": "3.23.8"
   },
