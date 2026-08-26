@@ -32,12 +32,6 @@ const TEMPLATE_OPTIONS = [
   { label: "Landscape", value: "landscape" },
 ];
 
-const TEMPLATE_LABELS: Record<string, string> = {
-  simple: "Standar",
-  detailed: "Detail",
-  landscape: "Landscape",
-};
-
 const STATUS_COLORS: Record<string, string> = {
   QUEUED: "default",
   PROCESSING: "processing",

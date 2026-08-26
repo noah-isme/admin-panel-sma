@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useList } from "@refinedev/core";
-import dayjs, { type Dayjs } from "dayjs";
+import dayjs from "dayjs";
 import { httpClient } from "../providers/dataProvider";
 import { resolveActiveTerm } from "../utils/terms";
 
@@ -74,25 +74,12 @@ export type AttendanceAnalyticsResult = {
 
 const STATUS_VALUES: AttendanceStatus[] = ["H", "I", "S", "A"];
 
-const STATUS_META: Record<AttendanceStatus, { label: string; color: string }> = {
-  H: { label: "Hadir", color: "success" },
-  I: { label: "Izin", color: "warning" },
-  S: { label: "Sakit", color: "processing" },
-  A: { label: "Alfa", color: "error" },
-};
-
 const clampDate = (value?: string, fallback?: string) => {
   const date = value ? dayjs(value) : null;
   if (date && date.isValid()) {
     return date.format("YYYY-MM-DD");
   }
-  if (fallback) {
-    const fb = dayjs(fallback);
-    if (fb.isValid()) {
-      return fb.format("YYYY-MM-DD");
-    }
-  }
-  return dayjs().format("YYYY-MM-DD");
+  return fallback || dayjs().format("YYYY-MM-DD");
 };
 
 const getWeekStart = (value: string) => {
@@ -142,7 +129,6 @@ export const useAttendanceAnalyticsServer = (
 ): AttendanceAnalyticsResult => {
   const [serverData, setServerData] = useState<BackendAttendanceSummaryResponse | null>(null);
   const [serverLoading, setServerLoading] = useState(true);
-  const [serverError, setServerError] = useState<string | null>(null);
 
   // Fetch minimal reference data only (terms, classes for dropdowns)
   const termsQuery = useList<TermRecord>({
@@ -172,7 +158,6 @@ export const useAttendanceAnalyticsServer = (
       }
 
       setServerLoading(true);
-      setServerError(null);
 
       try {
         const params = new URLSearchParams();
@@ -194,7 +179,6 @@ export const useAttendanceAnalyticsServer = (
         if (error instanceof DOMException && error.name === "AbortError") {
           return;
         }
-        setServerError(error instanceof Error ? error.message : "Failed to fetch analytics");
         setServerData(null);
       } finally {
         setServerLoading(false);

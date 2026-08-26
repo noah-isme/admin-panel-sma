@@ -24,7 +24,6 @@ import {
 } from "@refinedev/core";
 import type { IdentityPayload } from "../types/identity";
 import { useAppNotification } from "../hooks/use-app-notification";
-import { httpClient } from "../providers/dataProvider";
 import { downloadAuthenticatedFile } from "../utils/download";
 import { ResourceActionGuard } from "../components/resource-action-guard";
 import { usePersistentSelection } from "../hooks/use-persistent-selection";
