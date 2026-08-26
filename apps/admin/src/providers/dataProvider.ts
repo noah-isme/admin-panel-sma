@@ -32,7 +32,12 @@ const sanitizeBaseUrl = (rawUrl?: string) => {
   return "http://localhost:8081/api/v1";
 };
 
-const ENABLE_MSW = (import.meta.env.VITE_USE_MSW ?? import.meta.env.VITE_ENABLE_MSW) === "true";
+// Guard must match main.tsx: MSW override is only allowed in dev or Vercel
+// previews.  Without the environment check an accidental VITE_USE_MSW=true in
+// production would redirect all API traffic to ${origin}/api (the static host).
+const ENABLE_MSW =
+  (import.meta.env.VITE_USE_MSW ?? import.meta.env.VITE_ENABLE_MSW) === "true" &&
+  (import.meta.env.DEV || import.meta.env.VITE_VERCEL_ENV === "preview");
 
 const envBaseUrl = sanitizeBaseUrl(import.meta.env.VITE_API_URL);
 
@@ -43,7 +48,6 @@ const API_BASE_URL = (() => {
 
   try {
     const origin = window.location.origin.replace(/\/+$/, "");
-    const isSameOrigin = envBaseUrl.startsWith(origin);
     const fallback = `${origin}/api`;
 
     if (ENABLE_MSW) {
