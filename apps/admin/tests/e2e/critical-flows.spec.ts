@@ -2,7 +2,7 @@ import { test, expect } from "./fixtures/auth";
 import { waitForApiResponse, gotoAndWait } from "./fixtures/auth";
 
 test.describe("Critical User Flows", () => {
-  test.beforeEach(async ({ authenticatedPage }) => {
+  test.beforeEach(async ({ authenticatedPage: _authenticatedPage }) => {
     // Page is already authenticated via fixture
   });
 

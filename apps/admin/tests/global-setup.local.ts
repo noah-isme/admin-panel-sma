@@ -5,7 +5,6 @@ import path from "path";
 const AUTH_FILE = "playwright/.auth/user.json";
 
 async function globalSetup(config: FullConfig) {
-  const apiURL = process.env.VITE_API_URL || "http://localhost:8081/api/v1";
   const { baseURL } = config.projects[0].use;
 
   // Ensure auth directory exists
@@ -35,7 +34,6 @@ async function globalSetup(config: FullConfig) {
 
     const body = await response.json();
     const accessToken = body.data?.access_token;
-    const refreshToken = body.data?.refresh_token;
 
     if (!accessToken) {
       throw new Error("No access token in login response");
