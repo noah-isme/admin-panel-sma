@@ -1,8 +1,8 @@
-import { test, expect } from "./fixtures/auth";
-import { waitForApiResponse, gotoAndWait } from "./fixtures/auth";
+import { test, expect } from "../fixtures/auth.js";
+import { waitForApiResponse, gotoAndWait } from "../fixtures/auth.js";
 
 test.describe("Scheduler Feature", () => {
-  test.beforeEach(async ({ authenticatedPage }) => {
+  test.beforeEach(async ({ authenticatedPage: _authenticatedPage }) => {
     // Page is already authenticated via fixture
   });
 
@@ -60,7 +60,7 @@ test.describe("Scheduler Feature", () => {
 });
 
 test.describe("Reports Feature", () => {
-  test.beforeEach(async ({ authenticatedPage }) => {
+  test.beforeEach(async ({ authenticatedPage: _authenticatedPage }) => {
     // Page is already authenticated via fixture
   });
 
@@ -112,7 +112,7 @@ test.describe("Reports Feature", () => {
 });
 
 test.describe("Analytics Feature", () => {
-  test.beforeEach(async ({ authenticatedPage }) => {
+  test.beforeEach(async ({ authenticatedPage: _authenticatedPage }) => {
     // Page is already authenticated via fixture
   });
 

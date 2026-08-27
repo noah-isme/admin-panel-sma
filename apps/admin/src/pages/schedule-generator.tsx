@@ -33,13 +33,7 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useScheduleGenerator } from "../hooks/use-schedule-generator";
-import type {
-  ScheduleSlot,
-  TeacherCard,
-  TeacherPreference,
-  ProposalConflict,
-  ScheduleImprovementStats,
-} from "../hooks/use-schedule-generator";
+import type { ScheduleSlot, TeacherCard, TeacherPreference } from "../hooks/use-schedule-generator";
 
 const STATUS_COLORS: Record<ScheduleSlot["status"], string> = {
   EMPTY: "#f1f5f9",
@@ -247,7 +241,6 @@ export const ScheduleGeneratorPage: React.FC = () => {
     saveSchedule,
     fairnessSummary,
     generateSummary,
-    lastProposalId,
     crossClassConflicts,
   } = useScheduleGenerator({
     termId,

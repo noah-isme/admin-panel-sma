@@ -29,6 +29,7 @@ import { useCreate, useDelete, useList, useUpdate } from "@refinedev/core";
 import { useAppNotification } from "../hooks/use-app-notification";
 import dayjs, { type Dayjs } from "dayjs";
 import { useNavigate } from "react-router-dom";
+import { getSafeInternalRoute } from "../utils/navigation.js";
 import { ResourceActionGuard } from "../components/resource-action-guard";
 import { DEFAULT_TERM_TYPE, TERM_TYPES, buildTermPayload, isTermActive } from "../utils/terms";
 
@@ -2172,11 +2173,7 @@ export const SetupWizard: React.FC = () => {
   };
 
   const handleSummaryNavigate = (target?: string) => {
-    if (target) {
-      navigate(target);
-    } else {
-      navigate("/");
-    }
+    navigate(getSafeInternalRoute(target));
   };
 
   const maxStepAvailable = scheduleCompleted

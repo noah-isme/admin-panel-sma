@@ -68,7 +68,7 @@ export const SchedulesCreate: React.FC = () => {
     <ResourceActionGuard action="create">
       <Create saveButtonProps={saveButtonProps} title="Buat Jadwal Pelajaran">
         <Card>
-          <Form {...formProps} layout="vertical">
+          <Form {...formProps} onFinishFailed={handleFinishFailed} layout="vertical">
             <Form.Item
               label="Kelas & Mapel"
               name="classSubjectId"

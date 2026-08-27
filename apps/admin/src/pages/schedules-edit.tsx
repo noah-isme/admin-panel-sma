@@ -68,7 +68,7 @@ export const SchedulesEdit: React.FC = () => {
     <ResourceActionGuard action="edit">
       <Edit saveButtonProps={saveButtonProps} title="Ubah Jadwal Pelajaran">
         <Card>
-          <Form {...formProps} layout="vertical">
+          <Form {...formProps} onFinishFailed={handleFinishFailed} layout="vertical">
             <Form.Item
               label="Kelas & Mapel"
               name="classSubjectId"

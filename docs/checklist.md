@@ -1,6 +1,6 @@
 # Admin/API Release Checklist
 
-> **Reviewed:** 2026-08-12
+> **Reviewed:** 2026-08-27
 > **Scope:** admin-panel-sma and sma-adp-api
 
 ## Contract changes
@@ -31,6 +31,35 @@
 - [ ] Complete parent-student authorization checks for portal data routes.
 - [ ] Complete and test portal announcement pagination parsing.
 - [ ] Run the production rollback drill and record the result.
+
+## Staging-only dependency exception
+
+React Router `6.30.4` remains reachable through the Refine v6 router adapter and
+is reported by `pnpm audit --prod` for the following moderate advisories:
+
+- `GHSA-wrjc-x8rr-h8h6` / `CVE-2025-68470`: backslash-based open redirect in
+  React Router links and `useNavigate`.
+- `GHSA-jjmj-jmhj-qwj2`: open redirect leading to XSS in `react-router-dom`.
+- `GHSA-337j-9hxr-rhxg`: constructor injection during React Router SSR
+  hydration.
+
+The following time-bounded exception is permitted for the staging candidate
+only, subject to release-owner approval:
+
+- [ ] Exception approved for staging through **2026-09-10**, or until the
+      candidate is promoted to production, whichever comes first.
+- The admin bundle is a client-only SPA and does not use React Router SSR
+  hydration. All dynamic setup-summary destinations go through the exact
+  `/terms` and `/students` allowlist in
+  `apps/admin/src/utils/navigation.ts`; backslashes, encoded path separators,
+  protocol-relative paths, schemes, query strings, and fragments fail closed to
+  `/`.
+- Re-run `pnpm audit --prod` before every staging promotion and attach the
+  output to the release record. High and critical findings remain a hard gate;
+  this exception covers only the three documented moderate advisories.
+- Production remains blocked until the app moves to a supported Refine/router
+  combination using React Router `>=7.18.0`, or the advisories are otherwise
+  resolved and re-verified.
 
 ## Regeneration commands
 

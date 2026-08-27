@@ -1,5 +1,5 @@
-import { test, expect } from "../fixtures/auth";
-import { gotoAndWait } from "../fixtures/auth";
+import { test, expect } from "../fixtures/auth.js";
+import { gotoAndWait } from "../fixtures/auth.js";
 
 /**
  * Visual regression tests for every admin module list/index page.

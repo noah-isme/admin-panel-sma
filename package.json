@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "packageManager": "pnpm@9.7.1",
+  "packageManager": "pnpm@10.34.5",
   "engines": {
     "node": "20.x"
   },
@@ -14,7 +14,7 @@
     "dev:portal": "pnpm --filter @apps/portal dev",
     "build": "pnpm -r build",
     "lint": "eslint .",
-    "test": "pnpm -r test",
+    "test": "vitest run",
     "typecheck": "tsc -b --pretty false",
     "format": "pnpm -r format",
     "prepare": "husky install",

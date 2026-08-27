@@ -11,10 +11,8 @@ cmds = [
 
 [phases.build]
 cmds = [
-  # Build shared package first (required by API and worker)
+  # Build shared package first (required by worker)
   "pnpm --filter @apps/shared build",
-  # Build API
-  "pnpm --filter @apps/api build",
   # Build worker
   "pnpm --filter @apps/worker build"
 ]

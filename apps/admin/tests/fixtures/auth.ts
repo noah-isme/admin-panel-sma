@@ -1,6 +1,5 @@
 import { test as base, expect, Page, BrowserContext } from "@playwright/test";
 import fs from "fs";
-import path from "path";
 
 const AUTH_FILE = "playwright/.auth/user.json";
 

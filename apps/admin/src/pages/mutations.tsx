@@ -4,18 +4,13 @@ import {
   Badge,
   Button,
   Card,
-  DatePicker,
-  Divider,
-  Dropdown,
   Form,
   Input,
-  Menu,
   Modal,
   Row,
   Col,
   Select,
   Space,
-  Spin,
   Table,
   Tag,
   Tooltip,
@@ -24,22 +19,13 @@ import {
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
-  DeleteOutlined,
-  EditOutlined,
   EyeOutlined,
   FileTextOutlined,
-  PlusOutlined,
   UserOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useDataProvider, useList } from "@refinedev/core";
 import { useAppNotification } from "../hooks/use-app-notification";
-
-const STATUS_COLORS: Record<string, string> = {
-  PENDING: "orange",
-  APPROVED: "green",
-  REJECTED: "red",
-};
 
 const TYPE_LABELS: Record<string, string> = {
   TRANSFER_IN: "Transfer Masuk",
@@ -223,7 +209,7 @@ export const MutationListPage: React.FC = () => {
       });
       setReviewVisible(false);
       mutationsQuery.refetch();
-    } catch (error) {
+    } catch (_error) {
       notify?.({ type: "error", message: "Gagal memproses review" });
     }
   };

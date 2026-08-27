@@ -161,7 +161,7 @@ describe("fetchFeatures", () => {
 });
 
 describe("VITE_ENABLE_ALL_FEATURES", () => {
-  const originalEnv = { ...import.meta.env };
+  const _originalEnv = { ...import.meta.env };
 
   beforeEach(() => {
     vi.resetModules();

@@ -13,3 +13,18 @@ husky/_
 .idea/
 .vscode/
 .vercel
+
+# Build outputs
+deploy/
+apps/shared/output/
+*.tsbuildinfo
+
+# Playwright / test artifacts
+apps/*/test-results/
+apps/*/playwright-report/
+apps/*/playwright/.auth/
+*-screenshot.png
+
+# Vite build artifacts (landing)
+apps/landing/vite.config.js
+apps/landing/vite.config.d.ts

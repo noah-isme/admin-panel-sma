@@ -1,11 +1,8 @@
 import React, { useCallback, useMemo, useState } from "react";
 import {
-  Avatar,
-  Badge,
   Button,
   Card,
   Col,
-  Divider,
   Form,
   Input,
   Modal,
@@ -13,7 +10,6 @@ import {
   Row,
   Select,
   Space,
-  Spin,
   Table,
   Tag,
   Tooltip,
@@ -30,15 +26,17 @@ import {
   PlusOutlined,
   UploadOutlined,
   WarningOutlined,
-  TagsOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useDataProvider, useList } from "@refinedev/core";
 import { useAppNotification } from "../hooks/use-app-notification";
-import { Viewer, Worker } from "@react-pdf-viewer/core";
-import { defaultLayoutPlugin } from "@react-pdf-viewer/default-layout";
-import "@react-pdf-viewer/core/lib/styles/index.css";
-import "@react-pdf-viewer/default-layout/lib/styles/index.css";
+import { Document, Page, pdfjs } from "react-pdf";
+import "react-pdf/dist/Page/AnnotationLayer.css";
+import "react-pdf/dist/Page/TextLayer.css";
+
+// react-pdf@9 ships pdfjs-dist >= 4.8 which is patched for CVE-2024-4367.
+// Use the bundled version constant to load the matching worker at runtime.
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 const CATEGORY_COLORS: Record<string, string> = {
   RAPOR: "blue",
@@ -68,7 +66,7 @@ const ArchiveListPage: React.FC = () => {
   const getDataProvider = useDataProvider();
   const dataProvider = useMemo(() => getDataProvider(), [getDataProvider]);
   const { open: notify } = useAppNotification();
-  const defaultLayoutPluginInstance = defaultLayoutPlugin();
+  const [numPages, setNumPages] = useState<number>(0);
 
   const [searchForm] = Form.useForm();
   const [uploadForm] = Form.useForm();
@@ -242,7 +240,7 @@ const ArchiveListPage: React.FC = () => {
         notify?.({ type: "success", message: "Dokumen berhasil diunggah" });
         setUploadVisible(false);
         archivesQuery.refetch();
-      } catch (error) {
+      } catch (_error) {
         notify?.({ type: "error", message: "Gagal mengunggah dokumen" });
       } finally {
         setUploadLoading(false);
@@ -274,7 +272,7 @@ const ArchiveListPage: React.FC = () => {
         } else {
           notify?.({ type: "error", message: "Gagal mendapatkan URL unduh" });
         }
-      } catch (error) {
+      } catch (_error) {
         notify?.({ type: "error", message: "Gagal mengunduh dokumen" });
       }
     },
@@ -291,7 +289,7 @@ const ArchiveListPage: React.FC = () => {
         });
         notify?.({ type: "success", message: "Arsip berhasil dihapus" });
         archivesQuery.refetch();
-      } catch (error) {
+      } catch (_error) {
         notify?.({ type: "error", message: "Gagal menghapus arsip" });
       }
     },
@@ -324,7 +322,7 @@ const ArchiveListPage: React.FC = () => {
           });
           notify?.({ type: "success", message: "Permintaan unduh massal sedang diproses" });
         }
-      } catch (error) {
+      } catch (_error) {
         notify?.({ type: "error", message: "Aksi massal gagal" });
       } finally {
         setBulkActionLoading(false);
@@ -349,10 +347,10 @@ const ArchiveListPage: React.FC = () => {
     <Space direction="vertical" size="large" style={{ width: "100%" }}>
       <Space direction="vertical" size={4} style={{ width: "100%" }}>
         <Typography.Title level={3} style={{ margin: 0 }}>
-          Manajemen Arsip Dokumen
+          Manajemen Arsip & Dokumen
         </Typography.Title>
         <Typography.Text type="secondary">
-          Kelola arsip dokumen: rapor, sertifikat, transkrip, foto, dan dokumen lain.
+          Kelola dokumen siswa, rapor digital, sertifikat, dan transkrip nilai.
         </Typography.Text>
       </Space>
 
@@ -363,7 +361,7 @@ const ArchiveListPage: React.FC = () => {
               <Select
                 placeholder="Semua kategori"
                 allowClear
-                options={Object.entries(CATEGORY_COLORS).map(([value, color]) => ({
+                options={Object.keys(CATEGORY_COLORS).map((value) => ({
                   label: value,
                   value,
                 }))}
@@ -477,13 +475,15 @@ const ArchiveListPage: React.FC = () => {
 
             <Card title="Pratinjau" size="small">
               {selectedArchive.mimeType?.includes("pdf") ? (
-                <div style={{ height: "600px" }}>
-                  <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
-                    <Viewer
-                      fileUrl={selectedArchive.url || "sample"}
-                      plugins={[defaultLayoutPluginInstance]}
-                    />
-                  </Worker>
+                <div style={{ height: "600px", overflow: "auto" }}>
+                  <Document
+                    file={selectedArchive.url || "sample"}
+                    onLoadSuccess={({ numPages: n }) => setNumPages(n)}
+                  >
+                    {Array.from(new Array(numPages), (_, index) => (
+                      <Page key={`page_${index + 1}`} pageNumber={index + 1} width={560} />
+                    ))}
+                  </Document>
                 </div>
               ) : selectedArchive.mimeType?.includes("image") ? (
                 <img

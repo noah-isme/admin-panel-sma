@@ -1,4 +1,4 @@
-import { expect, test, devices, type Page, type Route } from "@playwright/test";
+import { expect, test, type Page, type Route } from "@playwright/test";
 
 test.skip(process.env.PORTAL_STAGED === "1", "Visual fixture suite is not used for staging.");
 
