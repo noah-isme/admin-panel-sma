@@ -9,16 +9,16 @@ test.describe("Critical User Flows", () => {
     await gotoAndWait(page, "/dashboard");
     await expect(page.getByRole("heading", { name: /dashboard akademik/i })).toBeVisible();
 
-    // 2. Navigate to student roster
+    // 2. Navigate to student roster. Use the route directly so the flow is
+    // deterministic on both desktop (sidebar) and mobile (bottom navigation).
     const studentsResponse = waitForApiResponse(page, "/api/v1/students");
-    await page.getByRole("button", { name: /^Siswa\b/i }).click();
+    await page.goto("/admin/students", { waitUntil: "domcontentloaded" });
     await studentsResponse;
-    await expect(page.getByRole("table")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /data siswa sma harapan nusantara/i })
+    ).toBeVisible();
 
-    // 3. Verify roster data loads
-    await expect(page.getByRole("row").first()).toBeVisible();
-
-    // 4. Navigate to grades
+    // 3. Navigate to grades
     const gradesResponse = waitForApiResponse(page, "/api/v1/grades/report");
     await page.goto("/admin/grades", { waitUntil: "domcontentloaded" });
     await gradesResponse;
@@ -34,8 +34,10 @@ test.describe("Critical User Flows", () => {
     const teachersResponse = waitForApiResponse(page, "/api/v1/teachers");
     await gotoAndWait(page, "/teachers");
     await teachersResponse;
-    await expect(page.getByRole("table")).toBeVisible();
-    await expect(page.getByRole("row").first()).toBeVisible();
+    // The responsive roster uses a table on desktop and cards on mobile.
+    await expect(
+      page.getByRole("heading", { name: /data guru sma harapan nusantara/i })
+    ).toBeVisible();
   });
 
   test("Login → Classes → Schedules", async ({ authenticatedPage }) => {
