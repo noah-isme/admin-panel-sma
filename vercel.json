@@ -4,7 +4,6 @@
   "outputDirectory": "deploy",
   "installCommand": "pnpm install --frozen-lockfile",
   "rewrites": [
-    { "handle": "filesystem" },
     { "source": "/admin", "destination": "/admin/index.html" },
     { "source": "/admin/(.*)", "destination": "/admin/index.html" },
     { "source": "/((?!admin(?:/|$)).*)", "destination": "/index.html" }
