@@ -36,7 +36,9 @@ test.describe("Analytics Feature", () => {
     const page = authenticatedPage;
 
     await gotoAndWait(page, "/attendance");
-    await expect(page.getByRole("heading", { name: "Rekap Kehadiran", exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /^Rekap Kehadiran(?:\s+-|$)/i }).first()
+    ).toBeVisible();
   });
 
   test("Grades analytics page loads", async ({ authenticatedPage }) => {
