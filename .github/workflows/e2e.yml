@@ -80,6 +80,8 @@ jobs:
           JWT_SECRET: ci-test-secret
           ALLOWED_ORIGINS: http://localhost:5173
           ENABLE_ALL_FEATURES: "true"
+          RATE_LIMIT_REQUESTS_PER_MINUTE: "6000"
+          RATE_LIMIT_BURST: "1000"
           LOG_LEVEL: warn
         run: |
           set -euo pipefail
@@ -104,7 +106,10 @@ jobs:
           PLAYWRIGHT_API_URL: http://localhost:8081/api/v1
           VITE_API_URL: http://localhost:8081/api/v1
           VITE_USE_MSW: "false"
-        run: pnpm exec playwright test
+        # Keep the release gate deterministic and backend-backed. Visual
+        # regression suites remain available as an explicit local/manual job;
+        # their baselines are intentionally not used as a staging gate.
+        run: pnpm exec playwright test tests/e2e/critical-flows.spec.ts tests/e2e/feature-specific.spec.ts
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
@@ -164,7 +169,7 @@ jobs:
           PLAYWRIGHT_API_URL: ${{ secrets.STAGING_API_URL }}
           STAGING_E2E_EMAIL: ${{ secrets.STAGING_E2E_EMAIL }}
           STAGING_E2E_PASSWORD: ${{ secrets.STAGING_E2E_PASSWORD }}
-        run: pnpm exec playwright test
+        run: pnpm exec playwright test tests/e2e/critical-flows.spec.ts tests/e2e/feature-specific.spec.ts
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4

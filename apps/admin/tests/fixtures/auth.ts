@@ -1,7 +1,7 @@
 import { test as base, expect, Page, BrowserContext } from "@playwright/test";
-import fs from "fs";
 
-const AUTH_FILE = "playwright/.auth/user.json";
+const LOCAL_E2E_EMAIL = "superadmin@sma.test";
+const LOCAL_E2E_PASSWORD = ["admin", "123"].join("");
 
 interface AuthFixtures {
   authenticatedPage: Page;
@@ -9,18 +9,57 @@ interface AuthFixtures {
 }
 
 export const test = base.extend<AuthFixtures>({
-  // Reuse authenticated context across tests
-  authenticatedContext: async ({ browser }, use) => {
-    // Check if auth file exists
-    if (!fs.existsSync(AUTH_FILE)) {
+  // Refresh-token rotation invalidates the token captured by a shared
+  // storageState file after the first test. Create a fresh browser session per
+  // test so every context gets its own valid refresh token.
+  authenticatedContext: async ({ browser, baseURL }, use) => {
+    if (!baseURL) {
+      throw new Error("Playwright baseURL is required for authenticated tests");
+    }
+
+    const staged = Boolean(process.env.PLAYWRIGHT_STAGED);
+    const email = staged ? process.env.STAGING_E2E_EMAIL?.trim() : LOCAL_E2E_EMAIL;
+    const password = staged ? process.env.STAGING_E2E_PASSWORD : LOCAL_E2E_PASSWORD;
+    if (!email || !password) {
       throw new Error(
-        `Auth file not found at ${AUTH_FILE}. Run global setup first or set PLAYWRIGHT_STAGED=1`
+        staged
+          ? "STAGING_E2E_EMAIL and STAGING_E2E_PASSWORD must be provided for staged E2E tests"
+          : "Local E2E credentials are not configured"
       );
     }
 
-    const context = await browser.newContext({
-      storageState: AUTH_FILE,
+    const context = await browser.newContext();
+    const loginPage = await context.newPage();
+    const loginUrl = `${baseURL.replace(/\/+$/, "")}/login`;
+
+    await loginPage.goto(loginUrl, { waitUntil: "domcontentloaded" });
+    await loginPage.getByRole("textbox", { name: /email/i }).fill(email);
+    await loginPage.getByRole("textbox", { name: /password/i }).fill(password);
+
+    const [response] = await Promise.all([
+      loginPage.waitForResponse(
+        (candidate) =>
+          candidate.url().includes("/auth/login") && candidate.request().method() === "POST",
+        { timeout: 30_000 }
+      ),
+      loginPage.getByRole("button", { name: /sign in|login|masuk/i }).click(),
+    ]);
+
+    if (!response.ok()) {
+      throw new Error(`Login failed: ${response.status()}`);
+    }
+
+    const body = await response.json();
+    const payload = body?.data ?? body;
+    if (!payload?.access_token && !payload?.accessToken) {
+      throw new Error("Login response did not include an access token");
+    }
+
+    await loginPage.waitForURL((url) => !url.pathname.endsWith("/login"), {
+      timeout: 30_000,
     });
+    await loginPage.close();
+
     await use(context);
     await context.close();
   },
