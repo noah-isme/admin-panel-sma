@@ -153,6 +153,7 @@ pnpm --filter @apps/admin exec msw init ./apps/admin/public --save
 | -------------- | ------------------------------------------------------------------ | ------------------------------ |
 | `VITE_API_URL` | Base URL Go API (termasuk prefix `/api/v1`)                        | `http://localhost:8081/api/v1` |
 | `VITE_USE_MSW` | Aktifkan Mock Service Worker (`true`/`false`) untuk dashboard baru | `true`                         |
+| `VITE_STAGING` | Tandai build staging nyata agar MSW dimatikan                      | `false`                        |
 
 #### Feature flags admin/API & Authoritative Runtime Discovery
 
@@ -286,14 +287,16 @@ deployment menerbitkan landing page pada `/` dan admin pada `/admin`.
    - Output directory: `deploy`.
 4. Atur Environment Variables di **Project Settings** (jangan commit URL API):
 
-   | Environment | `VITE_API_URL`                      | `VITE_BASE_PATH` | `VITE_USE_MSW` | `VITE_ENABLE_MSW` | `VITE_VERCEL_ENV` |
-   | ----------- | ----------------------------------- | ---------------- | -------------- | ----------------- | ----------------- |
-   | Production  | `https://api.example.sch.id/api/v1` | `/admin/`        | `false`        | `false`           | `production`      |
-   | Preview     | `/api`                              | `/admin/`        | `true`         | `true`            | `preview`         |
+   | Environment | `VITE_API_URL`                              | `VITE_BASE_PATH` | `VITE_USE_MSW` | `VITE_ENABLE_MSW` | `VITE_VERCEL_ENV` |
+   | ----------- | ------------------------------------------- | ---------------- | -------------- | ----------------- | ----------------- |
+   | Production  | `https://api.example.sch.id/api/v1`         | `/admin/`        | `false`        | `false`           | `production`      |
+   | Preview     | `/api`                                      | `/admin/`        | `true`         | `true`            | `preview`         |
+   | Staging     | `https://staging-api.example.sch.id/api/v1` | `/admin/`        | `false`        | `false`           | `preview`         |
 
-   Preview wajib menggunakan `/api` dan MSW, sehingga tidak pernah membawa URL
-   API produksi ke bundle preview. `apps/admin/vite.config.ts` juga memaksa
-   nilai aman berdasarkan `VERCEL_ENV` sebagai guardrail build-time.
+   Preview biasa wajib menggunakan `/api` dan MSW, sehingga tidak pernah membawa
+   URL API produksi ke bundle preview. Untuk staging nyata di VPS, set
+   `VITE_STAGING=true` dan `VITE_API_URL` ke API staging; konfigurasi build
+   mematikan MSW meskipun Vercel melaporkan `VERCEL_ENV=preview`.
 
 5. Setelah deploy, verifikasi `/`, `/admin/`, `/admin/login`, dan satu route
    admin langsung (misalnya `/admin/students`) setelah refresh.

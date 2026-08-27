@@ -54,6 +54,7 @@ ke environment Preview.
 | `VITE_USE_MSW`    | `false`                             | `true`    |
 | `VITE_ENABLE_MSW` | `false`                             | `true`    |
 | `VITE_VERCEL_ENV` | `production`                        | `preview` |
+| `VITE_STAGING`    | `false`                             | `false`   |
 
 Ganti `https://api.example.sch.id/api/v1` dengan hostname API VPS yang
 sebenarnya, tanpa trailing slash. Preview sengaja memakai `/api`; provider
@@ -61,8 +62,12 @@ frontend juga mengganti base URL ke origin preview ketika MSW aktif. Selain
 konfigurasi dashboard, `apps/admin/vite.config.ts` membaca system variable
 `VERCEL_ENV` dan memaksa aturan berikut pada saat build:
 
-- Preview selalu mendapat `VITE_USE_MSW=true`, `VITE_ENABLE_MSW=true`, dan
-  `VITE_API_URL=/api`, meskipun ada variable Production yang salah terbagi.
+- Preview biasa mendapat `VITE_USE_MSW=true`, `VITE_ENABLE_MSW=true`, dan
+  `VITE_API_URL=/api`, sehingga tidak dapat mengirim request ke API produksi.
+- Untuk membangun staging nyata yang berjalan di atas API VPS, set
+  `VITE_STAGING=true` dan `VITE_API_URL` ke URL publik staging (`.../api/v1`)
+  pada environment build. Guard build-time kemudian mematikan kedua flag MSW
+  walaupun Vercel melaporkan `VERCEL_ENV=preview`.
 - Production selalu mendapat flag MSW `false` dan menggunakan `VITE_API_URL`
   Production yang dikonfigurasi di dashboard.
 

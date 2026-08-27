@@ -54,6 +54,13 @@ only, subject to release-owner approval:
   `apps/admin/src/utils/navigation.ts`; backslashes, encoded path separators,
   protocol-relative paths, schemes, query strings, and fragments fail closed to
   `/`.
+- A direct upgrade to React Router `>=7.18.0` is not a safe drop-in remediation
+  for this candidate: `@refinedev/react-router-v6@4.6.2` declares
+  `react-router-dom ^6.8.1` as a peer, `react-router-dom@6.30.4` depends on the
+  matching React Router v6 package, and the registry has no
+  `@refinedev/react-router-v7` adapter. Production remediation therefore
+  requires a coordinated Refine/router migration with integration retesting;
+  do not force a v7 package through a pnpm override.
 - Re-run `pnpm audit --prod` before every staging promotion and attach the
   output to the release record. High and critical findings remain a hard gate;
   this exception covers only the three documented moderate advisories.
