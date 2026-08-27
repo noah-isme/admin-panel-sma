@@ -1,8 +1,8 @@
+import { useList } from "../hooks/use-refine-list";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Button, Card, Form, Progress, Select, Space, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { DownloadOutlined } from "@ant-design/icons";
-import { useList } from "@refinedev/core";
 import { useAppNotification } from "../hooks/use-app-notification";
 import { httpClient } from "../providers/dataProvider";
 import { ResourceActionGuard } from "../components/resource-action-guard";
@@ -73,8 +73,28 @@ export const ReportsPage: React.FC = () => {
   const { open: notify } = useAppNotification();
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const termsQuery = useList({ resource: "terms", pagination: { current: 1, pageSize: 50 } });
-  const classesQuery = useList({ resource: "classes", pagination: { current: 1, pageSize: 100 } });
+  const migratedTermsQuery = useList({
+    resource: "terms",
+    pagination: { currentPage: 1, pageSize: 50 },
+  });
+
+  const termsQuery = {
+    ...migratedTermsQuery.result,
+    ...migratedTermsQuery.query,
+    ...migratedTermsQuery,
+  };
+
+  const migratedClassesQuery = useList({
+    resource: "classes",
+    pagination: { currentPage: 1, pageSize: 100 },
+  });
+
+  const classesQuery = {
+    ...migratedClassesQuery.result,
+    ...migratedClassesQuery.query,
+    ...migratedClassesQuery,
+  };
+
   const terms = (termsQuery.data?.data as Record<string, any>[]) ?? [];
   const classes = (classesQuery.data?.data as Record<string, any>[]) ?? [];
 

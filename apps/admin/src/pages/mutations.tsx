@@ -1,3 +1,4 @@
+import { useList } from "../hooks/use-refine-list";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   Avatar,
@@ -24,7 +25,7 @@ import {
   UserOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
-import { useDataProvider, useList } from "@refinedev/core";
+import { useDataProvider } from "@refinedev/core";
 import { useAppNotification } from "../hooks/use-app-notification";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -50,9 +51,9 @@ export const MutationListPage: React.FC = () => {
 
   const searchValues = useMemo(() => searchForm.getFieldsValue(), [searchForm]);
 
-  const mutationsQuery = useList({
+  const migratedMutationsQuery = useList({
     resource: "mutations",
-    pagination: { current: 1, pageSize: 20 },
+    pagination: { currentPage: 1, pageSize: 20 },
     sorters: [{ field: "createdAt", order: "desc" }],
     filters: [
       ...(searchValues.studentId
@@ -66,6 +67,12 @@ export const MutationListPage: React.FC = () => {
         : []),
     ],
   });
+
+  const mutationsQuery = {
+    ...migratedMutationsQuery.result,
+    ...migratedMutationsQuery.query,
+    ...migratedMutationsQuery,
+  };
 
   const columns = useMemo(
     () => [

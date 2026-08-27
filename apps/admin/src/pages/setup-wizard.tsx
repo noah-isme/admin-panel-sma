@@ -1,3 +1,4 @@
+import { useList } from "../hooks/use-refine-list";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
@@ -25,10 +26,10 @@ import {
 import type { RcFile } from "antd/es/upload";
 import type { UploadProps } from "antd";
 import { InboxOutlined, CheckCircleOutlined, SwapLeftOutlined } from "@ant-design/icons";
-import { useCreate, useDelete, useList, useUpdate } from "@refinedev/core";
+import { useCreate, useDelete, useUpdate } from "@refinedev/core";
 import { useAppNotification } from "../hooks/use-app-notification";
 import dayjs, { type Dayjs } from "dayjs";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { getSafeInternalRoute } from "../utils/navigation.js";
 import { ResourceActionGuard } from "../components/resource-action-guard";
 import { DEFAULT_TERM_TYPE, TERM_TYPES, buildTermPayload, isTermActive } from "../utils/terms";
@@ -2091,30 +2092,71 @@ export const SetupWizard: React.FC = () => {
   const navigate = useNavigate();
   const { open: notify } = useAppNotification();
 
-  const studentsQuery = useList({
+  const migratedStudentsQuery = useList({
     resource: "students",
-    pagination: { current: 1, pageSize: 1000 },
+    pagination: { currentPage: 1, pageSize: 1000 },
   });
-  const teachersQuery = useList({
+
+  const studentsQuery = {
+    ...migratedStudentsQuery.result,
+    ...migratedStudentsQuery.query,
+    ...migratedStudentsQuery,
+  };
+
+  const migratedTeachersQuery = useList({
     resource: "teachers",
-    pagination: { current: 1, pageSize: 1000 },
+    pagination: { currentPage: 1, pageSize: 1000 },
   });
-  const classesQuery = useList({
+
+  const teachersQuery = {
+    ...migratedTeachersQuery.result,
+    ...migratedTeachersQuery.query,
+    ...migratedTeachersQuery,
+  };
+
+  const migratedClassesQuery = useList({
     resource: "classes",
-    pagination: { current: 1, pageSize: 1000 },
+    pagination: { currentPage: 1, pageSize: 1000 },
   });
-  const subjectsQuery = useList({
+
+  const classesQuery = {
+    ...migratedClassesQuery.result,
+    ...migratedClassesQuery.query,
+    ...migratedClassesQuery,
+  };
+
+  const migratedSubjectsQuery = useList({
     resource: "subjects",
-    pagination: { current: 1, pageSize: 1000 },
+    pagination: { currentPage: 1, pageSize: 1000 },
   });
-  const classSubjectsQuery = useList({
+
+  const subjectsQuery = {
+    ...migratedSubjectsQuery.result,
+    ...migratedSubjectsQuery.query,
+    ...migratedSubjectsQuery,
+  };
+
+  const migratedClassSubjectsQuery = useList({
     resource: "class-subjects",
-    pagination: { current: 1, pageSize: 1000 },
+    pagination: { currentPage: 1, pageSize: 1000 },
   });
-  const schedulesQuery = useList({
+
+  const classSubjectsQuery = {
+    ...migratedClassSubjectsQuery.result,
+    ...migratedClassSubjectsQuery.query,
+    ...migratedClassSubjectsQuery,
+  };
+
+  const migratedSchedulesQuery = useList({
     resource: "schedules",
-    pagination: { current: 1, pageSize: 1000 },
+    pagination: { currentPage: 1, pageSize: 1000 },
   });
+
+  const schedulesQuery = {
+    ...migratedSchedulesQuery.result,
+    ...migratedSchedulesQuery.query,
+    ...migratedSchedulesQuery,
+  };
 
   const [currentStep, setCurrentStep] = useState(0);
   const [termRecord, setTermRecord] = useState<TermRecord | null>(null);

@@ -83,7 +83,13 @@ export const ConfigurationPage: React.FC = () => {
         (e.target as HTMLInputElement).type === "checkbox"
           ? (e.target as HTMLInputElement).checked
           : (e.target as HTMLInputElement).value;
-      setValues((v) => ({ ...v, [field]: value }) as ConfigSchema);
+      setValues(
+        (v) =>
+          ({
+            ...v,
+            [field]: value,
+          }) as ConfigSchema
+      );
     };
 
   const handleSave = () => {

@@ -32,10 +32,17 @@ const formatDate = (value?: string) => {
 export const TermsPage: React.FC = () => {
   const { create, edit } = useNavigation();
   const { open: notify } = useAppNotification();
-  const { mutate: deleteOne, isLoading: isDeleting } = useDelete();
-  const { tableProps, setFilters, tableQueryResult } = useTable<TermRecord>({
+  const {
+    mutate: deleteOne,
+    mutation: { isPending: isDeleting },
+  } = useDelete();
+  const {
+    tableProps,
+    setFilters,
+    tableQuery: tableQueryResult,
+  } = useTable<TermRecord>({
     resource: "terms",
-    pagination: { current: 1, pageSize: 20 },
+    pagination: { currentPage: 1, pageSize: 20 },
   });
   const [academicYear, setAcademicYear] = useState("");
   const [type, setType] = useState<string>();

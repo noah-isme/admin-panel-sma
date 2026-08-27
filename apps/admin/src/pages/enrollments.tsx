@@ -1,10 +1,11 @@
+import { useList } from "../hooks/use-refine-list";
 import React, { useCallback, useMemo, useState } from "react";
 import { EditOutlined, PlusOutlined, ReloadOutlined } from "@ant-design/icons";
 import { Button, Popconfirm, Select, Space, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import { List as RefineList, useTable } from "@refinedev/antd";
-import { useDelete, useList, useNavigation } from "@refinedev/core";
+import { useDelete, useNavigation } from "@refinedev/core";
 import { ResourceActionGuard } from "../components/resource-action-guard";
 import { useAppNotification } from "../hooks/use-app-notification";
 
@@ -39,22 +40,42 @@ const formatDate = (value?: string) => {
 export const EnrollmentsPage: React.FC = () => {
   const { create, edit } = useNavigation();
   const { open: notify } = useAppNotification();
-  const { mutate: deleteOne, isLoading: isDeleting } = useDelete();
-  const { tableProps, setFilters, tableQueryResult } = useTable<EnrollmentRecord>({
+  const {
+    mutate: deleteOne,
+    mutation: { isPending: isDeleting },
+  } = useDelete();
+  const {
+    tableProps,
+    setFilters,
+    tableQuery: tableQueryResult,
+  } = useTable<EnrollmentRecord>({
     resource: "enrollments",
-    pagination: { current: 1, pageSize: 20 },
+    pagination: { currentPage: 1, pageSize: 20 },
   });
   const [classId, setClassId] = useState<string>();
   const [termId, setTermId] = useState<string>();
   const [status, setStatus] = useState<string>();
-  const classesQuery = useList<LookupRecord>({
+  const migratedClassesQuery = useList<LookupRecord>({
     resource: "classes",
-    pagination: { current: 1, pageSize: 200 },
+    pagination: { currentPage: 1, pageSize: 200 },
   });
-  const termsQuery = useList<LookupRecord>({
+
+  const classesQuery = {
+    ...migratedClassesQuery.result,
+    ...migratedClassesQuery.query,
+    ...migratedClassesQuery,
+  };
+
+  const migratedTermsQuery = useList<LookupRecord>({
     resource: "terms",
-    pagination: { current: 1, pageSize: 100 },
+    pagination: { currentPage: 1, pageSize: 100 },
   });
+
+  const termsQuery = {
+    ...migratedTermsQuery.result,
+    ...migratedTermsQuery.query,
+    ...migratedTermsQuery,
+  };
 
   const classes = classesQuery.data?.data ?? [];
   const terms = termsQuery.data?.data ?? [];

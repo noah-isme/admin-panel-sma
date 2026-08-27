@@ -41,10 +41,17 @@ const displayGroup = (record: SubjectRecord) => record.subjectGroup ?? record.gr
 export const SubjectsPage: React.FC = () => {
   const { create, edit } = useNavigation();
   const { open: notify } = useAppNotification();
-  const { mutate: deleteOne, isLoading: isDeleting } = useDelete();
-  const { tableProps, setFilters, tableQueryResult } = useTable<SubjectRecord>({
+  const {
+    mutate: deleteOne,
+    mutation: { isPending: isDeleting },
+  } = useDelete();
+  const {
+    tableProps,
+    setFilters,
+    tableQuery: tableQueryResult,
+  } = useTable<SubjectRecord>({
     resource: "subjects",
-    pagination: { current: 1, pageSize: 20 },
+    pagination: { currentPage: 1, pageSize: 20 },
   });
   const [search, setSearch] = useState("");
   const [track, setTrack] = useState<string>();

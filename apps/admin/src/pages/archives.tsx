@@ -1,3 +1,4 @@
+import { useList } from "../hooks/use-refine-list";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   Button,
@@ -28,7 +29,7 @@ import {
   WarningOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
-import { useDataProvider, useList } from "@refinedev/core";
+import { useDataProvider } from "@refinedev/core";
 import { useAppNotification } from "../hooks/use-app-notification";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
@@ -79,9 +80,9 @@ const ArchiveListPage: React.FC = () => {
 
   const searchValues = useMemo(() => searchForm.getFieldsValue(), [searchForm]);
 
-  const archivesQuery = useList({
+  const migratedArchivesQuery = useList({
     resource: "archives",
-    pagination: { current: 1, pageSize: 20 },
+    pagination: { currentPage: 1, pageSize: 20 },
     sorters: [{ field: "uploadedAt", order: "desc" }],
     filters: [
       ...(searchValues.category
@@ -95,6 +96,12 @@ const ArchiveListPage: React.FC = () => {
         : []),
     ],
   });
+
+  const archivesQuery = {
+    ...migratedArchivesQuery.result,
+    ...migratedArchivesQuery.query,
+    ...migratedArchivesQuery,
+  };
 
   const columns = useMemo(
     () => [

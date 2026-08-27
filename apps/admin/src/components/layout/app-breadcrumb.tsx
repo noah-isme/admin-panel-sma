@@ -1,8 +1,7 @@
 import React from "react";
 import { Breadcrumb, Typography } from "antd";
 import type { ItemType } from "antd/es/breadcrumb/Breadcrumb";
-import { useLocation } from "react-router-dom";
-import { useNavigation } from "@refinedev/core";
+import { useLocation, useNavigate } from "react-router";
 
 const SEGMENT_LABELS: Record<string, string> = {
   dashboard: "Dashboard",
@@ -136,15 +135,10 @@ const buildBreadcrumbItems = (pathname: string, navigateTo: (path: string) => vo
 
 export const AppBreadcrumb: React.FC = () => {
   const location = useLocation();
-  const { push } = useNavigation();
+  const navigate = useNavigate();
 
   const handleNavigate = (path: string) => {
-    if (!path) {
-      push("/");
-      return;
-    }
-
-    push(path);
+    navigate(path || "/");
   };
 
   const items = React.useMemo(

@@ -1,25 +1,45 @@
+import { useList } from "../hooks/use-refine-list";
 import React from "react";
 import { Create, useForm } from "@refinedev/antd";
 import { Card, Form, Select } from "antd";
-import { useList } from "@refinedev/core";
 import { ResourceActionGuard } from "../components/resource-action-guard";
 
 type LookupRecord = { id: string; name?: string; fullName?: string; nis?: string; code?: string };
 
 export const EnrollmentsCreate: React.FC = () => {
   const { formProps, saveButtonProps } = useForm();
-  const studentsQuery = useList<LookupRecord>({
+  const migratedStudentsQuery = useList<LookupRecord>({
     resource: "students",
-    pagination: { current: 1, pageSize: 500 },
+    pagination: { currentPage: 1, pageSize: 500 },
   });
-  const classesQuery = useList<LookupRecord>({
+
+  const studentsQuery = {
+    ...migratedStudentsQuery.result,
+    ...migratedStudentsQuery.query,
+    ...migratedStudentsQuery,
+  };
+
+  const migratedClassesQuery = useList<LookupRecord>({
     resource: "classes",
-    pagination: { current: 1, pageSize: 200 },
+    pagination: { currentPage: 1, pageSize: 200 },
   });
-  const termsQuery = useList<LookupRecord>({
+
+  const classesQuery = {
+    ...migratedClassesQuery.result,
+    ...migratedClassesQuery.query,
+    ...migratedClassesQuery,
+  };
+
+  const migratedTermsQuery = useList<LookupRecord>({
     resource: "terms",
-    pagination: { current: 1, pageSize: 100 },
+    pagination: { currentPage: 1, pageSize: 100 },
   });
+
+  const termsQuery = {
+    ...migratedTermsQuery.result,
+    ...migratedTermsQuery.query,
+    ...migratedTermsQuery,
+  };
 
   return (
     <ResourceActionGuard action="create">

@@ -1,6 +1,6 @@
+import { useList } from "../hooks/use-refine-list";
 import React, { useMemo } from "react";
 import { Create, useForm } from "@refinedev/antd";
-import { useList } from "@refinedev/core";
 import { useAppNotification } from "../hooks/use-app-notification";
 import { Alert, Card, Form, Input, Select, Space, Typography } from "antd";
 import { ResourceActionGuard } from "../components/resource-action-guard";
@@ -18,22 +18,49 @@ export const SchedulesCreate: React.FC = () => {
   const { formProps, saveButtonProps } = useForm();
   const { open: notify } = useAppNotification();
 
-  const classSubjectsQuery = useList({
+  const migratedClassSubjectsQuery = useList({
     resource: "class-subjects",
-    pagination: { current: 1, pageSize: 500 },
+    pagination: { currentPage: 1, pageSize: 500 },
   });
-  const classesQuery = useList({
+
+  const classSubjectsQuery = {
+    ...migratedClassSubjectsQuery.result,
+    ...migratedClassSubjectsQuery.query,
+    ...migratedClassSubjectsQuery,
+  };
+
+  const migratedClassesQuery = useList({
     resource: "classes",
-    pagination: { current: 1, pageSize: 500 },
+    pagination: { currentPage: 1, pageSize: 500 },
   });
-  const subjectsQuery = useList({
+
+  const classesQuery = {
+    ...migratedClassesQuery.result,
+    ...migratedClassesQuery.query,
+    ...migratedClassesQuery,
+  };
+
+  const migratedSubjectsQuery = useList({
     resource: "subjects",
-    pagination: { current: 1, pageSize: 500 },
+    pagination: { currentPage: 1, pageSize: 500 },
   });
-  const teachersQuery = useList({
+
+  const subjectsQuery = {
+    ...migratedSubjectsQuery.result,
+    ...migratedSubjectsQuery.query,
+    ...migratedSubjectsQuery,
+  };
+
+  const migratedTeachersQuery = useList({
     resource: "teachers",
-    pagination: { current: 1, pageSize: 500 },
+    pagination: { currentPage: 1, pageSize: 500 },
   });
+
+  const teachersQuery = {
+    ...migratedTeachersQuery.result,
+    ...migratedTeachersQuery.query,
+    ...migratedTeachersQuery,
+  };
 
   const classSubjects = (classSubjectsQuery.data?.data as Record<string, any>[]) ?? [];
   const classes = (classesQuery.data?.data as Record<string, any>[]) ?? [];

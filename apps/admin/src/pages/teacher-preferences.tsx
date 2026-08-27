@@ -1,3 +1,4 @@
+import { useList } from "../hooks/use-refine-list";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Button,
@@ -13,7 +14,7 @@ import {
   Tag,
   Typography,
 } from "antd";
-import { useCreate, useList, useUpdate } from "@refinedev/core";
+import { useCreate, useUpdate } from "@refinedev/core";
 import { useAppNotification } from "../hooks/use-app-notification";
 import type { BaseRecord } from "@refinedev/core";
 
@@ -66,15 +67,27 @@ export const TeacherPreferencesPage: React.FC = () => {
   const [form] = Form.useForm();
   const { open: notify } = useAppNotification();
 
-  const teachersQuery = useList<{ id: string; fullName: string; email?: string }>({
+  const migratedTeachersQuery = useList<{ id: string; fullName: string; email?: string }>({
     resource: "teachers",
-    pagination: { current: 1, pageSize: 200 },
+    pagination: { currentPage: 1, pageSize: 200 },
   });
 
-  const preferencesQuery = useList({
+  const teachersQuery = {
+    ...migratedTeachersQuery.result,
+    ...migratedTeachersQuery.query,
+    ...migratedTeachersQuery,
+  };
+
+  const migratedPreferencesQuery = useList({
     resource: "teacher-preferences",
-    pagination: { current: 1, pageSize: 200 },
+    pagination: { currentPage: 1, pageSize: 200 },
   });
+
+  const preferencesQuery = {
+    ...migratedPreferencesQuery.result,
+    ...migratedPreferencesQuery.query,
+    ...migratedPreferencesQuery,
+  };
 
   const createPreference = useCreate();
   const updatePreference = useUpdate();

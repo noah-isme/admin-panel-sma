@@ -1,3 +1,4 @@
+import { useList } from "../hooks/use-refine-list";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Avatar,
@@ -18,7 +19,7 @@ import {
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { List, useTable } from "@refinedev/antd";
-import { useList, useMany, useNavigation, type CrudFilter } from "@refinedev/core";
+import { useMany, useNavigation, type CrudFilter } from "@refinedev/core";
 import { useAppNotification } from "../hooks/use-app-notification";
 import { EyeOutlined, KeyOutlined, ReloadOutlined } from "@ant-design/icons";
 
@@ -156,24 +157,29 @@ export const UsersPage: React.FC = () => {
   const {
     tableProps,
     setFilters,
-    tableQueryResult: { refetch, isFetching } = {},
+    tableQuery: { refetch, isFetching } = {},
   } = useTable<UserRecord>({
     resource: "users",
     pagination: {
       pageSize: 10,
     },
-    initialSorter: [
-      {
-        field: "fullName",
-        order: "asc",
-      },
-    ],
+    sorters: {
+      initial: [
+        {
+          field: "fullName",
+          order: "asc",
+        },
+      ],
+    },
   });
 
-  const { data: allUsersResponse, isLoading: isLoadingAllUsers } = useList<UserRecord>({
+  const {
+    result: allUsersResponse,
+    query: { isLoading: isLoadingAllUsers },
+  } = useList<UserRecord>({
     resource: "users",
     pagination: {
-      current: 1,
+      currentPage: 1,
       pageSize: 100,
     },
     queryOptions: {
@@ -217,7 +223,7 @@ export const UsersPage: React.FC = () => {
     [tableData]
   );
 
-  const { data: teacherResponse } = useMany<TeacherRecord>({
+  const { result: teacherResponse } = useMany<TeacherRecord>({
     resource: "teachers",
     ids: teacherIds,
     queryOptions: {
@@ -225,7 +231,7 @@ export const UsersPage: React.FC = () => {
     },
   });
 
-  const { data: studentResponse } = useMany<StudentRecord>({
+  const { result: studentResponse } = useMany<StudentRecord>({
     resource: "students",
     ids: studentIds,
     queryOptions: {
@@ -233,7 +239,7 @@ export const UsersPage: React.FC = () => {
     },
   });
 
-  const { data: classResponse } = useMany<ClassRecord>({
+  const { result: classResponse } = useMany<ClassRecord>({
     resource: "classes",
     ids: classIds,
     queryOptions: {

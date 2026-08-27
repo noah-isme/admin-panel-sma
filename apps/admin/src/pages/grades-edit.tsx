@@ -1,20 +1,33 @@
+import { useList } from "../hooks/use-refine-list";
 import React, { useMemo } from "react";
 import { Edit, useForm } from "@refinedev/antd";
 import { Alert, Card, Form, Input, InputNumber, Select, Space, Tag, Typography } from "antd";
-import { useList } from "@refinedev/core";
 import { ResourceActionGuard } from "../components/resource-action-guard";
 
 export const GradesEdit: React.FC = () => {
   const { formProps, saveButtonProps, form } = useForm();
 
-  const gradeComponentsQuery = useList({
+  const migratedGradeComponentsQuery = useList({
     resource: "grade-components",
-    pagination: { current: 1, pageSize: 200 },
+    pagination: { currentPage: 1, pageSize: 200 },
   });
-  const gradeConfigsQuery = useList({
+
+  const gradeComponentsQuery = {
+    ...migratedGradeComponentsQuery.result,
+    ...migratedGradeComponentsQuery.query,
+    ...migratedGradeComponentsQuery,
+  };
+
+  const migratedGradeConfigsQuery = useList({
     resource: "grade-configs",
-    pagination: { current: 1, pageSize: 200 },
+    pagination: { currentPage: 1, pageSize: 200 },
   });
+
+  const gradeConfigsQuery = {
+    ...migratedGradeConfigsQuery.result,
+    ...migratedGradeConfigsQuery.query,
+    ...migratedGradeConfigsQuery,
+  };
 
   const gradeComponents = (gradeComponentsQuery.data?.data as Record<string, any>[]) ?? [];
   const gradeConfigs = (gradeConfigsQuery.data?.data as Record<string, any>[]) ?? [];

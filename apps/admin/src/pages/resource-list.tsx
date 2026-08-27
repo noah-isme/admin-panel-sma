@@ -3,7 +3,13 @@ import { Button, Input, Result, Select, Space, Spin, Table, Tooltip, Typography 
 import type { AxiosError } from "axios";
 import type { ColumnsType } from "antd/es/table";
 import { List, useTable } from "@refinedev/antd";
-import { useResource, useNavigation, useDelete, useCan, type CrudFilter } from "@refinedev/core";
+import {
+  useResourceParams,
+  useNavigation,
+  useDelete,
+  useCan,
+  type CrudFilter,
+} from "@refinedev/core";
 import { useAppNotification } from "../hooks/use-app-notification";
 import { Space as AntdSpace } from "antd";
 import {
@@ -14,7 +20,7 @@ import {
   SortAscendingOutlined,
   SortDescendingOutlined,
 } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { ConfirmModal } from "../components/confirm-modal";
 import { ResourceActionGuard } from "../components/resource-action-guard";
 
@@ -42,7 +48,7 @@ const toCrudOrder = (order: "ascend" | "descend"): "asc" | "desc" =>
   order === "descend" ? "desc" : "asc";
 
 export const ResourceList = () => {
-  const { resource } = useResource();
+  const { resource } = useResourceParams();
   const resourceName = resource?.name;
   const resolvedResourceName = resourceName ?? resource?.identifier;
   const navigate = useNavigate();
@@ -73,10 +79,17 @@ export const ResourceList = () => {
     queryOptions: { enabled: Boolean(resolvedResourceName) },
   });
 
-  const { tableProps, tableQueryResult, setFilters, setSorters, filters, sorters } = useTable({
+  const {
+    tableProps,
+    tableQuery: tableQueryResult,
+    setFilters,
+    setSorters,
+    filters,
+    sorters,
+  } = useTable({
     resource: resolvedResourceName,
     pagination: {
-      current: 1,
+      currentPage: 1,
       pageSize: 10,
     },
     queryOptions: {
@@ -235,8 +248,8 @@ export const ResourceList = () => {
   }, [setFilters, setSorters]);
 
   const resourceLabel = useMemo(
-    () => resource?.meta?.label ?? resource?.label ?? resource?.name ?? "Resource",
-    [resource?.label, resource?.meta?.label, resource?.name]
+    () => resource?.meta?.label ?? resource?.name ?? "Resource",
+    [resource?.meta?.label, resource?.name]
   );
 
   const canCreate = metaCreateAllowed && createPermission?.can !== false;
@@ -250,7 +263,10 @@ export const ResourceList = () => {
   const resourceEndpoint = resource?.name ? `/${resource.name}` : "-";
 
   const { create, edit, show } = useNavigation();
-  const { mutate: deleteOne, isLoading: isDeleting } = useDelete();
+  const {
+    mutate: deleteOne,
+    mutation: { isPending: isDeleting },
+  } = useDelete();
   const { open: notifyOpen } = useAppNotification();
 
   const [confirmVisible, setConfirmVisible] = useState(false);
@@ -546,7 +562,7 @@ export const ResourceList = () => {
     <ResourceActionGuard action="list" resourceName={resolvedResourceName}>
       <>
         <List
-          title={resource?.meta?.label ?? resource?.label ?? resource?.name}
+          title={resource?.meta?.label ?? resource?.name}
           resource={resolvedResourceName}
           headerButtons={(() => {
             const actions: React.ReactNode[] = [];

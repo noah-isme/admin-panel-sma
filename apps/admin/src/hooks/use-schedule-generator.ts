@@ -1,5 +1,6 @@
+import { useList } from "./use-refine-list";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useDataProvider, useList, type HttpError } from "@refinedev/core";
+import { useDataProvider, type HttpError } from "@refinedev/core";
 import { useAppNotification } from "./use-app-notification";
 const DAYS = [
   { value: 1, label: "Senin" },

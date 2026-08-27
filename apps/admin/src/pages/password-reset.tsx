@@ -1,7 +1,7 @@
 import { MailOutlined, LockOutlined } from "@ant-design/icons";
 import { Alert, Button, Card, Form, Input, Layout, Space, Typography } from "antd";
 import { useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router";
 
 import {
   PASSWORD_COMPLEXITY_MESSAGE,

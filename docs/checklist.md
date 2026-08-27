@@ -34,39 +34,22 @@
 
 ## Staging-only dependency exception
 
-React Router `6.30.4` remains reachable through the Refine v6 router adapter and
-is reported by `pnpm audit --prod` for the following moderate advisories:
+The previous React Router v6 exception is resolved by the coordinated Refine
+and router migration. The admin panel now uses the supported v5/v7 combination:
 
-- `GHSA-wrjc-x8rr-h8h6` / `CVE-2025-68470`: backslash-based open redirect in
-  React Router links and `useNavigate`.
-- `GHSA-jjmj-jmhj-qwj2`: open redirect leading to XSS in `react-router-dom`.
-- `GHSA-337j-9hxr-rhxg`: constructor injection during React Router SSR
-  hydration.
+- `@refinedev/core@5.0.12`
+- `@refinedev/antd@6.0.3`
+- `@refinedev/react-router@2.0.4`
+- `@tanstack/react-query@5.81.5`
+- `react-router@7.18.2`
 
-The following time-bounded exception is permitted for the staging candidate
-only, subject to release-owner approval:
+- [x] `pnpm audit --prod --audit-level=moderate` reports **No known
+      vulnerabilities found** for the admin workspace.
+- [x] Refine v5 compatibility was revalidated with the frontend typecheck,
+      lint, build, and contract/unit test suite.
 
-- [ ] Exception approved for staging through **2026-09-10**, or until the
-      candidate is promoted to production, whichever comes first.
-- The admin bundle is a client-only SPA and does not use React Router SSR
-  hydration. All dynamic setup-summary destinations go through the exact
-  `/terms` and `/students` allowlist in
-  `apps/admin/src/utils/navigation.ts`; backslashes, encoded path separators,
-  protocol-relative paths, schemes, query strings, and fragments fail closed to
-  `/`.
-- A direct upgrade to React Router `>=7.18.0` is not a safe drop-in remediation
-  for this candidate: `@refinedev/react-router-v6@4.6.2` declares
-  `react-router-dom ^6.8.1` as a peer, `react-router-dom@6.30.4` depends on the
-  matching React Router v6 package, and the registry has no
-  `@refinedev/react-router-v7` adapter. Production remediation therefore
-  requires a coordinated Refine/router migration with integration retesting;
-  do not force a v7 package through a pnpm override.
-- Re-run `pnpm audit --prod` before every staging promotion and attach the
-  output to the release record. High and critical findings remain a hard gate;
-  this exception covers only the three documented moderate advisories.
-- Production remains blocked until the app moves to a supported Refine/router
-  combination using React Router `>=7.18.0`, or the advisories are otherwise
-  resolved and re-verified.
+Continue to run the audit before each staging promotion and attach its output
+to the release record. High and critical findings remain hard release gates.
 
 ## Regeneration commands
 
