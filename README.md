@@ -272,16 +272,17 @@ Catatan: scripts `compose:*` tersedia di `package.json` pada root.
 
 ### Frontend gabungan (Vercel)
 
-Konfigurasi produksi menggunakan `admin-panel-sma/vercel.json` dari root proyek
-Vercel. Satu deployment menerbitkan landing page pada `/` dan admin pada `/admin`.
+Konfigurasi produksi menggunakan `vercel.json` dari root repository Vercel. Satu
+deployment menerbitkan landing page pada `/` dan admin pada `/admin`.
 
-1. Hubungkan repository ke Vercel dan set **Root Directory** ke `admin-panel-sma`.
-2. Gunakan **Framework Preset** `Other`, **Production Branch** `main`, dan
+1. Hubungkan repository ke Vercel dan set **Root Directory** ke `.`.
+2. Gunakan **Framework Preset** `Vite`, **Production Branch** `main`, dan
    **Node.js Version** `20.x`.
-3. Jangan mengganti perintah dari `vercel.json`:
+3. Gunakan perintah deployment berikut:
    - **Install Command**: `pnpm install --frozen-lockfile`
-   - Build menjalankan `@apps/shared`, `@apps/landing`, dan `@apps/admin`, lalu
-     menggabungkan hasilnya menjadi `deploy/` (`/` dan `/admin/`).
+   - **Build Command**: `pnpm build:vercel` (menjalankan `@apps/shared`,
+     `@apps/landing`, dan `@apps/admin`, lalu menggabungkan hasilnya menjadi
+     `deploy/` (`/` dan `/admin/`).
    - Output directory: `deploy`.
 4. Atur Environment Variables di **Project Settings** (jangan commit URL API):
 
@@ -335,11 +336,11 @@ Backend API sekarang menggunakan Go (sma-adp-api repository terpisah). Deploy me
 
 **Solusi**:
 
-1. Pastikan **Root Directory** di-set ke `admin-panel-sma` di Project Settings → General.
+1. Pastikan **Root Directory** di-set ke `.` di Project Settings → General.
 2. Output Directory harus `deploy` dan install command harus menggunakan `--frozen-lockfile`.
 3. Pastikan build menghasilkan `deploy/index.html`, `deploy/admin/index.html`, dan
    `deploy/mockServiceWorker.js`.
-4. Vercel hanya membaca konfigurasi gabungan dari `admin-panel-sma/vercel.json`.
+4. Vercel hanya membaca konfigurasi gabungan dari `vercel.json` di root repository.
 
 ### Build Error: "is not exported by" saat deploy ke Vercel
 
@@ -354,7 +355,7 @@ Backend API sekarang menggunakan Go (sma-adp-api repository terpisah). Deploy me
    }
    ```
 2. Shared package harus di-build terlebih dahulu menjadi ESM sebelum build admin
-3. Vercel akan otomatis menjalankan build sequence yang benar via `vercel.json`
+3. Vercel menjalankan sequence build gabungan melalui `pnpm build:vercel`.
 
 ### Halaman Admin Kosong atau Cannot Connect to API
 

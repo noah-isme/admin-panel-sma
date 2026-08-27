@@ -1,8 +1,8 @@
 # Panduan Deployment Frontend ke Vercel
 
 Dokumen ini adalah sumber kebenaran untuk deployment frontend gabungan SMA.
-Project Vercel harus menggunakan directory `admin-panel-sma` sebagai root dan
-`vercel.json` di directory tersebut. Jangan memilih `apps/admin` sebagai root:
+Project Vercel harus menggunakan root repository (`.`) dan `vercel.json` di
+directory tersebut. Jangan memilih `apps/admin` sebagai root:
 deployment itu hanya menghasilkan admin dan tidak menjalankan landing page.
 
 ## Bentuk deployment
@@ -20,10 +20,9 @@ deploy/
 └── mockServiceWorker.js          # worker root agar dapat mengintersep /api
 ```
 
-Rewrite filesystem dijalankan terlebih dahulu. `/admin`, `/admin/`, dan semua
-route admin yang tidak berupa file (contoh `/admin/login` dan
-`/admin/students`) diarahkan ke `admin/index.html`; route lain diarahkan ke
-landing `index.html`.
+File statis disajikan langsung. `/admin`, `/admin/`, dan semua route admin yang
+tidak berupa file (contoh `/admin/login` dan `/admin/students`) diarahkan ke
+`admin/index.html`; route lain diarahkan ke landing `index.html`.
 
 ## Project Settings
 
@@ -31,10 +30,11 @@ Atur nilai berikut di Vercel **Project Settings → General**:
 
 | Setting           | Nilai                                                         |
 | ----------------- | ------------------------------------------------------------- |
-| Root Directory    | `admin-panel-sma`                                             |
-| Framework Preset  | `Other`                                                       |
+| Root Directory    | `.`                                                           |
+| Framework Preset  | `Vite`                                                        |
 | Production Branch | `main`                                                        |
 | Node.js Version   | `20.x`                                                        |
+| Build Command     | `pnpm build:vercel`                                           |
 | Install Command   | `pnpm install --frozen-lockfile` (sudah ada di `vercel.json`) |
 | Output Directory  | `deploy` (sudah ada di `vercel.json`)                         |
 
@@ -77,13 +77,11 @@ Jalankan dari `admin-panel-sma`:
 
 ```bash
 pnpm install --frozen-lockfile
-pnpm --filter @apps/shared build
-pnpm --filter @apps/landing build
-pnpm --filter @apps/admin build
+pnpm build:vercel
 ```
 
-Untuk memeriksa output gabungan secara manual, jalankan perintah build dari
-`vercel.json` atau gunakan Vercel CLI setelah project terhubung. Pastikan file
+Untuk memeriksa output gabungan secara manual, jalankan `pnpm build:vercel` atau
+gunakan Vercel CLI setelah project terhubung. Pastikan file
 berikut ada sebelum deployment diterima:
 
 ```text
@@ -93,8 +91,8 @@ deploy/mockServiceWorker.js
 ```
 
 Contract test frontend memvalidasi root config, frozen install, Node 20,
-rewrite deep link, output gabungan, dan keberadaan config admin-only yang sudah
-dinonaktifkan.
+skrip build gabungan, rewrite deep link, output gabungan, dan keberadaan config
+admin-only yang sudah dinonaktifkan.
 
 ## Smoke test deployment
 
