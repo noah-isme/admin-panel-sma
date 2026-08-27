@@ -2,7 +2,7 @@ import { test, expect } from "../fixtures/auth.js";
 import { gotoAndWait } from "../fixtures/auth.js";
 
 test.describe("Scheduler Feature", () => {
-  test("Scheduler generator page loads", async ({ authenticatedPage }) => {
+  test("Scheduler generator page loads @optional-feature", async ({ authenticatedPage }) => {
     const page = authenticatedPage;
 
     await gotoAndWait(page, "/schedules/generator");
@@ -21,7 +21,9 @@ test.describe("Scheduler Feature", () => {
 });
 
 test.describe("Reports Feature", () => {
-  test("Reports page exposes the async report form", async ({ authenticatedPage }) => {
+  test("Reports page exposes the async report form @optional-feature", async ({
+    authenticatedPage,
+  }) => {
     const page = authenticatedPage;
 
     await gotoAndWait(page, "/reports");

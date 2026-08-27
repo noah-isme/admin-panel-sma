@@ -55,7 +55,7 @@ test.describe("Critical User Flows", () => {
     await expect(page.getByRole("table")).toBeVisible();
   });
 
-  test("Login → Reports → Student Report", async ({ authenticatedPage }) => {
+  test("Login → Reports → Student Report @optional-feature", async ({ authenticatedPage }) => {
     const page = authenticatedPage;
 
     await gotoAndWait(page, "/reports");

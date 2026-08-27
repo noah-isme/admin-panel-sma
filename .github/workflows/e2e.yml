@@ -161,6 +161,31 @@ jobs:
           [[ -n "$STAGING_E2E_PASSWORD" ]] || { echo "::error::STAGING_E2E_PASSWORD is required"; exit 1; }
       - name: Install Playwright
         run: pnpm exec playwright install --with-deps chromium
+      - name: Verify staged core feature profile
+        env:
+          STAGING_API_URL: ${{ secrets.STAGING_API_URL }}
+        run: |
+          set -euo pipefail
+          response=$(curl --fail --silent --show-error --max-time 10 \
+            "${STAGING_API_URL%/}/features")
+          printf '%s' "$response" | jq -e '
+            .data.features
+            | select(
+                .analytics == true
+                and .dashboard == true
+                and .mutations == true
+                and .homerooms == true
+                and .configuration == true
+                and .calendarAlias == true
+                and .attendanceAlias == true
+                and .audit == true
+                and .lessonAttendance == true
+                and .scheduler == false
+                and .reports == false
+                and .archives == false
+                and .documents == false
+              )
+          ' >/dev/null
       - name: Run E2E tests against staging
         working-directory: apps/admin
         env:
@@ -169,7 +194,10 @@ jobs:
           PLAYWRIGHT_API_URL: ${{ secrets.STAGING_API_URL }}
           STAGING_E2E_EMAIL: ${{ secrets.STAGING_E2E_EMAIL }}
           STAGING_E2E_PASSWORD: ${{ secrets.STAGING_E2E_PASSWORD }}
-        run: pnpm exec playwright test tests/e2e/critical-flows.spec.ts tests/e2e/feature-specific.spec.ts
+        # Staging runs the production core-first profile. Optional scheduler
+        # and async-report suites stay in the all-features local job until a
+        # separately provisioned optional-feature environment is approved.
+        run: pnpm exec playwright test tests/e2e/critical-flows.spec.ts tests/e2e/feature-specific.spec.ts --grep-invert='@optional-feature'
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
