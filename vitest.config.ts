@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 export default defineConfig({
   resolve: {
     alias: {
-      "@shared": resolve(__dirname, "apps/shared/dist"),
+      "@shared": resolve(__dirname, "apps/shared/output"),
     },
   },
   test: {

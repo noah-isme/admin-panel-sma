@@ -428,7 +428,7 @@ Backend API sekarang menggunakan Go (sma-adp-api repository terpisah). Deploy me
 ### Development vs Production Build
 
 - **Development**: Vite menggunakan source files langsung dari `apps/shared/src` untuk HMR (Hot Module Replacement) yang cepat
-- **Production**: Vite menggunakan compiled files dari `apps/shared/dist` untuk module resolution yang proper
+- **Production**: Vite menggunakan compiled files dari `apps/shared/output` untuk module resolution yang proper
 
 Konfigurasi ini diatur di `apps/admin/vite.config.ts` dengan conditional alias berdasarkan mode.
 
@@ -465,7 +465,7 @@ pnpm --filter @apps/shared dev
    pnpm --filter @apps/worker build
    ```
 
-3. **Root cause**: Worker depends on `@apps/shared` package yang harus di-compile menjadi ESM modules di `apps/shared/dist/` sebelum worker bisa di-compile.
+3. **Root cause**: Worker depends on `@apps/shared` package yang harus di-compile menjadi ESM modules di `apps/shared/output/` sebelum worker bisa di-compile.
 
 ### Worker Error: "exports is not defined in ES module scope"
 
