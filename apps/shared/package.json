@@ -46,6 +46,7 @@
   },
   "devDependencies": {
     "@types/pg": "8.15.5",
+    "jsdom": "26.1.0",
     "tsc-alias": "^1.8.10",
     "tslib": "2.6.3",
     "vitest": "1.6.0"

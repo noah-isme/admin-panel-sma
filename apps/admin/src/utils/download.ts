@@ -36,12 +36,33 @@ export const filenameFromContentDisposition = (
   return filename?.trim();
 };
 
+const readBlobText = async (value: unknown): Promise<string | undefined> => {
+  if (!value || (typeof value !== "object" && typeof value !== "function")) return undefined;
+
+  const blob = value as Blob & { text?: () => Promise<string> };
+  if (typeof blob.text === "function") return blob.text();
+  if (typeof FileReader === "undefined") return undefined;
+
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : undefined);
+    reader.onerror = () => resolve(undefined);
+    try {
+      reader.readAsText(blob);
+    } catch {
+      resolve(undefined);
+    }
+  });
+};
+
 const readErrorMessage = async (response: AxiosResponse<Blob>) => {
   const contentType = String(response.headers["content-type"] ?? "").toLowerCase();
-  if (!contentType.includes("json") || !(response.data instanceof Blob)) return undefined;
+  if (!contentType.includes("json")) return undefined;
 
   try {
-    const payload = JSON.parse(await response.data.text()) as {
+    const body = await readBlobText(response.data);
+    if (body === undefined) return undefined;
+    const payload = JSON.parse(body) as {
       error?: string | { message?: string };
       message?: string;
     };
