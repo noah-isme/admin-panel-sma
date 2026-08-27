@@ -156,6 +156,7 @@ jobs:
         run: |
           set -euo pipefail
           [[ -n "$STAGING_FRONTEND_URL" ]] || { echo "::error::STAGING_FRONTEND_URL is required"; exit 1; }
+          [[ "$STAGING_FRONTEND_URL" =~ ^https://[^[:space:]]+/admin/?$ ]] || { echo "::error::STAGING_FRONTEND_URL must be an HTTPS admin path ending in /admin"; exit 1; }
           [[ -n "$STAGING_API_URL" ]] || { echo "::error::STAGING_API_URL is required"; exit 1; }
           [[ -n "$STAGING_E2E_EMAIL" ]] || { echo "::error::STAGING_E2E_EMAIL is required"; exit 1; }
           [[ -n "$STAGING_E2E_PASSWORD" ]] || { echo "::error::STAGING_E2E_PASSWORD is required"; exit 1; }

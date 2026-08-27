@@ -5,7 +5,7 @@ const isStaged = !!process.env.PLAYWRIGHT_STAGED;
 
 // Staged environment uses deployed URL, local uses dev server
 const baseURL = isStaged
-  ? process.env.PLAYWRIGHT_BASE_URL || "https://admin-sma-staging.vercel.app"
+  ? process.env.PLAYWRIGHT_BASE_URL || "https://admin-sma-staging.vercel.app/admin"
   : "http://localhost:5173/admin";
 
 const apiURL = isStaged
