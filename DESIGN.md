@@ -87,9 +87,12 @@ graph TD
 ### 3.1 Layout Anatomy
 
 - **`AppLayout` (`src/components/layout/app-layout.tsx`)**:
-  - **Sider**: Collapsible navigation with brand identity, role-filtered menu items, and active route indicators.
-  - **Header**: Displays global active term/semester badge, notification popover, role badge (`SUPERADMIN`, `ADMIN_TU`, etc.), and user profile menu.
+  - **Shell**: The app shell must fill the viewport width on every page. `#root` in `index.html` must stay unstyled — React replaces its children on mount but preserves its inline `style`, so any centering/flex on `#root` squeezes the mounted app.
+  - **Header**: Fixed height of `56px` (`HEADER_HEIGHT`), sticky at the top, full viewport width. All vertical layout math (`calc(100vh - …)`) derives from this single constant.
+  - **Sider**: Collapsible navigation with brand identity, role-filtered menu items, and active route indicators. On `md+` it is `position: sticky` with `height: calc(100vh - HEADER_HEIGHT)` and scrolls internally, so navigation stays visible while page content scrolls. On `< md` it becomes a slide-in `Drawer` with a fixed bottom navigation bar (56px) instead.
+  - **Content**: Single scroll container is the document body; the header and sider stick. Page content renders inside one card (`#main-content`) with responsive padding.
   - **Breadcrumbs (`app-breadcrumb.tsx`)**: Automatic breadcrumb generation translating Refine resource trees into clear Indonesian navigational paths (e.g. `Akademik / Penilaian / Nilai Kelas X-A`).
+  - **Wide data tables**: Raw AntD `<Table>` pages must set `scroll={{ x: "max-content" }}` so wide columns scroll within the table instead of overflowing the shell on narrow viewports.
 
 ### 3.2 Responsive Component Toolkit
 
