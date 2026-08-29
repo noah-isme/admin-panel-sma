@@ -117,7 +117,8 @@ const getInitials = (value: string) => {
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 };
 
-const resolveRoleMeta = (role: UserRole): RoleMeta => ROLE_DETAILS[role];
+const resolveRoleMeta = (role: UserRole): RoleMeta =>
+  ROLE_DETAILS[role] ?? { label: role, description: "", color: "default" };
 
 const buildStats = (users: UserRecord[]) => {
   const total = users.length;
