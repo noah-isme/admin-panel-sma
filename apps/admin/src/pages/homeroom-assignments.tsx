@@ -453,6 +453,7 @@ export const HomeroomAssignmentsPage: React.FC = () => {
           columns={columns}
           rowKey="id"
           loading={isLoadingClasses}
+          scroll={{ x: "max-content" }}
           pagination={{
             ...pagination,
             total: filteredClasses.length,

@@ -652,6 +652,7 @@ export const ClassesPage: React.FC = () => {
               dataSource={enrichedData}
               loading={isLoading}
               rowKey="id"
+              scroll={{ x: "max-content" }}
               onRow={(record) => ({
                 onClick: () => handleRowView(record),
               })}
