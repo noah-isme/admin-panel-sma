@@ -71,6 +71,7 @@ import { useColorMode } from "../../theme/theme-provider";
 import { ACTIVE_TERM_FILTER_FIELD, resolveActiveTerm } from "../../utils/terms";
 
 const SKIP_LINK_ID = "main-content";
+const HEADER_HEIGHT = 56;
 
 type TermRecord = {
   id: string;
@@ -770,7 +771,8 @@ export const AppLayout: React.FC = () => {
           component="header"
           sx={{
             px: { xs: 2, md: 3 },
-            py: 1.25,
+            height: HEADER_HEIGHT,
+            boxSizing: "border-box",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -949,7 +951,7 @@ export const AppLayout: React.FC = () => {
       )}
 
       {/* Main layout */}
-      <Box sx={{ display: "flex", minHeight: "calc(100vh - 56px)" }}>
+      <Box sx={{ display: "flex", minHeight: `calc(100vh - ${HEADER_HEIGHT}px)` }}>
         {/* Sidebar - desktop fixed, mobile drawer */}
         {isMdUp ? (
           <Box
@@ -963,6 +965,9 @@ export const AppLayout: React.FC = () => {
               overflow: "hidden",
               display: "flex",
               flexDirection: "column",
+              position: "sticky",
+              top: HEADER_HEIGHT,
+              height: `calc(100vh - ${HEADER_HEIGHT}px)`,
             }}
           >
             {sidebarContent}
