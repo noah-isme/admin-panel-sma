@@ -69,6 +69,16 @@ export const CALENDAR_CATEGORY_META: Record<CalendarCategory, CalendarCategoryMe
   },
 };
 
+export const resolveCalendarCategoryMeta = (
+  category: CalendarCategory | string | null | undefined
+): CalendarCategoryMeta =>
+  (category != null && CALENDAR_CATEGORY_META[category as CalendarCategory]) || {
+    label: category ?? "Lainnya",
+    color: "#64748b",
+    icon: "⚪",
+    textColor: "#ffffff",
+  };
+
 export const CALENDAR_CATEGORY_ORDER: CalendarCategory[] = [
   "EFFECTIVE_DAY",
   "HOLIDAY",
