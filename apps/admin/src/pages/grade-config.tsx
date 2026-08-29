@@ -5,6 +5,7 @@ import {
   Button,
   Card,
   Form,
+  Grid,
   InputNumber,
   Radio,
   Select,
@@ -59,6 +60,7 @@ export const calculateWeightedAggregate = (
 };
 
 export const GradeConfigPage: React.FC = () => {
+  const screens = Grid.useBreakpoint();
   const { open: notify } = useAppNotification();
   const { value: storedMapping, setValue: setStoredMapping } = usePersistentSelection<
     string | undefined
@@ -525,7 +527,7 @@ export const GradeConfigPage: React.FC = () => {
           </Typography.Paragraph>
           <Card>
             <Space direction="vertical" size={16} style={{ width: "100%" }}>
-              <Form layout="inline">
+              <Form layout={screens.md ? "inline" : "vertical"}>
                 <Form.Item label="Kelas & Mapel" required>
                   <Select
                     showSearch
@@ -536,7 +538,7 @@ export const GradeConfigPage: React.FC = () => {
                     filterOption={(input, option) =>
                       (option?.label as string)?.toLowerCase().includes(input.toLowerCase())
                     }
-                    style={{ minWidth: 320 }}
+                    style={screens.md ? { minWidth: 320 } : { width: "100%" }}
                   />
                 </Form.Item>
               </Form>
@@ -630,6 +632,7 @@ export const GradeConfigPage: React.FC = () => {
                         columns={componentColumns}
                         rowKey={(record) => record.id as string}
                         pagination={false}
+                        scroll={{ x: "max-content" }}
                       />
                       <Space>
                         <Statistic title="Total Bobot" value={`${totalWeight}%`} />
@@ -659,6 +662,7 @@ export const GradeConfigPage: React.FC = () => {
                             columns={perStudentColumns}
                             rowKey={(record) => record.key}
                             pagination={false}
+                            scroll={{ x: "max-content" }}
                           />
                         )}
                       </Card>
