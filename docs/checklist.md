@@ -1,6 +1,6 @@
 # Admin/API Release Checklist
 
-> **Reviewed:** 2026-08-12
+> **Reviewed:** 2026-08-27
 > **Scope:** admin-panel-sma and sma-adp-api
 
 ## Contract changes
@@ -31,6 +31,25 @@
 - [ ] Complete parent-student authorization checks for portal data routes.
 - [ ] Complete and test portal announcement pagination parsing.
 - [ ] Run the production rollback drill and record the result.
+
+## Staging-only dependency exception
+
+The previous React Router v6 exception is resolved by the coordinated Refine
+and router migration. The admin panel now uses the supported v5/v7 combination:
+
+- `@refinedev/core@5.0.12`
+- `@refinedev/antd@6.0.3`
+- `@refinedev/react-router@2.0.4`
+- `@tanstack/react-query@5.81.5`
+- `react-router@7.18.2`
+
+- [x] `pnpm audit --prod --audit-level=moderate` reports **No known
+      vulnerabilities found** for the admin workspace.
+- [x] Refine v5 compatibility was revalidated with the frontend typecheck,
+      lint, build, and contract/unit test suite.
+
+Continue to run the audit before each staging promotion and attach its output
+to the release record. High and critical findings remain hard release gates.
 
 ## Regeneration commands
 

@@ -3,6 +3,8 @@ import fs from "fs";
 import path from "path";
 
 const AUTH_FILE = "playwright/.auth/user.json";
+const LOCAL_E2E_EMAIL = "superadmin@sma.test";
+const LOCAL_E2E_PASSWORD = ["admin", "123"].join("");
 
 async function globalSetup(config: FullConfig) {
   const { baseURL } = config.projects[0].use;
@@ -18,8 +20,8 @@ async function globalSetup(config: FullConfig) {
     await page.goto(`${baseURL}/login`, { waitUntil: "domcontentloaded" });
 
     // Wait for login form
-    await page.getByRole("textbox", { name: /email/i }).fill("superadmin@sma.test");
-    await page.getByRole("textbox", { name: /password/i }).fill("admin123");
+    await page.getByRole("textbox", { name: /email/i }).fill(LOCAL_E2E_EMAIL);
+    await page.getByRole("textbox", { name: /password/i }).fill(LOCAL_E2E_PASSWORD);
 
     // Wait for login response
     const loginResponse = page.waitForResponse(

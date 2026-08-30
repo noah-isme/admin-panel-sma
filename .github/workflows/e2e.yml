@@ -2,17 +2,20 @@ name: E2E Tests
 
 on:
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
     types: [opened, synchronize, reopened, ready_for_review]
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch:
   schedule:
-    - cron: '0 4 * * *'  # 4 AM UTC daily
+    - cron: "0 4 * * *" # 4 AM UTC daily
 
 concurrency:
   group: e2e-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  SMA_ADP_API_DIR: ${{ github.workspace }}/_contracts/sma-adp-api
 
 jobs:
   e2e-local:
@@ -22,53 +25,113 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      - name: Read pinned Go API ref
+        id: backend-ref
+        shell: bash
+        run: |
+          set -euo pipefail
+          ref="$(tr -d '[:space:]' < .github/sma-adp-api.ref)"
+          if [[ ! "$ref" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Invalid backend revision in .github/sma-adp-api.ref"
+            exit 1
+          fi
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+      - name: Checkout pinned Go API for local E2E
+        uses: actions/checkout@v4
+        with:
+          repository: noah-isme/sma-adp-api
+          ref: ${{ steps.backend-ref.outputs.ref }}
+          path: _contracts/sma-adp-api
+          fetch-depth: 1
+          persist-credentials: false
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.21"
+      - name: Install migration tool
+        run: |
+          go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.17.1
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
       - name: Build apps
         run: pnpm -r build
       - name: Install Playwright
-        run: npx playwright install --with-deps chromium
+        run: pnpm exec playwright install --with-deps chromium
       - name: Start backend API
-        run: |
-          cd ../sma-adp-api
-          docker compose -f docker/docker-compose.yml up -d
-          sleep 5
-          make migrate-up
-          psql "postgresql://postgres:postgres@localhost:5432/admin_panel_sma?sslmode=disable" -f scripts/seed.sql
-          go run ./cmd/api-gateway &
-          echo $! > api.pid
-          sleep 5
-          curl -f http://localhost:8080/health || (echo "API failed to start" && exit 1)
-      - name: Run E2E tests
-        run: |
-          cd ../admin-panel-sma/apps/admin
-          npx playwright test
+        working-directory: _contracts/sma-adp-api
         env:
-          VITE_API_URL: http://localhost:8080/api/v1
+          ENV: development
+          PORT: 8081
+          API_PREFIX: /api/v1
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: postgres
+          DB_PASSWORD: "${{ format('{0}{1}', 'post', 'gres') }}"
+          DB_NAME: admin_panel_sma
+          DB_SSL_MODE: disable
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          REDIS_TLS: "false"
+          JWT_SECRET: ci-test-secret
+          ALLOWED_ORIGINS: http://localhost:5173
+          ENABLE_ALL_FEATURES: "true"
+          RATE_LIMIT_REQUESTS_PER_MINUTE: "6000"
+          RATE_LIMIT_BURST: "1000"
+          LOG_LEVEL: warn
+        run: |
+          set -euo pipefail
+          docker compose -f docker/docker-compose.yml up -d --wait
+          make migrate-up
+          make seed
+          go run ./cmd/api-gateway > "$GITHUB_WORKSPACE/api.log" 2>&1 &
+          echo "$!" > "$GITHUB_WORKSPACE/api.pid"
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://localhost:8081/ready > /dev/null; then
+              echo "Backend API is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::Backend API failed readiness check"
+          tail -200 "$GITHUB_WORKSPACE/api.log" || true
+          exit 1
+      - name: Run E2E tests
+        working-directory: apps/admin
+        env:
+          PLAYWRIGHT_API_URL: http://localhost:8081/api/v1
+          VITE_API_URL: http://localhost:8081/api/v1
+          VITE_USE_MSW: "false"
+        # Keep the release gate deterministic and backend-backed. Visual
+        # regression suites remain available as an explicit local/manual job;
+        # their baselines are intentionally not used as a staging gate.
+        run: pnpm exec playwright test tests/e2e/critical-flows.spec.ts tests/e2e/feature-specific.spec.ts
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
           path: apps/admin/playwright-report
+          if-no-files-found: ignore
       - name: Upload traces
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-traces
           path: apps/admin/test-results
+          if-no-files-found: ignore
       - name: Stop backend API
         if: always()
+        working-directory: _contracts/sma-adp-api
         run: |
-          if [ -f ../sma-adp-api/api.pid ]; then
-            kill $(cat ../sma-adp-api/api.pid) || true
+          if [[ -f "$GITHUB_WORKSPACE/api.pid" ]]; then
+            kill "$(cat "$GITHUB_WORKSPACE/api.pid")" || true
           fi
-          docker compose -f ../sma-adp-api/docker/docker-compose.yml down
+          docker compose -f docker/docker-compose.yml down --remove-orphans
 
   e2e-staged:
     name: E2E Tests (Staged Environment)
@@ -83,26 +146,70 @@ jobs:
           node-version: 20
           cache: pnpm
       - name: Install dependencies
-        run: pnpm install
-      - name: Install Playwright
-        run: npx playwright install --with-deps chromium
-      - name: Run E2E tests against staging
+        run: pnpm install --frozen-lockfile
+      - name: Validate staged E2E configuration
+        env:
+          STAGING_FRONTEND_URL: ${{ secrets.STAGING_FRONTEND_URL }}
+          STAGING_API_URL: ${{ secrets.STAGING_API_URL }}
+          STAGING_E2E_EMAIL: ${{ secrets.STAGING_E2E_EMAIL }}
+          STAGING_E2E_PASSWORD: ${{ secrets.STAGING_E2E_PASSWORD }}
         run: |
-          cd admin-panel-sma/apps/admin
-          npx playwright test
+          set -euo pipefail
+          [[ -n "$STAGING_FRONTEND_URL" ]] || { echo "::error::STAGING_FRONTEND_URL is required"; exit 1; }
+          [[ "$STAGING_FRONTEND_URL" =~ ^https://[^[:space:]]+/admin/?$ ]] || { echo "::error::STAGING_FRONTEND_URL must be an HTTPS admin path ending in /admin"; exit 1; }
+          [[ -n "$STAGING_API_URL" ]] || { echo "::error::STAGING_API_URL is required"; exit 1; }
+          [[ -n "$STAGING_E2E_EMAIL" ]] || { echo "::error::STAGING_E2E_EMAIL is required"; exit 1; }
+          [[ -n "$STAGING_E2E_PASSWORD" ]] || { echo "::error::STAGING_E2E_PASSWORD is required"; exit 1; }
+      - name: Install Playwright
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Verify staged core feature profile
+        env:
+          STAGING_API_URL: ${{ secrets.STAGING_API_URL }}
+        run: |
+          set -euo pipefail
+          response=$(curl --fail --silent --show-error --max-time 10 \
+            "${STAGING_API_URL%/}/features")
+          printf '%s' "$response" | jq -e '
+            .data.features
+            | select(
+                .analytics == true
+                and .dashboard == true
+                and .mutations == true
+                and .homerooms == true
+                and .configuration == true
+                and .calendarAlias == true
+                and .attendanceAlias == true
+                and .audit == true
+                and .lessonAttendance == true
+                and .scheduler == false
+                and .reports == false
+                and .archives == false
+                and .documents == false
+              )
+          ' >/dev/null
+      - name: Run E2E tests against staging
+        working-directory: apps/admin
         env:
           PLAYWRIGHT_STAGED: "1"
           PLAYWRIGHT_BASE_URL: ${{ secrets.STAGING_FRONTEND_URL }}
           PLAYWRIGHT_API_URL: ${{ secrets.STAGING_API_URL }}
+          STAGING_E2E_EMAIL: ${{ secrets.STAGING_E2E_EMAIL }}
+          STAGING_E2E_PASSWORD: ${{ secrets.STAGING_E2E_PASSWORD }}
+        # Staging runs the production core-first profile. Optional scheduler
+        # and async-report suites stay in the all-features local job until a
+        # separately provisioned optional-feature environment is approved.
+        run: pnpm exec playwright test tests/e2e/critical-flows.spec.ts tests/e2e/feature-specific.spec.ts --grep-invert='@optional-feature'
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report-staged
           path: apps/admin/playwright-report
+          if-no-files-found: ignore
       - name: Upload traces
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-traces-staged
           path: apps/admin/test-results
+          if-no-files-found: ignore

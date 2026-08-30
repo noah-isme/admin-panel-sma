@@ -124,7 +124,10 @@ export const GradesPage: React.FC = () => {
   }>({ field: undefined, order: undefined });
 
   const { show, edit } = useNavigation();
-  const { mutate: deleteOne, isLoading: isDeleting } = useDelete();
+  const {
+    mutate: deleteOne,
+    mutation: { isPending: isDeleting },
+  } = useDelete();
   const { open: notifyOpen } = useAppNotification();
 
   const queryParams = useMemo(() => {
@@ -157,10 +160,10 @@ export const GradesPage: React.FC = () => {
     return params;
   }, [filtersState, pagination, scoreMin, scoreMax, searchQuery, sortState]);
 
-  const { data, isLoading, isFetching, refetch } = useQuery({
+  const { data, isLoading, isFetching, refetch } = useQuery<GradeReportResponse>({
     queryKey: ["grade-report", queryParams],
     queryFn: () => fetchGradeReport(queryParams),
-    keepPreviousData: true,
+    placeholderData: (previousData) => previousData,
   });
 
   useEffect(() => {

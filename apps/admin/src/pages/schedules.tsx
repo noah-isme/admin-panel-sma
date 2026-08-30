@@ -1,3 +1,4 @@
+import { useList } from "../hooks/use-refine-list";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Button,
@@ -22,7 +23,7 @@ import {
   RedoOutlined,
 } from "@ant-design/icons";
 import { List, useTable } from "@refinedev/antd";
-import { useCreate, useDelete, useList, useNavigation, type CrudFilter } from "@refinedev/core";
+import { useCreate, useDelete, useNavigation, type CrudFilter } from "@refinedev/core";
 import { isTermActive } from "../utils/terms";
 import { useAppNotification } from "../hooks/use-app-notification";
 import dayjs from "dayjs";
@@ -117,7 +118,10 @@ export const SchedulesPage: React.FC = () => {
   const { create: navigateCreate, edit } = useNavigation();
   const { open: notify } = useAppNotification();
   const { mutate: deleteOne } = useDelete();
-  const { mutateAsync: createOne, isLoading: isDuplicating } = useCreate();
+  const {
+    mutateAsync: createOne,
+    mutation: { isPending: isDuplicating },
+  } = useCreate();
 
   const [selectedYear, setSelectedYear] = useState<string | undefined>(undefined);
   const [selectedSemester, setSelectedSemester] = useState<string | undefined>(undefined);
@@ -130,47 +134,63 @@ export const SchedulesPage: React.FC = () => {
   const {
     tableProps,
     setFilters,
-    tableQueryResult: { refetch } = {},
+    tableQuery: { refetch } = {},
   } = useTable<EnrichedSchedule>({
     resource: "schedules",
     pagination: { pageSize: 20 },
-    initialSorter: [
-      {
-        field: "dayOfWeek",
-        order: "asc",
-      },
-    ],
+    sorters: {
+      initial: [
+        {
+          field: "dayOfWeek",
+          order: "asc",
+        },
+      ],
+    },
   });
 
-  const { data: classSubjectResponse, isLoading: loadingClassSubjects } =
-    useList<ClassSubjectResource>({
-      resource: "class-subjects",
-      pagination: { current: 1, pageSize: 1000 },
-    });
+  const {
+    result: classSubjectResponse,
+    query: { isLoading: loadingClassSubjects },
+  } = useList<ClassSubjectResource>({
+    resource: "class-subjects",
+    pagination: { currentPage: 1, pageSize: 1000 },
+  });
 
-  const { data: classesResponse, isLoading: loadingClasses } = useList<ClassResource>({
+  const {
+    result: classesResponse,
+    query: { isLoading: loadingClasses },
+  } = useList<ClassResource>({
     resource: "classes",
-    pagination: { current: 1, pageSize: 500 },
+    pagination: { currentPage: 1, pageSize: 500 },
   });
 
-  const { data: subjectsResponse, isLoading: loadingSubjects } = useList<SubjectResource>({
+  const {
+    result: subjectsResponse,
+    query: { isLoading: loadingSubjects },
+  } = useList<SubjectResource>({
     resource: "subjects",
-    pagination: { current: 1, pageSize: 500 },
+    pagination: { currentPage: 1, pageSize: 500 },
   });
 
-  const { data: teachersResponse, isLoading: loadingTeachers } = useList<TeacherResource>({
+  const {
+    result: teachersResponse,
+    query: { isLoading: loadingTeachers },
+  } = useList<TeacherResource>({
     resource: "teachers",
-    pagination: { current: 1, pageSize: 500 },
+    pagination: { currentPage: 1, pageSize: 500 },
   });
 
-  const { data: termsResponse, isLoading: loadingTerms } = useList<TermResource>({
+  const {
+    result: termsResponse,
+    query: { isLoading: loadingTerms },
+  } = useList<TermResource>({
     resource: "terms",
-    pagination: { current: 1, pageSize: 200 },
+    pagination: { currentPage: 1, pageSize: 200 },
   });
 
-  const { data: allSchedulesResponse } = useList<ScheduleResource>({
+  const { result: allSchedulesResponse } = useList<ScheduleResource>({
     resource: "schedules",
-    pagination: { current: 1, pageSize: 1000 },
+    pagination: { currentPage: 1, pageSize: 1000 },
   });
 
   const classSubjects = (classSubjectResponse?.data ?? []) as ClassSubjectResource[];

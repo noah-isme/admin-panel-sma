@@ -90,6 +90,11 @@ export const clearAccessToken = () => {
 };
 
 let isRefreshing = false;
+// A page can invoke auth.check more than once during bootstrap (for example
+// under React.StrictMode). The API rotates the refresh-token cookie on every
+// successful refresh, so concurrent requests must share one in-flight call or
+// the second request will present a token that has already been revoked.
+let refreshPromise: Promise<string | null> | null = null;
 let failedQueue: Array<{
   resolve: (token: string) => void;
   reject: (error: unknown) => void;
@@ -106,36 +111,46 @@ const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue = [];
 };
 
-export const refreshAccessToken = async (): Promise<string | null> => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
-      method: "POST",
-      credentials: "include",
-    });
+export const refreshAccessToken = (): Promise<string | null> => {
+  if (refreshPromise) {
+    return refreshPromise;
+  }
 
-    if (!response.ok) {
+  refreshPromise = (async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method: "POST",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        clearAccessToken();
+        return null;
+      }
+
+      // The Go API returns the access token inside the common `{data: ...}`
+      // response envelope. Keep the legacy bare/camelCase shapes as a small
+      // compatibility concession for MSW and older deployments, but never
+      // persist a refresh token returned by an older server.
+      const body = await response.json();
+      const data = body?.data ?? body?.result ?? body;
+      const accessToken = data?.accessToken ?? data?.access_token;
+
+      if (accessToken) {
+        setAccessToken(accessToken);
+        return accessToken;
+      }
+      clearAccessToken();
+      return null;
+    } catch {
       clearAccessToken();
       return null;
     }
+  })().finally(() => {
+    refreshPromise = null;
+  });
 
-    // The Go API returns the access token inside the common `{data: ...}`
-    // response envelope. Keep the legacy bare/camelCase shapes as a small
-    // compatibility concession for MSW and older deployments, but never
-    // persist a refresh token returned by an older server.
-    const body = await response.json();
-    const data = body?.data ?? body?.result ?? body;
-    const accessToken = data?.accessToken ?? data?.access_token;
-
-    if (accessToken) {
-      setAccessToken(accessToken);
-      return accessToken;
-    }
-    clearAccessToken();
-    return null;
-  } catch {
-    clearAccessToken();
-    return null;
-  }
+  return refreshPromise;
 };
 
 export const httpClient = api;

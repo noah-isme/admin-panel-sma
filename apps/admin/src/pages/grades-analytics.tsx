@@ -1,7 +1,7 @@
+import { useList } from "../hooks/use-refine-list";
 import React, { useMemo } from "react";
 import { Card, Select, Space, Table, Typography, Spin } from "antd";
 import { useQuery } from "@tanstack/react-query";
-import { useList } from "@refinedev/core";
 import { httpClient } from "../providers/dataProvider";
 import { resolveActiveTerm } from "../utils/terms";
 
@@ -13,10 +13,17 @@ const fetchGradesAnalytics = async (termId: string) => {
 };
 
 export const GradesAnalyticsPage: React.FC = () => {
-  const termsQuery = useList<Term>({
+  const migratedTermsQuery = useList<Term>({
     resource: "terms",
-    pagination: { current: 1, pageSize: 100 },
+    pagination: { currentPage: 1, pageSize: 100 },
   });
+
+  const termsQuery = {
+    ...migratedTermsQuery.result,
+    ...migratedTermsQuery.query,
+    ...migratedTermsQuery,
+  };
+
   const terms = termsQuery.data?.data ?? [];
   const [termId, setTermId] = React.useState<string>();
   React.useEffect(() => {

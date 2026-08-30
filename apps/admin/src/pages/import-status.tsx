@@ -1,7 +1,7 @@
+import { useList } from "../hooks/use-refine-list";
 import React from "react";
 import { Button, Card, Col, List, Row, Space, Statistic, Table, Typography } from "antd";
-import { useList } from "@refinedev/core";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { ResourceActionGuard } from "../components/resource-action-guard";
 
 /**
@@ -12,27 +12,71 @@ import { ResourceActionGuard } from "../components/resource-action-guard";
 export const PreSemesterSnapshotPage: React.FC = () => {
   const navigate = useNavigate();
 
-  const studentsQuery = useList({
+  const migratedStudentsQuery = useList({
     resource: "students",
-    pagination: { current: 1, pageSize: 1000 },
+    pagination: { currentPage: 1, pageSize: 1000 },
   });
-  const teachersQuery = useList({
+
+  const studentsQuery = {
+    ...migratedStudentsQuery.result,
+    ...migratedStudentsQuery.query,
+    ...migratedStudentsQuery,
+  };
+
+  const migratedTeachersQuery = useList({
     resource: "teachers",
-    pagination: { current: 1, pageSize: 1000 },
+    pagination: { currentPage: 1, pageSize: 1000 },
   });
-  const classesQuery = useList({ resource: "classes", pagination: { current: 1, pageSize: 1000 } });
-  const subjectsQuery = useList({
+
+  const teachersQuery = {
+    ...migratedTeachersQuery.result,
+    ...migratedTeachersQuery.query,
+    ...migratedTeachersQuery,
+  };
+
+  const migratedClassesQuery = useList({
+    resource: "classes",
+    pagination: { currentPage: 1, pageSize: 1000 },
+  });
+
+  const classesQuery = {
+    ...migratedClassesQuery.result,
+    ...migratedClassesQuery.query,
+    ...migratedClassesQuery,
+  };
+
+  const migratedSubjectsQuery = useList({
     resource: "subjects",
-    pagination: { current: 1, pageSize: 1000 },
+    pagination: { currentPage: 1, pageSize: 1000 },
   });
-  const classSubjectsQuery = useList({
+
+  const subjectsQuery = {
+    ...migratedSubjectsQuery.result,
+    ...migratedSubjectsQuery.query,
+    ...migratedSubjectsQuery,
+  };
+
+  const migratedClassSubjectsQuery = useList({
     resource: "class-subjects",
-    pagination: { current: 1, pageSize: 1000 },
+    pagination: { currentPage: 1, pageSize: 1000 },
   });
-  const schedulesQuery = useList({
+
+  const classSubjectsQuery = {
+    ...migratedClassSubjectsQuery.result,
+    ...migratedClassSubjectsQuery.query,
+    ...migratedClassSubjectsQuery,
+  };
+
+  const migratedSchedulesQuery = useList({
     resource: "schedules",
-    pagination: { current: 1, pageSize: 1000 },
+    pagination: { currentPage: 1, pageSize: 1000 },
   });
+
+  const schedulesQuery = {
+    ...migratedSchedulesQuery.result,
+    ...migratedSchedulesQuery.query,
+    ...migratedSchedulesQuery,
+  };
 
   const students = (studentsQuery.data?.data as Record<string, any>[]) ?? [];
   const teachers = (teachersQuery.data?.data as Record<string, any>[]) ?? [];

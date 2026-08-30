@@ -1,21 +1,11 @@
 import { describe, expect, it } from "vitest";
 import * as fs from "node:fs";
 import * as path from "node:path";
-
-const findProjectRoot = (): string => {
-  let current = process.cwd();
-  while (current !== path.parse(current).root) {
-    if (fs.existsSync(path.join(current, "AGENTS.md"))) {
-      return current;
-    }
-    current = path.dirname(current);
-  }
-  return process.cwd();
-};
+import { findFrontendRoot, resolveBackendDir } from "../helpers/backend-path.js";
 
 describe("R5 Multi-Class Schedule Generation Contract Tests", () => {
-  const rootDir = findProjectRoot();
-  const backendDir = path.resolve(rootDir, "..", "sma-adp-api");
+  const rootDir = findFrontendRoot();
+  const backendDir = resolveBackendDir(rootDir);
 
   describe("Tier 1: Feature Coverage (R5.1, R5.2)", () => {
     it("R5.1-T1-01: Go DTO GenerateScheduleRequest includes ClassIDs string array field", () => {

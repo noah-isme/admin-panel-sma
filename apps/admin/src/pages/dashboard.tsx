@@ -1,3 +1,5 @@
+import { useList, useList as useRefineList } from "../hooks/use-refine-list";
+import { useNavigate } from "react-router";
 import React from "react";
 import {
   Alert,
@@ -21,7 +23,7 @@ import {
   alpha,
   useTheme,
 } from "@mui/material";
-import { useList, useNavigation } from "@refinedev/core";
+import { useNavigation } from "@refinedev/core";
 import { BarChart3, Users, AlertTriangle, ChevronUp, ChevronDown } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -48,7 +50,6 @@ import { SummaryCard } from "../components/dashboard/summary-card";
 import { themeTokens } from "../theme/tokens";
 import { formatWeekLabel, percent } from "../utils/format";
 import { ACTIVE_TERM_FILTER_FIELD, resolveActiveTerm } from "../utils/terms";
-import { useList as useRefineList } from "@refinedev/core";
 
 const EMPTY_MESSAGE = "Belum ada data. Tambahkan siswa/guru terlebih dulu.";
 
@@ -135,7 +136,8 @@ const EmptyState: React.FC<{ message?: string }> = ({ message = EMPTY_MESSAGE })
 );
 
 export const DashboardPage: React.FC = () => {
-  const { list, push } = useNavigation();
+  const { list } = useNavigation();
+  const navigate = useNavigate();
 
   // The dashboard is scoped to a term, so resolve the active one first. The API
   // rejects the request without a termId, which is why this is not optional.
@@ -150,12 +152,18 @@ export const DashboardPage: React.FC = () => {
 
   // Without a termId the API answers 400, so wait for the term rather than
   // firing a request that can only fail and surface as an error state.
-  const dashboardQuery = useList<PrincipalDashboard>({
+  const migratedDashboardQuery = useList<PrincipalDashboard>({
     resource: "dashboard",
     dataProviderName: "default",
     meta: { termId: activeTermId },
     queryOptions: { enabled: Boolean(activeTermId) },
   });
+
+  const dashboardQuery = {
+    ...migratedDashboardQuery.result,
+    ...migratedDashboardQuery.query,
+    ...migratedDashboardQuery,
+  };
 
   const theme = useTheme();
   const loading = dashboardQuery.isLoading;
@@ -283,7 +291,7 @@ export const DashboardPage: React.FC = () => {
                   size="small"
                   variant="contained"
                   color="error"
-                  onClick={() => push("/grade-configs")}
+                  onClick={() => navigate("/grade-configs")}
                   aria-label="Buka halaman pengaturan"
                 >
                   Buka Pengaturan

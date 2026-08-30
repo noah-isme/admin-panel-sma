@@ -1,14 +1,14 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter, Outlet, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Outlet, Route, Routes } from "react-router";
 import { Refine, Authenticated, type ResourceProps } from "@refinedev/core";
 import { ResourceActionGuard } from "./components/resource-action-guard";
 import routerProvider, {
   DocumentTitleHandler,
   NavigateToResource,
   UnsavedChangesNotifier,
-} from "@refinedev/react-router-v6";
-import { ErrorComponent, notificationProvider } from "@refinedev/antd";
+} from "@refinedev/react-router";
+import { ErrorComponent, useNotificationProvider } from "@refinedev/antd";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // We'll start MSW in development and await the worker to be ready before
@@ -482,6 +482,30 @@ if (disableCustomLayout) {
 // Pastikan Outlet selalu dirender baik saat pakai ThemedLayoutV2 maupun plain
 const LayoutWrapper: React.FC = () => (disableCustomLayout ? <Outlet /> : <AppLayout />);
 
+const RefineRoot: React.FC<{ resources: ResourceProps[]; children: React.ReactNode }> = ({
+  resources,
+  children,
+}) => {
+  const notificationProvider = useNotificationProvider();
+
+  return (
+    <Refine
+      dataProvider={dataProvider}
+      authProvider={authProvider}
+      accessControlProvider={accessControlProvider}
+      notificationProvider={notificationProvider}
+      routerProvider={routerProvider}
+      resources={resources}
+      options={{
+        syncWithLocation: true,
+        warnWhenUnsavedChanges: false,
+      }}
+    >
+      {children}
+    </Refine>
+  );
+};
+
 async function bootstrap() {
   if (
     (typeof process !== "undefined" && (process.env.NODE_ENV === "test" || process.env.VITEST)) ||
@@ -546,18 +570,7 @@ async function bootstrap() {
           <BrowserRouter basename="/admin">
             <QueryClientProvider client={queryClient}>
               <ThemeProvider>
-                <Refine
-                  dataProvider={dataProvider}
-                  authProvider={authProvider}
-                  accessControlProvider={accessControlProvider}
-                  notificationProvider={notificationProvider}
-                  routerProvider={routerProvider}
-                  resources={refineResources}
-                  options={{
-                    syncWithLocation: true,
-                    warnWhenUnsavedChanges: false,
-                  }}
-                >
+                <RefineRoot resources={refineResources}>
                   <Routes>
                     <Route
                       element={
@@ -744,7 +757,7 @@ async function bootstrap() {
                   <DocumentTitleHandler />
                   <UnsavedChangesNotifier />
                   <RouteDebugger />
-                </Refine>
+                </RefineRoot>
               </ThemeProvider>
             </QueryClientProvider>
           </BrowserRouter>

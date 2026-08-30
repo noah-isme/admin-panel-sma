@@ -11,16 +11,18 @@ const readJson = (filePath: string) => JSON.parse(fs.readFileSync(filePath, "utf
 describe("Vercel combined frontend deployment contract", () => {
   const configPath = path.join(workspaceRoot, "vercel.json");
   const config = readJson(configPath);
-  const buildCommand = String(config.buildCommand);
+  const buildScriptPath = path.join(workspaceRoot, "scripts/vercel-build.sh");
+  const buildScript = fs.readFileSync(buildScriptPath, "utf8");
   const rewrites = config.rewrites as Array<Record<string, string>>;
 
   it("uses the root combined deployment with immutable dependency installation", () => {
     expect(config.installCommand).toBe("pnpm install --frozen-lockfile");
+    expect(config.buildCommand).toBe("pnpm build:vercel");
     expect(config.outputDirectory).toBe("deploy");
-    expect(buildCommand).toContain("@apps/shared build");
-    expect(buildCommand).toContain("@apps/landing build");
-    expect(buildCommand).toContain("@apps/admin build");
-    expect(buildCommand).toContain(
+    expect(buildScript).toContain("pnpm --filter @apps/shared build");
+    expect(buildScript).toContain("pnpm --filter @apps/landing build");
+    expect(buildScript).toContain("pnpm --filter @apps/admin build");
+    expect(buildScript).toContain(
       "cp apps/admin/dist/mockServiceWorker.js deploy/mockServiceWorker.js"
     );
   });
@@ -47,7 +49,7 @@ describe("Vercel combined frontend deployment contract", () => {
     );
 
     expect(packageJson.engines?.node).toBe("20.x");
-    expect(deploymentDoc).toMatch(/Root Directory\s+\|\s+`admin-panel-sma`/);
+    expect(deploymentDoc).toMatch(/Root Directory\s+\|\s+`\.`/);
     expect(deploymentDoc).toContain("`pnpm install --frozen-lockfile`");
     expect(deploymentDoc).toMatch(
       /\|\s*`VITE_API_URL`\s*\|\s*`https:\/\/api\.example\.sch\.id\/api\/v1`\s*\|\s*`\/api`\s*\|/

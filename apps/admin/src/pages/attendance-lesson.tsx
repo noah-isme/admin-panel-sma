@@ -1,3 +1,4 @@
+import { useList } from "../hooks/use-refine-list";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
@@ -15,13 +16,7 @@ import {
 } from "antd";
 import type { RadioChangeEvent } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
-import {
-  useDataProvider,
-  useGetIdentity,
-  useList,
-  useTranslate,
-  type BaseRecord,
-} from "@refinedev/core";
+import { useDataProvider, useGetIdentity, useTranslate, type BaseRecord } from "@refinedev/core";
 import type { IdentityPayload } from "../types/identity";
 import { useAppNotification } from "../hooks/use-app-notification";
 import { downloadAuthenticatedFile } from "../utils/download";
@@ -75,34 +70,83 @@ export const AttendanceLessonPage: React.FC = () => {
   const { open: notify } = useAppNotification();
   const t = useTranslate();
 
-  const classSubjectsQuery = useList({
+  const migratedClassSubjectsQuery = useList({
     resource: "class-subjects",
-    pagination: { current: 1, pageSize: 1000 },
+    pagination: { currentPage: 1, pageSize: 1000 },
   });
-  const classesQuery = useList({
+
+  const classSubjectsQuery = {
+    ...migratedClassSubjectsQuery.result,
+    ...migratedClassSubjectsQuery.query,
+    ...migratedClassSubjectsQuery,
+  };
+
+  const migratedClassesQuery = useList({
     resource: "classes",
-    pagination: { current: 1, pageSize: 1000 },
+    pagination: { currentPage: 1, pageSize: 1000 },
   });
-  const subjectsQuery = useList({
+
+  const classesQuery = {
+    ...migratedClassesQuery.result,
+    ...migratedClassesQuery.query,
+    ...migratedClassesQuery,
+  };
+
+  const migratedSubjectsQuery = useList({
     resource: "subjects",
-    pagination: { current: 1, pageSize: 1000 },
+    pagination: { currentPage: 1, pageSize: 1000 },
   });
-  const teachersQuery = useList({
+
+  const subjectsQuery = {
+    ...migratedSubjectsQuery.result,
+    ...migratedSubjectsQuery.query,
+    ...migratedSubjectsQuery,
+  };
+
+  const migratedTeachersQuery = useList({
     resource: "teachers",
-    pagination: { current: 1, pageSize: 1000 },
+    pagination: { currentPage: 1, pageSize: 1000 },
   });
-  const enrollmentsQuery = useList({
+
+  const teachersQuery = {
+    ...migratedTeachersQuery.result,
+    ...migratedTeachersQuery.query,
+    ...migratedTeachersQuery,
+  };
+
+  const migratedEnrollmentsQuery = useList({
     resource: "enrollments",
-    pagination: { current: 1, pageSize: 1000 },
+    pagination: { currentPage: 1, pageSize: 1000 },
   });
-  const studentsQuery = useList({
+
+  const enrollmentsQuery = {
+    ...migratedEnrollmentsQuery.result,
+    ...migratedEnrollmentsQuery.query,
+    ...migratedEnrollmentsQuery,
+  };
+
+  const migratedStudentsQuery = useList({
     resource: "students",
-    pagination: { current: 1, pageSize: 1000 },
+    pagination: { currentPage: 1, pageSize: 1000 },
   });
-  const attendanceQuery = useList({
+
+  const studentsQuery = {
+    ...migratedStudentsQuery.result,
+    ...migratedStudentsQuery.query,
+    ...migratedStudentsQuery,
+  };
+
+  const migratedAttendanceQuery = useList({
     resource: "attendance",
-    pagination: { current: 1, pageSize: 1000 },
+    pagination: { currentPage: 1, pageSize: 1000 },
   });
+
+  const attendanceQuery = {
+    ...migratedAttendanceQuery.result,
+    ...migratedAttendanceQuery.query,
+    ...migratedAttendanceQuery,
+  };
+
   const { data: identity } = useGetIdentity<IdentityPayload>();
   const teacherId = identity?.teacherId;
 

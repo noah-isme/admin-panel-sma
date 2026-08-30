@@ -41,6 +41,31 @@ describe("Go auth contract", () => {
     expect(localStorage.getItem("refresh_token")).toBeNull();
   });
 
+  it("coalesces concurrent refreshes while the API rotates the cookie", async () => {
+    let resolveResponse: ((response: Response) => void) | undefined;
+    const fetchMock = vi.mocked(fetch).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveResponse = resolve;
+        })
+    );
+
+    const first = refreshAccessToken();
+    const second = refreshAccessToken();
+    expect(second).toBe(first);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    resolveResponse?.({
+      ok: true,
+      json: async () => ({ data: { access_token: "coalesced-access" } }),
+    } as Response);
+
+    await expect(Promise.all([first, second])).resolves.toEqual([
+      "coalesced-access",
+      "coalesced-access",
+    ]);
+  });
+
   it("logs out with the cookie-backed refresh-token contract", async () => {
     setAccessToken("access");
     const fetchMock = vi.mocked(fetch).mockResolvedValue({ ok: true } as Response);

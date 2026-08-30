@@ -14,6 +14,8 @@ export default [
       "**/playwright-report/**",
       "**/test-results/**",
       "**/output/**",
+      // External backend checkout used only by cross-repository contracts.
+      "**/_contracts/**",
       // Compiled/generated Node scripts (source of truth is the .ts sibling).
       "scripts/**/*.js",
     ],

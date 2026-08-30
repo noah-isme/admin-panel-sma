@@ -1,3 +1,4 @@
+import { useList } from "../hooks/use-refine-list";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   Button,
@@ -26,7 +27,6 @@ import {
 } from "@ant-design/icons";
 import {
   useDelete,
-  useList,
   useMany,
   useNavigation,
   useOne,
@@ -157,28 +157,27 @@ export const ClassesShow: React.FC = () => {
   const { open: notify } = useAppNotification();
   const { mutate: deleteEnrollment } = useDelete();
 
-  const { queryResult: classQuery } = useShow<ClassRecord>({
+  const { query: classQuery, result: classRecord } = useShow<ClassRecord>({
     resource: "classes",
   });
 
-  const classRecord = classQuery?.data?.data;
   const classId = classRecord?.id;
   const termId = classRecord?.termId ?? null;
   const homeroomId = classRecord?.homeroomId ?? null;
 
-  const { data: termQuery } = useOne<TermRecord>({
+  const { result: termQuery } = useOne<TermRecord>({
     resource: "terms",
     id: termId ?? "",
     queryOptions: { enabled: Boolean(termId) },
   });
-  const termRecord = termQuery?.data;
+  const termRecord = termQuery;
 
-  const { data: homeroomQuery } = useOne<TeacherRecord>({
+  const { result: homeroomQuery } = useOne<TeacherRecord>({
     resource: "teachers",
     id: homeroomId ?? "",
     queryOptions: { enabled: Boolean(homeroomId) },
   });
-  const homeroomTeacher = homeroomQuery?.data;
+  const homeroomTeacher = homeroomQuery;
 
   const enrollmentFilters: CrudFilter[] | undefined = useMemo(() => {
     if (!classId) return undefined;
@@ -189,15 +188,22 @@ export const ClassesShow: React.FC = () => {
     return filters;
   }, [classId, termId]);
 
-  const enrollmentsQuery = useList<EnrollmentRecord>({
+  const migratedEnrollmentsQuery = useList<EnrollmentRecord>({
     resource: "enrollments",
     filters: enrollmentFilters,
-    pagination: { current: 1, pageSize: 500 },
+    pagination: { currentPage: 1, pageSize: 500 },
     queryOptions: {
       enabled: Boolean(classId),
       keepPreviousData: true,
     },
   });
+
+  const enrollmentsQuery = {
+    ...migratedEnrollmentsQuery.result,
+    ...migratedEnrollmentsQuery.query,
+    ...migratedEnrollmentsQuery,
+  };
+
   const enrollmentRecords = (enrollmentsQuery.data?.data ?? []) as EnrollmentRecord[];
 
   const studentIds = useMemo(
@@ -212,14 +218,19 @@ export const ClassesShow: React.FC = () => {
     [enrollmentRecords]
   );
 
-  const studentsQuery = useMany<StudentRecord>({
+  const migratedStudentsQuery = useMany<StudentRecord>({
     resource: "students",
     ids: studentIds,
     queryOptions: {
       enabled: studentIds.length > 0,
-      keepPreviousData: true,
     },
   });
+
+  const studentsQuery = {
+    ...migratedStudentsQuery.result,
+    ...migratedStudentsQuery.query,
+    ...migratedStudentsQuery,
+  };
 
   const studentMap = useMemo(() => {
     const map = new Map<string, StudentRecord>();
@@ -252,31 +263,42 @@ export const ClassesShow: React.FC = () => {
     return sorted.map((row, index) => ({ ...row, order: index + 1 }));
   }, [enrollmentRecords, studentMap]);
 
-  const classSubjectsQuery = useList<ClassSubjectRecord>({
+  const migratedClassSubjectsQuery = useList<ClassSubjectRecord>({
     resource: "class-subjects",
     filters:
       classId !== undefined
         ? ([{ field: "classroomId", operator: "eq", value: classId }] as CrudFilter[])
         : undefined,
-    pagination: { current: 1, pageSize: 300 },
+    pagination: { currentPage: 1, pageSize: 300 },
     queryOptions: {
       enabled: Boolean(classId),
       keepPreviousData: true,
     },
   });
 
+  const classSubjectsQuery = {
+    ...migratedClassSubjectsQuery.result,
+    ...migratedClassSubjectsQuery.query,
+    ...migratedClassSubjectsQuery,
+  };
+
   const classSubjects = (classSubjectsQuery.data?.data ?? []) as ClassSubjectRecord[];
 
   const classSubjectIds = useMemo(() => classSubjects.map((item) => item.id), [classSubjects]);
 
-  const schedulesQuery = useList<ScheduleRecord>({
+  const migratedSchedulesQuery = useList<ScheduleRecord>({
     resource: "schedules",
-    pagination: { current: 1, pageSize: 500 },
+    pagination: { currentPage: 1, pageSize: 500 },
     queryOptions: {
       enabled: classSubjectIds.length > 0,
-      keepPreviousData: true,
     },
   });
+
+  const schedulesQuery = {
+    ...migratedSchedulesQuery.result,
+    ...migratedSchedulesQuery.query,
+    ...migratedSchedulesQuery,
+  };
 
   const teacherIds = useMemo(
     () =>
@@ -302,23 +324,33 @@ export const ClassesShow: React.FC = () => {
     [classSubjects]
   );
 
-  const teachersMany = useMany<TeacherRecord>({
+  const migratedTeachersMany = useMany<TeacherRecord>({
     resource: "teachers",
     ids: teacherIds,
     queryOptions: {
       enabled: teacherIds.length > 0,
-      keepPreviousData: true,
     },
   });
 
-  const subjectsMany = useMany<SubjectRecord>({
+  const teachersMany = {
+    ...migratedTeachersMany.result,
+    ...migratedTeachersMany.query,
+    ...migratedTeachersMany,
+  };
+
+  const migratedSubjectsMany = useMany<SubjectRecord>({
     resource: "subjects",
     ids: subjectIds,
     queryOptions: {
       enabled: subjectIds.length > 0,
-      keepPreviousData: true,
     },
   });
+
+  const subjectsMany = {
+    ...migratedSubjectsMany.result,
+    ...migratedSubjectsMany.query,
+    ...migratedSubjectsMany,
+  };
 
   const teacherMap = useMemo(() => {
     const map = new Map<string, TeacherRecord>();

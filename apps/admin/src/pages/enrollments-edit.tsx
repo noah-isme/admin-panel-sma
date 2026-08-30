@@ -1,17 +1,23 @@
+import { useList } from "../hooks/use-refine-list";
 import React from "react";
 import { Edit, useForm } from "@refinedev/antd";
 import { Card, Form, Select } from "antd";
-import { useList } from "@refinedev/core";
 import { ResourceActionGuard } from "../components/resource-action-guard";
 
 type ClassRecord = { id: string; name?: string; code?: string };
 
 export const EnrollmentsEdit: React.FC = () => {
   const { formProps, saveButtonProps } = useForm();
-  const classesQuery = useList<ClassRecord>({
+  const migratedClassesQuery = useList<ClassRecord>({
     resource: "classes",
-    pagination: { current: 1, pageSize: 200 },
+    pagination: { currentPage: 1, pageSize: 200 },
   });
+
+  const classesQuery = {
+    ...migratedClassesQuery.result,
+    ...migratedClassesQuery.query,
+    ...migratedClassesQuery,
+  };
 
   return (
     <ResourceActionGuard action="edit">

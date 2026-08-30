@@ -158,10 +158,10 @@ export const StudentsPage: React.FC = () => {
     return params;
   }, [birthYearRange, filtersState, pagination, searchQuery, sortState.field, sortState.order]);
 
-  const { data, isLoading, isFetching, refetch } = useQuery({
+  const { data, isLoading, isFetching, refetch } = useQuery<StudentRosterResponse>({
     queryKey: ["student-roster", queryParams],
     queryFn: () => fetchStudentRoster(queryParams),
-    keepPreviousData: true,
+    placeholderData: (previousData) => previousData,
   });
 
   useEffect(() => {

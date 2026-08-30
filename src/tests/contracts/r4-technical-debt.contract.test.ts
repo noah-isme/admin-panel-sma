@@ -1,21 +1,11 @@
 import { describe, expect, it } from "vitest";
 import * as fs from "node:fs";
 import * as path from "node:path";
-
-const findProjectRoot = (): string => {
-  let current = process.cwd();
-  while (current !== path.parse(current).root) {
-    if (fs.existsSync(path.join(current, "AGENTS.md"))) {
-      return current;
-    }
-    current = path.dirname(current);
-  }
-  return process.cwd();
-};
+import { findFrontendRoot, resolveBackendDir } from "../helpers/backend-path.js";
 
 describe("R4 Technical Debt Contract Tests", () => {
-  const rootDir = findProjectRoot();
-  const backendDir = path.resolve(rootDir, "..", "sma-adp-api");
+  const rootDir = findFrontendRoot();
+  const backendDir = resolveBackendDir(rootDir);
 
   describe("Tier 1: Feature Coverage (R4.1, R4.2, R4.3)", () => {
     it("R4.1-T1-01: Worker service index.ts configures HTTP health server endpoint", () => {

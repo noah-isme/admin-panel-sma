@@ -1,5 +1,5 @@
+import { useList } from "./use-refine-list";
 import { useMemo } from "react";
-import { useList } from "@refinedev/core";
 import dayjs from "dayjs";
 import { resolveActiveTerm } from "../utils/terms";
 

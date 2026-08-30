@@ -1,3 +1,4 @@
+import { useList } from "../hooks/use-refine-list";
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Button, Card, Input, Modal, Select, Space, Table, Tag, Tooltip, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
@@ -11,7 +12,7 @@ import {
   UserSwitchOutlined,
 } from "@ant-design/icons";
 import { List, useTable } from "@refinedev/antd";
-import { useDelete, useList, useMany, useNavigation, type CrudFilter } from "@refinedev/core";
+import { useDelete, useMany, useNavigation, type CrudFilter } from "@refinedev/core";
 import { isTermActive } from "../utils/terms";
 import { useAppNotification } from "../hooks/use-app-notification";
 import { ResourceActionGuard } from "../components/resource-action-guard";
@@ -83,23 +84,28 @@ export const ClassesPage: React.FC = () => {
     tableProps,
     setFilters,
     setSorters,
-    tableQueryResult: { refetch } = {},
+    tableQuery: { refetch } = {},
   } = useTable<ClassTableRow>({
     resource: "classes",
     pagination: {
       pageSize: 10,
     },
-    initialSorter: [
-      {
-        field: "name",
-        order: "asc",
-      },
-    ],
+    sorters: {
+      initial: [
+        {
+          field: "name",
+          order: "asc",
+        },
+      ],
+    },
   });
 
-  const { data: termsResponse, isLoading: isLoadingTerms } = useList<TermResource>({
+  const {
+    result: termsResponse,
+    query: { isLoading: isLoadingTerms },
+  } = useList<TermResource>({
     resource: "terms",
-    pagination: { current: 1, pageSize: 100 },
+    pagination: { currentPage: 1, pageSize: 100 },
   });
 
   const terms = useMemo(() => termsResponse?.data ?? [], [termsResponse?.data]);
@@ -191,12 +197,18 @@ export const ClassesPage: React.FC = () => {
     [dataSource]
   );
 
-  const { data: teachersResponse, isLoading: isLoadingTeachers } = useList<TeacherResource>({
+  const {
+    result: teachersResponse,
+    query: { isLoading: isLoadingTeachers },
+  } = useList<TeacherResource>({
     resource: "teachers",
-    pagination: { current: 1, pageSize: 200 },
+    pagination: { currentPage: 1, pageSize: 200 },
   });
 
-  const { data: homeroomResponse, isLoading: isLoadingHomerooms } = useMany<TeacherResource>({
+  const {
+    result: homeroomResponse,
+    query: { isLoading: isLoadingHomerooms },
+  } = useMany<TeacherResource>({
     resource: "teachers",
     ids: homeroomIds,
     queryOptions: {
@@ -237,12 +249,12 @@ export const ClassesPage: React.FC = () => {
   }, [classIds]);
 
   const {
-    data: enrollmentResponse,
-    isLoading: isLoadingEnrollments,
-    isFetching: isFetchingEnrollments,
+    result: enrollmentResponse,
+
+    query: { isLoading: isLoadingEnrollments, isFetching: isFetchingEnrollments },
   } = useList<EnrollmentResource>({
     resource: "enrollments",
-    pagination: { current: 1, pageSize: 1000 },
+    pagination: { currentPage: 1, pageSize: 1000 },
     filters: enrollmentFilters,
     queryOptions: {
       enabled: Boolean(enrollmentFilters),
@@ -640,6 +652,7 @@ export const ClassesPage: React.FC = () => {
               dataSource={enrichedData}
               loading={isLoading}
               rowKey="id"
+              scroll={{ x: "max-content" }}
               onRow={(record) => ({
                 onClick: () => handleRowView(record),
               })}

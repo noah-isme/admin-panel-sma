@@ -16,10 +16,17 @@ type GradeComponentRecord = {
 export const GradeComponentsPage: React.FC = () => {
   const { create, edit } = useNavigation();
   const { open: notify } = useAppNotification();
-  const { mutate: deleteOne, isLoading: isDeleting } = useDelete();
-  const { tableProps, setFilters, tableQueryResult } = useTable<GradeComponentRecord>({
+  const {
+    mutate: deleteOne,
+    mutation: { isPending: isDeleting },
+  } = useDelete();
+  const {
+    tableProps,
+    setFilters,
+    tableQuery: tableQueryResult,
+  } = useTable<GradeComponentRecord>({
     resource: "grade-components",
-    pagination: { current: 1, pageSize: 20 },
+    pagination: { currentPage: 1, pageSize: 20 },
   });
   const [search, setSearch] = useState("");
 

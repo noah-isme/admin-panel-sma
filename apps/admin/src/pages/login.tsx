@@ -1,9 +1,9 @@
 import { useLogin } from "@refinedev/core";
-import { ThemedTitleV2 } from "@refinedev/antd";
+import { ThemedTitle as ThemedTitleV2 } from "@refinedev/antd";
 import { Form, Input, Button, Card, Typography, Layout, Space, Alert } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 
 const { Title, Text } = Typography;
 
@@ -13,7 +13,7 @@ interface LoginFormValues {
 }
 
 export const LoginPage: React.FC = () => {
-  const { mutate: login, isLoading } = useLogin<LoginFormValues>();
+  const { mutate: login, isPending: isLoading } = useLogin<LoginFormValues>();
   const navigate = useNavigate();
   const [errorMessage, setErrorMessage] = useState<string>("");
 

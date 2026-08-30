@@ -12,10 +12,13 @@
     </style>
   </head>
   <body>
-    <div id="root" style="display:flex;align-items:center;justify-content:center;min-height:100vh;">
-      <div style="font-family:system-ui,sans-serif;color:#64748b;text-align:center;">
-        <h2>Loading…</h2>
-        <p>If this screen persists, please check the browser console for errors.</p>
+    <div id="root">
+      <!-- Keep centering on this child: React replaces #root's children but not its inline style, which would squeeze the mounted app. -->
+      <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;">
+        <div style="font-family:system-ui,sans-serif;color:#64748b;text-align:center;">
+          <h2>Loading…</h2>
+          <p>If this screen persists, please check the browser console for errors.</p>
+        </div>
       </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>

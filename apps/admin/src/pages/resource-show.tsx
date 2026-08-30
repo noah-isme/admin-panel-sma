@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { Show } from "@refinedev/antd";
-import { useCan, useNavigation, useResource, useShow } from "@refinedev/core";
+import { useCan, useNavigation, useResourceParams, useShow } from "@refinedev/core";
 import { Descriptions, Typography, Result, Spin, Space, Button } from "antd";
 import { ResourceActionGuard } from "../components/resource-action-guard";
 
@@ -30,9 +30,9 @@ const renderValue = (value: unknown) => {
 };
 
 export const ResourceShow: React.FC = () => {
-  const { resource } = useResource();
+  const { resource } = useResourceParams();
   const resourceName = resource?.name ?? resource?.identifier;
-  const resourceLabel = resource?.meta?.label ?? resource?.label ?? resourceName ?? "Detail";
+  const resourceLabel = resource?.meta?.label ?? resourceName ?? "Detail";
 
   const { data: editPermission } = useCan({
     resource: resourceName ?? "",
@@ -42,13 +42,12 @@ export const ResourceShow: React.FC = () => {
   const canEdit =
     (resource?.meta?.canEdit ?? Boolean(resource?.edit)) && editPermission?.can !== false;
 
-  const { queryResult } = useShow();
+  const { query, result } = useShow();
   const { edit, list } = useNavigation();
 
-  const isLoading =
-    queryResult?.isLoading || queryResult?.isFetching || queryResult?.isInitialLoading || false;
-  const error = queryResult?.error as { message?: string } | undefined;
-  const data = queryResult?.data?.data as Record<string, unknown> | undefined;
+  const isLoading = query.isLoading || query.isFetching || query.isInitialLoading || false;
+  const error = query.error as { message?: string } | null;
+  const data = result as Record<string, unknown> | undefined;
 
   const editButton =
     canEdit && resourceName && data?.id ? (

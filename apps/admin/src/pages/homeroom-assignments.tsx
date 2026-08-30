@@ -1,3 +1,4 @@
+import { useList } from "../hooks/use-refine-list";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   Button,
@@ -17,7 +18,7 @@ import {
 } from "antd";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import { List } from "@refinedev/antd";
-import { useList, useUpdate, type HttpError } from "@refinedev/core";
+import { useUpdate, type HttpError } from "@refinedev/core";
 import { useAppNotification } from "../hooks/use-app-notification";
 import { EditOutlined, ReloadOutlined } from "@ant-design/icons";
 
@@ -88,12 +89,12 @@ export const HomeroomAssignmentsPage: React.FC = () => {
   });
 
   const {
-    data: classesResponse,
-    isLoading: isLoadingClasses,
-    refetch: refetchClasses,
+    result: classesResponse,
+
+    query: { isLoading: isLoadingClasses, refetch: refetchClasses },
   } = useList<ClassRecord>({
     resource: "classes",
-    pagination: { current: 1, pageSize: 200 },
+    pagination: { currentPage: 1, pageSize: 200 },
     queryOptions: {
       staleTime: 30_000,
     },
@@ -108,9 +109,12 @@ export const HomeroomAssignmentsPage: React.FC = () => {
     [classesResponse?.data]
   );
 
-  const { data: teacherResponse, isLoading: isLoadingTeachers } = useList<TeacherRecord>({
+  const {
+    result: teacherResponse,
+    query: { isLoading: isLoadingTeachers },
+  } = useList<TeacherRecord>({
     resource: "teachers",
-    pagination: { current: 1, pageSize: 200 },
+    pagination: { currentPage: 1, pageSize: 200 },
     queryOptions: { staleTime: 60_000 },
   });
 
@@ -128,9 +132,9 @@ export const HomeroomAssignmentsPage: React.FC = () => {
     [teacherResponse?.data]
   );
 
-  const { data: termResponse } = useList<TermRecord>({
+  const { result: termResponse } = useList<TermRecord>({
     resource: "terms",
-    pagination: { current: 1, pageSize: 50 },
+    pagination: { currentPage: 1, pageSize: 50 },
     queryOptions: { staleTime: 120_000 },
   });
 
@@ -139,9 +143,9 @@ export const HomeroomAssignmentsPage: React.FC = () => {
     return new Map(records.map((term) => [term.id, term]));
   }, [termResponse?.data]);
 
-  const { data: enrollmentResponse } = useList<EnrollmentRecord>({
+  const { result: enrollmentResponse } = useList<EnrollmentRecord>({
     resource: "enrollments",
-    pagination: { current: 1, pageSize: 1_000 },
+    pagination: { currentPage: 1, pageSize: 1_000 },
     queryOptions: { staleTime: 30_000 },
   });
 
@@ -179,7 +183,10 @@ export const HomeroomAssignmentsPage: React.FC = () => {
     setPagination((prev) => ({ ...prev, current: DEFAULT_PAGE_STATE.current }));
   };
 
-  const { mutate: updateClass, isLoading: isSaving } = useUpdate<ClassRecord, HttpError>();
+  const {
+    mutate: updateClass,
+    mutation: { isPending: isSaving },
+  } = useUpdate<ClassRecord, HttpError>();
 
   const handleOpenDrawer = useCallback((klass: ClassRecord) => {
     setEditingClass(klass);
@@ -446,6 +453,7 @@ export const HomeroomAssignmentsPage: React.FC = () => {
           columns={columns}
           rowKey="id"
           loading={isLoadingClasses}
+          scroll={{ x: "max-content" }}
           pagination={{
             ...pagination,
             total: filteredClasses.length,

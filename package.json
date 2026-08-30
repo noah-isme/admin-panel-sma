@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "packageManager": "pnpm@9.7.1",
+  "packageManager": "pnpm@10.34.5",
   "engines": {
     "node": "20.x"
   },
@@ -29,6 +29,7 @@
     "dev:landing": "pnpm --filter @apps/landing dev",
     "dev:portal": "pnpm --filter @apps/portal dev",
     "build": "pnpm -r build",
+    "build:vercel": "bash scripts/vercel-build.sh",
     "lint": "eslint .",
     "test": "vitest run",
     "typecheck": "tsc -b --pretty false",
@@ -48,6 +49,7 @@
     "eslint": "9.9.0",
     "eslint-config-prettier": "9.1.0",
     "husky": "9.0.11",
+    "jsdom": "26.1.0",
     "lint-staged": "15.2.7",
     "playwright": "^1.61.1",
     "prettier": "3.3.3",

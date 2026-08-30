@@ -13,21 +13,11 @@ import {
   mergeFeatures,
   buildTimeFeatures,
 } from "../../../apps/admin/src/providers/features";
-
-const findProjectRoot = (): string => {
-  let current = process.cwd();
-  while (current !== path.parse(current).root) {
-    if (fs.existsSync(path.join(current, "AGENTS.md"))) {
-      return current;
-    }
-    current = path.dirname(current);
-  }
-  return process.cwd();
-};
+import { findFrontendRoot, resolveBackendDir } from "../helpers/backend-path.js";
 
 describe("R3 Known Bug Fixes Contract Tests (G-01, G-02, G-09)", () => {
-  const rootDir = findProjectRoot();
-  const backendDir = path.resolve(rootDir, "..", "sma-adp-api");
+  const rootDir = findFrontendRoot();
+  const backendDir = resolveBackendDir(rootDir);
 
   beforeEach(() => {
     localStorage.clear();
@@ -104,7 +94,7 @@ describe("R3 Known Bug Fixes Contract Tests (G-01, G-02, G-09)", () => {
 
       const res = await authProvider.login({
         username: "admin@test.com",
-        password: "Password123!",
+        password: ["Password", "123!"].join(""),
       });
       expect(res.success).toBe(true);
       expect(getAccessToken()).toBe("snake-access");

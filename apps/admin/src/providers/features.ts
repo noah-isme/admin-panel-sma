@@ -154,7 +154,8 @@ export const resourceFeature: Partial<Record<string, FeatureName>> = {
   mutations: "mutations",
   archives: "archives",
   reports: "reports",
-  schedules: "schedules",
+  // Schedule CRUD is core; the optional scheduler flag only gates generator
+  // and preference routes in main.tsx.
 };
 
 const requiresAnalytics: Partial<Record<string, FeatureName>> = {

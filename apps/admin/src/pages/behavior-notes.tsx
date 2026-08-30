@@ -1,3 +1,4 @@
+import { useList } from "../hooks/use-refine-list";
 import React, { useMemo, useState } from "react";
 import {
   Alert,
@@ -13,7 +14,7 @@ import {
   Typography,
 } from "antd";
 import dayjs from "dayjs";
-import { useCreate, useDelete, useList } from "@refinedev/core";
+import { useCreate, useDelete } from "@refinedev/core";
 import { useAppNotification } from "../hooks/use-app-notification";
 import { ResourceActionGuard } from "../components/resource-action-guard";
 
@@ -29,15 +30,38 @@ export const BehaviorNotesPage: React.FC = () => {
   const { mutateAsync: createNote } = useCreate();
   const { mutateAsync: deleteNote } = useDelete();
 
-  const classesQuery = useList({ resource: "classes", pagination: { current: 1, pageSize: 200 } });
-  const studentsQuery = useList({
+  const migratedClassesQuery = useList({
+    resource: "classes",
+    pagination: { currentPage: 1, pageSize: 200 },
+  });
+
+  const classesQuery = {
+    ...migratedClassesQuery.result,
+    ...migratedClassesQuery.query,
+    ...migratedClassesQuery,
+  };
+
+  const migratedStudentsQuery = useList({
     resource: "students",
-    pagination: { current: 1, pageSize: 500 },
+    pagination: { currentPage: 1, pageSize: 500 },
   });
-  const behaviorNotesQuery = useList({
+
+  const studentsQuery = {
+    ...migratedStudentsQuery.result,
+    ...migratedStudentsQuery.query,
+    ...migratedStudentsQuery,
+  };
+
+  const migratedBehaviorNotesQuery = useList({
     resource: "behavior-notes",
-    pagination: { current: 1, pageSize: 200 },
+    pagination: { currentPage: 1, pageSize: 200 },
   });
+
+  const behaviorNotesQuery = {
+    ...migratedBehaviorNotesQuery.result,
+    ...migratedBehaviorNotesQuery.query,
+    ...migratedBehaviorNotesQuery,
+  };
 
   const classes = (classesQuery.data?.data as Record<string, any>[]) ?? [];
   const students = (studentsQuery.data?.data as Record<string, any>[]) ?? [];

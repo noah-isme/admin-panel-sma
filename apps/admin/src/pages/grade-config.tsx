@@ -1,9 +1,11 @@
+import { useList } from "../hooks/use-refine-list";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Button,
   Card,
   Form,
+  Grid,
   InputNumber,
   Radio,
   Select,
@@ -15,7 +17,7 @@ import {
   Typography,
 } from "antd";
 import type { RadioChangeEvent } from "antd";
-import { useCreate, useDelete, useList, useUpdate, type BaseRecord } from "@refinedev/core";
+import { useCreate, useDelete, useUpdate, type BaseRecord } from "@refinedev/core";
 import { useAppNotification } from "../hooks/use-app-notification";
 import { ResourceActionGuard } from "../components/resource-action-guard";
 import { usePersistentSelection } from "../hooks/use-persistent-selection";
@@ -58,41 +60,100 @@ export const calculateWeightedAggregate = (
 };
 
 export const GradeConfigPage: React.FC = () => {
+  const screens = Grid.useBreakpoint();
   const { open: notify } = useAppNotification();
   const { value: storedMapping, setValue: setStoredMapping } = usePersistentSelection<
     string | undefined
   >("grade-config:mapping");
   const [classSubjectId, setClassSubjectId] = useState<string | undefined>(storedMapping);
 
-  const classSubjectsQuery = useList({
+  const migratedClassSubjectsQuery = useList({
     resource: "class-subjects",
-    pagination: { current: 1, pageSize: 200 },
+    pagination: { currentPage: 1, pageSize: 200 },
   });
-  const classesQuery = useList({ resource: "classes", pagination: { current: 1, pageSize: 200 } });
-  const subjectsQuery = useList({
+
+  const classSubjectsQuery = {
+    ...migratedClassSubjectsQuery.result,
+    ...migratedClassSubjectsQuery.query,
+    ...migratedClassSubjectsQuery,
+  };
+
+  const migratedClassesQuery = useList({
+    resource: "classes",
+    pagination: { currentPage: 1, pageSize: 200 },
+  });
+
+  const classesQuery = {
+    ...migratedClassesQuery.result,
+    ...migratedClassesQuery.query,
+    ...migratedClassesQuery,
+  };
+
+  const migratedSubjectsQuery = useList({
     resource: "subjects",
-    pagination: { current: 1, pageSize: 200 },
+    pagination: { currentPage: 1, pageSize: 200 },
   });
-  const gradeComponentsQuery = useList({
+
+  const subjectsQuery = {
+    ...migratedSubjectsQuery.result,
+    ...migratedSubjectsQuery.query,
+    ...migratedSubjectsQuery,
+  };
+
+  const migratedGradeComponentsQuery = useList({
     resource: "grade-components",
-    pagination: { current: 1, pageSize: 200 },
+    pagination: { currentPage: 1, pageSize: 200 },
   });
-  const gradeConfigsQuery = useList({
+
+  const gradeComponentsQuery = {
+    ...migratedGradeComponentsQuery.result,
+    ...migratedGradeComponentsQuery.query,
+    ...migratedGradeComponentsQuery,
+  };
+
+  const migratedGradeConfigsQuery = useList({
     resource: "grade-configs",
-    pagination: { current: 1, pageSize: 200 },
+    pagination: { currentPage: 1, pageSize: 200 },
   });
-  const gradeScoresQuery = useList({
+
+  const gradeConfigsQuery = {
+    ...migratedGradeConfigsQuery.result,
+    ...migratedGradeConfigsQuery.query,
+    ...migratedGradeConfigsQuery,
+  };
+
+  const migratedGradeScoresQuery = useList({
     resource: "grades",
-    pagination: { current: 1, pageSize: 200 },
+    pagination: { currentPage: 1, pageSize: 200 },
   });
-  const enrollmentsQuery = useList({
+
+  const gradeScoresQuery = {
+    ...migratedGradeScoresQuery.result,
+    ...migratedGradeScoresQuery.query,
+    ...migratedGradeScoresQuery,
+  };
+
+  const migratedEnrollmentsQuery = useList({
     resource: "enrollments",
-    pagination: { current: 1, pageSize: 500 },
+    pagination: { currentPage: 1, pageSize: 500 },
   });
-  const studentsQuery = useList({
+
+  const enrollmentsQuery = {
+    ...migratedEnrollmentsQuery.result,
+    ...migratedEnrollmentsQuery.query,
+    ...migratedEnrollmentsQuery,
+  };
+
+  const migratedStudentsQuery = useList({
     resource: "students",
-    pagination: { current: 1, pageSize: 500 },
+    pagination: { currentPage: 1, pageSize: 500 },
   });
+
+  const studentsQuery = {
+    ...migratedStudentsQuery.result,
+    ...migratedStudentsQuery.query,
+    ...migratedStudentsQuery,
+  };
 
   const [saving, setSaving] = useState(false);
   const { mutateAsync: createConfig } = useCreate();
@@ -466,7 +527,7 @@ export const GradeConfigPage: React.FC = () => {
           </Typography.Paragraph>
           <Card>
             <Space direction="vertical" size={16} style={{ width: "100%" }}>
-              <Form layout="inline">
+              <Form layout={screens.md ? "inline" : "vertical"}>
                 <Form.Item label="Kelas & Mapel" required>
                   <Select
                     showSearch
@@ -477,7 +538,7 @@ export const GradeConfigPage: React.FC = () => {
                     filterOption={(input, option) =>
                       (option?.label as string)?.toLowerCase().includes(input.toLowerCase())
                     }
-                    style={{ minWidth: 320 }}
+                    style={screens.md ? { minWidth: 320 } : { width: "100%" }}
                   />
                 </Form.Item>
               </Form>
@@ -571,6 +632,7 @@ export const GradeConfigPage: React.FC = () => {
                         columns={componentColumns}
                         rowKey={(record) => record.id as string}
                         pagination={false}
+                        scroll={{ x: "max-content" }}
                       />
                       <Space>
                         <Statistic title="Total Bobot" value={`${totalWeight}%`} />
@@ -600,6 +662,7 @@ export const GradeConfigPage: React.FC = () => {
                             columns={perStudentColumns}
                             rowKey={(record) => record.key}
                             pagination={false}
+                            scroll={{ x: "max-content" }}
                           />
                         )}
                       </Card>

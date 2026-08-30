@@ -1,3 +1,4 @@
+import { useList } from "../hooks/use-refine-list";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
@@ -15,8 +16,7 @@ import {
   Typography,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { useList } from "@refinedev/core";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 import { ResourceActionGuard } from "../components/resource-action-guard";
 import { resolveActiveTerm } from "../utils/terms";
 import {

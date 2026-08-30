@@ -1,9 +1,11 @@
+import { useList } from "./use-refine-list";
 import { useCallback, useMemo } from "react";
-import { useList, type CrudFilter } from "@refinedev/core";
+import { type CrudFilter } from "@refinedev/core";
 import dayjs from "dayjs";
 import {
   CALENDAR_CATEGORY_META,
   CALENDAR_SOURCE_LABEL,
+  resolveCalendarCategoryMeta,
   type CalendarCategory,
   type CalendarEvent,
 } from "../types/calendar";
@@ -118,7 +120,7 @@ const intersectsRange = (
 };
 
 const mapCalendarRecord = (record: CalendarEventRecord): CalendarEvent => {
-  const categoryMeta = CALENDAR_CATEGORY_META[record.category];
+  const categoryMeta = resolveCalendarCategoryMeta(record.category);
   const start = normalizeISO(record.startDate);
   const end = normalizeISO(record.endDate ?? record.startDate);
 

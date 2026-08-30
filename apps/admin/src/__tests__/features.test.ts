@@ -233,17 +233,17 @@ describe("VITE_ENABLE_ALL_FEATURES", () => {
   });
 });
 
-describe("resourceFeature & selectResources schedules gating", () => {
-  it("maps schedules resource to schedules feature", async () => {
+describe("resourceFeature & selectResources schedules behavior", () => {
+  it("does not gate schedule CRUD on the optional scheduler flag", async () => {
     const { resourceFeature } = await import("../providers/features");
-    expect(resourceFeature.schedules).toBe("schedules");
+    expect(resourceFeature.schedules).toBeUndefined();
   });
 
-  it("filters out schedules resource when schedules feature flag is false", async () => {
+  it("keeps schedules resource when scheduler feature flag is false", async () => {
     const { selectResources } = await import("../providers/features");
     const disabledFeatures = { ...allFalse, schedules: false };
     const resources = selectResources(disabledFeatures);
-    expect(resources.some((r) => r.name === "schedules")).toBe(false);
+    expect(resources.some((r) => r.name === "schedules")).toBe(true);
   });
 
   it("includes schedules resource when schedules feature flag is true", async () => {

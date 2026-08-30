@@ -17,7 +17,7 @@ Backend API: **Go (Gin)** in `../sma-adp-api`, served at `http://localhost:8081/
 
 ### Prerequisites
 
-- Node.js 20+ and pnpm 9+ (`packageManager: pnpm@9.7.1`)
+- Node.js 20+ and pnpm 10+ (`packageManager: pnpm@10.34.5`)
 - The Go backend from `../sma-adp-api` (run `make dev` there)
 - Postgres + Redis (Docker: `cd ../sma-adp-api && make docker-up`)
 

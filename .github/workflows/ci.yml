@@ -6,48 +6,87 @@ on:
       - main
   pull_request: {}
 
+env:
+  SMA_ADP_API_DIR: ${{ github.workspace }}/_contracts/sma-adp-api
+
 jobs:
   build-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Checkout sibling Go API contract source
+      - name: Read pinned Go API ref
+        id: backend-ref
+        shell: bash
+        run: |
+          set -euo pipefail
+          ref="$(tr -d '[:space:]' < .github/sma-adp-api.ref)"
+          if [[ ! "$ref" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Invalid backend revision in .github/sma-adp-api.ref"
+            exit 1
+          fi
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+      - name: Checkout pinned Go API contract source
         uses: actions/checkout@v4
         with:
           repository: noah-isme/sma-adp-api
-          ref: main
-          path: ../sma-adp-api
+          ref: ${{ steps.backend-ref.outputs.ref }}
+          path: _contracts/sma-adp-api
           fetch-depth: 1
+          persist-credentials: false
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
-      - run: pnpm install
-      - run: pnpm lint
-      - run: pnpm -r build
-      - run: pnpm test
-      - run: pnpm -r test
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Lint
+        run: pnpm lint
+      - name: Build workspaces
+        run: pnpm -r build
+      - name: Run root contract tests
+        run: pnpm test
+      - name: Run workspace tests
+        run: pnpm -r test
 
   migrate:
     needs: build-test
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && secrets.DATABASE_URL != ''
     env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DB_URL: ${{ secrets.DATABASE_URL }}
     steps:
       - uses: actions/checkout@v4
-      - name: Checkout sibling Go API for migrations
+      - name: Read pinned Go API ref
+        id: backend-ref
+        shell: bash
+        run: |
+          set -euo pipefail
+          ref="$(tr -d '[:space:]' < .github/sma-adp-api.ref)"
+          if [[ ! "$ref" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Invalid backend revision in .github/sma-adp-api.ref"
+            exit 1
+          fi
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+      - name: Checkout pinned Go API for migrations
         uses: actions/checkout@v4
         with:
           repository: noah-isme/sma-adp-api
-          ref: main
-          path: ../sma-adp-api
+          ref: ${{ steps.backend-ref.outputs.ref }}
+          path: _contracts/sma-adp-api
           fetch-depth: 1
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+          persist-credentials: false
+      - uses: actions/setup-go@v5
         with:
-          node-version: 20
-          cache: pnpm
-      - run: pnpm install
-      - run: cd ../sma-adp-api && make migrate-up
+          go-version: "1.21"
+      - name: Install migration tool
+        run: |
+          go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.17.1
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - name: Run migrations
+        if: ${{ env.DB_URL != '' }}
+        working-directory: _contracts/sma-adp-api
+        run: make migrate-up
+      - name: Skip migrations when DATABASE_URL is not configured
+        if: ${{ env.DB_URL == '' }}
+        run: echo "DATABASE_URL is not configured; migration check skipped"

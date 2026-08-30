@@ -1,3 +1,4 @@
+import { useList } from "../hooks/use-refine-list";
 import React, { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import {
   Button,
@@ -34,7 +35,7 @@ import {
   SyncOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
-import { useCreate, useList, usePermissions } from "@refinedev/core";
+import { useCreate, usePermissions } from "@refinedev/core";
 import { useAppNotification } from "../hooks/use-app-notification";
 import {
   CALENDAR_LEGEND,
@@ -196,7 +197,7 @@ export const CalendarPage: React.FC = () => {
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
 
-  const { data: permissionsRole } = usePermissions<string>();
+  const { data: permissionsRole } = usePermissions<string>({});
   const resolvedRole = useMemo(() => {
     if (permissionsRole) {
       return permissionsRole;
@@ -234,20 +235,32 @@ export const CalendarPage: React.FC = () => {
 
   const { open: notify } = useAppNotification();
 
-  const termsQuery = useList<TermRecord>({
+  const migratedTermsQuery = useList<TermRecord>({
     resource: "terms",
-    pagination: { current: 1, pageSize: 20 },
+    pagination: { currentPage: 1, pageSize: 20 },
     sorters: [{ field: "startDate", order: "asc" }],
   });
 
-  const classesQuery = useList<ClassRecord>({
+  const termsQuery = {
+    ...migratedTermsQuery.result,
+    ...migratedTermsQuery.query,
+    ...migratedTermsQuery,
+  };
+
+  const migratedClassesQuery = useList<ClassRecord>({
     resource: "classes",
-    pagination: { current: 1, pageSize: 200 },
+    pagination: { currentPage: 1, pageSize: 200 },
     sorters: [
       { field: "level", order: "asc" },
       { field: "name", order: "asc" },
     ],
   });
+
+  const classesQuery = {
+    ...migratedClassesQuery.result,
+    ...migratedClassesQuery.query,
+    ...migratedClassesQuery,
+  };
 
   const classes = classesQuery.data?.data ?? [];
   const classLookup = useMemo(
@@ -430,8 +443,10 @@ export const CalendarPage: React.FC = () => {
       : undefined,
   });
 
-  const { mutateAsync: createEvent, isLoading: isCreating } =
-    useCreate<CreateCalendarEventPayload>();
+  const {
+    mutateAsync: createEvent,
+    mutation: { isPending: isCreating },
+  } = useCreate<CreateCalendarEventPayload>();
 
   const filteredEvents = eventsQuery.filteredEvents;
   const searchMatches = useMemo(() => {

@@ -1,3 +1,4 @@
+import { useList } from "../../hooks/use-refine-list";
 import React from "react";
 import {
   AppBar,
@@ -61,8 +62,8 @@ import {
   Menu,
   Search,
 } from "lucide-react";
-import { Outlet, useLocation } from "react-router-dom";
-import { useGetIdentity, useList, useLogout, useNavigation } from "@refinedev/core";
+import { Outlet, useLocation, useNavigate } from "react-router";
+import { useGetIdentity, useLogout, useNavigation } from "@refinedev/core";
 
 import { AppBreadcrumb } from "./app-breadcrumb";
 import { themeTokens } from "../../theme/tokens";
@@ -70,6 +71,7 @@ import { useColorMode } from "../../theme/theme-provider";
 import { ACTIVE_TERM_FILTER_FIELD, resolveActiveTerm } from "../../utils/terms";
 
 const SKIP_LINK_ID = "main-content";
+const HEADER_HEIGHT = 56;
 
 type TermRecord = {
   id: string;
@@ -530,12 +532,16 @@ const BOTTOM_NAV_ITEMS: BottomNavItem[] = [
 export const AppLayout: React.FC = () => {
   const { mutate: logoutMutate } = useLogout();
   const location = useLocation();
-  const { list, push } = useNavigation();
+  const navigate = useNavigate();
+  const { list } = useNavigation();
   const { data: identity } = useGetIdentity<{ id: string; name?: string; email?: string }>();
-  const { data: activeTerms, isLoading: isLoadingTerms } = useList<TermRecord>({
+  const {
+    result: activeTerms,
+    query: { isLoading: isLoadingTerms },
+  } = useList<TermRecord>({
     resource: "terms",
     filters: [{ field: ACTIVE_TERM_FILTER_FIELD, operator: "eq", value: true }],
-    pagination: { current: 1, pageSize: 5 },
+    pagination: { currentPage: 1, pageSize: 5 },
   });
   const { mode, toggleMode } = useColorMode();
   const theme = useTheme();
@@ -587,11 +593,11 @@ export const AppLayout: React.FC = () => {
         return;
       }
       if (item.path) {
-        push(item.path);
+        navigate(item.path);
         setMobileNavOpen(false);
       }
     },
-    [list, push]
+    [list, navigate]
   );
 
   const renderNavItems = (items: NavNode[], depth = 0): React.ReactNode =>
@@ -678,7 +684,7 @@ export const AppLayout: React.FC = () => {
     }
     const target = BOTTOM_NAV_ITEMS.find((item) => item.key === value);
     if (target?.path) {
-      push(target.path);
+      navigate(target.path);
     } else if (target?.resource) {
       list(target.resource);
     }
@@ -765,7 +771,8 @@ export const AppLayout: React.FC = () => {
           component="header"
           sx={{
             px: { xs: 2, md: 3 },
-            py: 1.25,
+            height: HEADER_HEIGHT,
+            boxSizing: "border-box",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -944,7 +951,7 @@ export const AppLayout: React.FC = () => {
       )}
 
       {/* Main layout */}
-      <Box sx={{ display: "flex", minHeight: "calc(100vh - 56px)" }}>
+      <Box sx={{ display: "flex", minHeight: `calc(100vh - ${HEADER_HEIGHT}px)` }}>
         {/* Sidebar - desktop fixed, mobile drawer */}
         {isMdUp ? (
           <Box
@@ -958,6 +965,9 @@ export const AppLayout: React.FC = () => {
               overflow: "hidden",
               display: "flex",
               flexDirection: "column",
+              position: "sticky",
+              top: HEADER_HEIGHT,
+              height: `calc(100vh - ${HEADER_HEIGHT}px)`,
             }}
           >
             {sidebarContent}

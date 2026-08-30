@@ -1,6 +1,6 @@
 import type { PropsWithChildren, ReactNode } from "react";
 import { Result, Spin, Typography } from "antd";
-import { useCan, useResource } from "@refinedev/core";
+import { useCan, useResourceParams } from "@refinedev/core";
 
 type GuardAction = "list" | "show" | "create" | "edit" | "delete" | "approve" | "view" | string;
 
@@ -18,9 +18,8 @@ export const ResourceActionGuard: React.FC<PropsWithChildren<ResourceActionGuard
   fallback,
   loadingFallback,
 }) => {
-  const { resource } = useResource();
-  const targetResource =
-    resourceName ?? resource?.name ?? resource?.identifier ?? resource?.route ?? undefined;
+  const { resource } = useResourceParams();
+  const targetResource = resourceName ?? resource?.name ?? resource?.identifier ?? undefined;
 
   const { data, isLoading } = useCan({
     resource: targetResource ?? "",

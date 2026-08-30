@@ -1,22 +1,11 @@
 import { describe, expect, it } from "vitest";
 import * as fs from "node:fs";
 import * as path from "node:path";
-
-const findProjectRoot = (): string => {
-  let current = process.cwd();
-  while (current !== path.parse(current).root) {
-    if (fs.existsSync(path.join(current, "AGENTS.md"))) {
-      return current;
-    }
-    current = path.dirname(current);
-  }
-  return process.cwd();
-};
+import { findFrontendRoot, resolveBackendDir } from "../helpers/backend-path.js";
 
 describe("R1 Pre-Production Tooling Contract Tests", () => {
-  const rootDir = findProjectRoot();
-  // The Go API is maintained in the sibling repository documented by AGENTS.md.
-  const backendDir = path.resolve(rootDir, "..", "sma-adp-api");
+  const rootDir = findFrontendRoot();
+  const backendDir = resolveBackendDir(rootDir);
 
   describe("Tier 1: Feature Coverage (R1.1, R1.2, R1.3)", () => {
     it("R1.1-T1-01: Makefile contains automated rollback target with required operations", () => {
