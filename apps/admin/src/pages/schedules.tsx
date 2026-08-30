@@ -39,23 +39,55 @@ const WEEK_DAYS = [
 ];
 
 const DAY_OPTIONS = [
-  { value: "1", label: "Senin" },
-  { value: "2", label: "Selasa" },
-  { value: "3", label: "Rabu" },
-  { value: "4", label: "Kamis" },
-  { value: "5", label: "Jumat" },
-  { value: "6", label: "Sabtu" },
+  { value: "MONDAY", label: "Senin" },
+  { value: "TUESDAY", label: "Selasa" },
+  { value: "WEDNESDAY", label: "Rabu" },
+  { value: "THURSDAY", label: "Kamis" },
+  { value: "FRIDAY", label: "Jumat" },
+  { value: "SATURDAY", label: "Sabtu" },
 ];
+
+const DAY_MAP_TO_NAME: Record<string, string> = {
+  MONDAY: "Senin",
+  TUESDAY: "Selasa",
+  WEDNESDAY: "Rabu",
+  THURSDAY: "Kamis",
+  FRIDAY: "Jumat",
+  SATURDAY: "Sabtu",
+  SUNDAY: "Minggu",
+  "1": "Senin",
+  "2": "Selasa",
+  "3": "Rabu",
+  "4": "Kamis",
+  "5": "Jumat",
+  "6": "Sabtu",
+  "7": "Minggu",
+};
+
+const DAY_NAME_TO_INT: Record<string, number> = {
+  MONDAY: 1,
+  TUESDAY: 2,
+  WEDNESDAY: 3,
+  THURSDAY: 4,
+  FRIDAY: 5,
+  SATURDAY: 6,
+  SUNDAY: 7,
+};
 
 const SLOT_START_TIMES = ["07:00", "07:50", "08:40", "09:40", "10:30", "11:20", "12:45", "13:35"];
 
 type ScheduleResource = {
   id: string;
-  classSubjectId: string;
-  dayOfWeek: number;
-  startTime: string;
-  endTime: string;
+  termId?: string;
+  classId?: string;
+  subjectId?: string;
+  teacherId?: string;
+  dayOfWeek: string | number;
+  timeSlot?: string;
+  startTime?: string;
+  endTime?: string;
   room?: string;
+  classSubjectId?: string;
 };
 
 type ClassSubjectResource = {
@@ -104,8 +136,18 @@ type EnrichedSchedule = ScheduleResource & {
   periodLabel?: string;
 };
 
-const resolveDayLabel = (value: number) =>
-  DAY_OPTIONS.find((day) => Number(day.value) === value)?.label ?? `Hari ${value}`;
+const resolveDayLabel = (value?: string | number) => {
+  if (value === undefined || value === null) return "-";
+  const str = String(value).toUpperCase();
+  return DAY_MAP_TO_NAME[str] ?? `Hari ${value}`;
+};
+
+const resolveDayNumber = (value?: string | number): number => {
+  if (typeof value === "number") return value;
+  const num = Number(value);
+  if (!Number.isNaN(num) && num >= 1 && num <= 7) return num;
+  return DAY_NAME_TO_INT[String(value).toUpperCase()] ?? 1;
+};
 
 const resolvePeriodLabel = (startTime?: string) => {
   if (!startTime) return undefined;
@@ -262,44 +304,33 @@ export const SchedulesPage: React.FC = () => {
     return filtered.length > 0 ? filtered.map((term) => term.id) : [];
   }, [selectedYear, selectedSemester, terms]);
 
-  const filteredClassSubjectIds = useMemo(() => {
-    if (classSubjects.length === 0) {
-      return [];
-    }
-
-    return classSubjects
-      .filter((mapping) => {
-        const classMatch = selectedClass ? mapping.classroomId === selectedClass : true;
-        const teacherMatch = selectedTeacher ? mapping.teacherId === selectedTeacher : true;
-        const termMatch = Array.isArray(matchingTermIds)
-          ? matchingTermIds.length === 0
-            ? false
-            : matchingTermIds.includes(mapping.termId ?? "")
-          : true;
-        return classMatch && teacherMatch && termMatch;
-      })
-      .map((mapping) => mapping.id);
-  }, [classSubjects, selectedClass, selectedTeacher, matchingTermIds]);
-
   const weeklyGrid = useMemo(() => {
     if (!selectedClass) return null;
-    const classMappings = classSubjects.filter((mapping) => mapping.classroomId === selectedClass);
-    if (classMappings.length === 0) return null;
-    const mappingSet = new Set(classMappings.map((mapping) => mapping.id));
-    const classSchedules = allSchedules.filter((entry) => mappingSet.has(entry.classSubjectId));
+    const classSchedules = allSchedules.filter((entry) => {
+      if (entry.classId === selectedClass) return true;
+      if (entry.classSubjectId) {
+        const mapping = classSubjects.find((m) => m.id === entry.classSubjectId);
+        if (mapping && mapping.classroomId === selectedClass) return true;
+      }
+      return false;
+    });
     if (classSchedules.length === 0) return null;
 
-    const mappingById = new Map(classMappings.map((mapping) => [mapping.id, mapping]));
     const slotMap = new Map<string, { teacherName: string; subjectName: string; room?: string }>();
 
     classSchedules.forEach((entry) => {
-      const slotNumber = Number(resolvePeriodLabel(entry.startTime) ?? 0);
-      if (!slotNumber) return;
-      const mapping = mappingById.get(entry.classSubjectId);
-      if (!mapping) return;
-      const teacher = teachers.find((teacher) => teacher.id === mapping.teacherId);
-      const subject = subjects.find((subject) => subject.id === mapping.subjectId);
-      const key = `${entry.dayOfWeek}-${slotNumber}`;
+      const dayNum = resolveDayNumber(entry.dayOfWeek);
+      const slotNumber = Number(resolvePeriodLabel(entry.startTime) ?? 0) || 1;
+      const mapping = entry.classSubjectId
+        ? classSubjects.find((m) => m.id === entry.classSubjectId)
+        : undefined;
+
+      const teacherId = entry.teacherId ?? mapping?.teacherId;
+      const subjectId = entry.subjectId ?? mapping?.subjectId;
+      const teacher = teacherId ? teacherMap.get(teacherId) : undefined;
+      const subject = subjectId ? subjectMap.get(subjectId) : undefined;
+
+      const key = `${dayNum}-${slotNumber}`;
       slotMap.set(key, {
         teacherName: teacher?.fullName ?? "Guru",
         subjectName: subject?.name ?? "Mapel",
@@ -311,10 +342,13 @@ export const SchedulesPage: React.FC = () => {
       const slotNumber = index + 1;
       const fallbackEnd = dayjs(start, "HH:mm").add(45, "minute").format("HH:mm");
       const referenceEntry = classSchedules.find(
-        (entry) => Number(resolvePeriodLabel(entry.startTime) ?? 0) === slotNumber
+        (entry) =>
+          Number(resolvePeriodLabel(entry.startTime) ?? 0) === slotNumber ||
+          (entry.timeSlot && entry.timeSlot.startsWith(start))
       );
       const timeLabel = referenceEntry
-        ? `${referenceEntry.startTime.slice(0, 5)} - ${referenceEntry.endTime.slice(0, 5)}`
+        ? (referenceEntry.timeSlot ??
+          `${referenceEntry.startTime?.slice(0, 5)} - ${referenceEntry.endTime?.slice(0, 5)}`)
         : `${start} - ${fallbackEnd}`;
       const cells = WEEK_DAYS.map((day) => {
         const record = slotMap.get(`${day.value}-${slotNumber}`);
@@ -328,7 +362,7 @@ export const SchedulesPage: React.FC = () => {
     });
 
     return rows;
-  }, [allSchedules, classSubjects, selectedClass, subjects, teachers]);
+  }, [allSchedules, classSubjects, selectedClass, subjects, teachers, subjectMap, teacherMap]);
 
   useEffect(() => {
     const nextFilters: CrudFilter[] = [];
@@ -337,69 +371,89 @@ export const SchedulesPage: React.FC = () => {
       nextFilters.push({
         field: "dayOfWeek",
         operator: "eq",
-        value: Number(selectedDay),
+        value: selectedDay,
       });
     }
 
-    if (filteredClassSubjectIds.length === 1) {
+    if (selectedClass) {
       nextFilters.push({
-        field: "classSubjectId",
+        field: "classId",
         operator: "eq",
-        value: filteredClassSubjectIds[0],
+        value: selectedClass,
       });
-    } else if (filteredClassSubjectIds.length > 1) {
+    }
+
+    if (selectedTeacher) {
       nextFilters.push({
-        field: "classSubjectId",
-        operator: "in",
-        value: filteredClassSubjectIds,
-      });
-    } else if (
-      (Array.isArray(matchingTermIds) && matchingTermIds.length === 0) ||
-      selectedClass ||
-      selectedTeacher ||
-      selectedYear ||
-      selectedSemester
-    ) {
-      nextFilters.push({
-        field: "classSubjectId",
+        field: "teacherId",
         operator: "eq",
-        value: "__no_match__",
+        value: selectedTeacher,
       });
+    }
+
+    if (matchingTermIds && matchingTermIds.length > 0) {
+      if (matchingTermIds.length === 1) {
+        nextFilters.push({
+          field: "termId",
+          operator: "eq",
+          value: matchingTermIds[0],
+        });
+      } else {
+        nextFilters.push({
+          field: "termId",
+          operator: "in",
+          value: matchingTermIds,
+        });
+      }
     }
 
     setFilters?.(nextFilters, "replace");
-  }, [
-    filteredClassSubjectIds,
-    matchingTermIds,
-    selectedClass,
-    selectedDay,
-    selectedSemester,
-    selectedTeacher,
-    selectedYear,
-    setFilters,
-  ]);
+  }, [matchingTermIds, selectedClass, selectedDay, selectedTeacher, setFilters]);
 
   const rawData = (tableProps.dataSource as ScheduleResource[] | undefined) ?? [];
 
   const enrichedData: EnrichedSchedule[] = useMemo(() => {
     return rawData.map((entry) => {
-      const mapping = classSubjects.find((item) => item.id === entry.classSubjectId);
-      const classroom = mapping ? classMap.get(mapping.classroomId) : undefined;
-      const subject = mapping ? subjectMap.get(mapping.subjectId) : undefined;
-      const teacher = mapping ? teacherMap.get(mapping.teacherId) : undefined;
-      const term = mapping ? termMap.get(mapping.termId ?? "") : undefined;
+      let classroom = entry.classId ? classMap.get(entry.classId) : undefined;
+      let subject = entry.subjectId ? subjectMap.get(entry.subjectId) : undefined;
+      let teacher = entry.teacherId ? teacherMap.get(entry.teacherId) : undefined;
+      let term = entry.termId ? termMap.get(entry.termId) : undefined;
+
+      if ((!classroom || !subject || !teacher) && entry.classSubjectId) {
+        const mapping = classSubjects.find((item) => item.id === entry.classSubjectId);
+        if (mapping) {
+          if (!classroom && mapping.classroomId) classroom = classMap.get(mapping.classroomId);
+          if (!subject && mapping.subjectId) subject = subjectMap.get(mapping.subjectId);
+          if (!teacher && mapping.teacherId) teacher = teacherMap.get(mapping.teacherId);
+          if (!term && mapping.termId) term = termMap.get(mapping.termId);
+        }
+      }
+
+      const dayNum = resolveDayNumber(entry.dayOfWeek);
+      const period = entry.timeSlot || resolvePeriodLabel(entry.startTime) || "-";
 
       return {
         ...entry,
-        className: classroom?.name ?? "-",
-        classId: mapping?.classroomId,
-        subjectName: subject?.name ?? "Tanpa Mapel",
-        subjectId: mapping?.subjectId,
-        teacherName: teacher?.fullName ?? "-",
-        teacherId: mapping?.teacherId,
-        termId: term?.id,
+        dayOfWeek: dayNum,
+        className:
+          classroom?.name ??
+          (entry.classId ? classMap.get(entry.classId)?.name || entry.classId : "-"),
+        classId: entry.classId ?? classroom?.id,
+        subjectName: subject?.name
+          ? subject.code
+            ? `${subject.name} (${subject.code})`
+            : subject.name
+          : entry.subjectId
+            ? subjectMap.get(entry.subjectId)?.name || entry.subjectId
+            : "Tanpa Mapel",
+        subjectId: entry.subjectId ?? subject?.id,
+        teacherName:
+          teacher?.fullName ??
+          (entry.teacherId ? teacherMap.get(entry.teacherId)?.fullName || entry.teacherId : "-"),
+        teacherId: entry.teacherId ?? teacher?.id,
+        termId: term?.id ?? entry.termId,
         dayLabel: resolveDayLabel(entry.dayOfWeek),
-        periodLabel: resolvePeriodLabel(entry.startTime),
+        periodLabel: period,
       };
     });
   }, [rawData, classSubjects, classMap, subjectMap, teacherMap, termMap]);
@@ -475,7 +529,8 @@ export const SchedulesPage: React.FC = () => {
           entry.id !== record.id &&
           entry.teacherId === record.teacherId &&
           entry.dayOfWeek === record.dayOfWeek &&
-          entry.startTime === record.startTime
+          (entry.timeSlot === record.timeSlot ||
+            (entry.startTime && entry.startTime === record.startTime))
       );
 
       if (conflict) {
@@ -491,11 +546,20 @@ export const SchedulesPage: React.FC = () => {
         await createOne({
           resource: "schedules",
           values: {
+            termId: record.termId || matchingTermIds?.[0] || terms.find(isTermActive)?.id,
+            classId: record.classId,
+            subjectId: record.subjectId,
+            teacherId: record.teacherId,
+            dayOfWeek: String(record.dayOfWeek),
+            timeSlot:
+              record.timeSlot ||
+              (record.startTime && record.endTime
+                ? `${record.startTime}-${record.endTime}`
+                : "07:30-09:00"),
+            room: record.room || "-",
             classSubjectId: record.classSubjectId,
-            dayOfWeek: record.dayOfWeek,
             startTime: record.startTime,
             endTime: record.endTime,
-            room: record.room,
           },
         });
 
@@ -513,7 +577,7 @@ export const SchedulesPage: React.FC = () => {
         });
       }
     },
-    [createOne, enrichedData, notify, refetch]
+    [createOne, enrichedData, notify, refetch, matchingTermIds, terms]
   );
 
   const columns: ColumnsType<EnrichedSchedule> = useMemo(
@@ -521,7 +585,7 @@ export const SchedulesPage: React.FC = () => {
       {
         title: "Hari",
         dataIndex: "dayLabel",
-        sorter: (a, b) => a.dayOfWeek - b.dayOfWeek,
+        sorter: (a, b) => Number(a.dayOfWeek) - Number(b.dayOfWeek),
         width: 120,
         render: (value: string) => (
           <Space>
@@ -531,12 +595,16 @@ export const SchedulesPage: React.FC = () => {
         ),
       },
       {
-        title: "Jam ke",
+        title: "Jam / Sesi",
         dataIndex: "periodLabel",
-        sorter: (a, b) => Number(a.periodLabel ?? 0) - Number(b.periodLabel ?? 0),
-        width: 100,
+        sorter: (a, b) => (a.periodLabel ?? "").localeCompare(b.periodLabel ?? ""),
+        width: 140,
         render: (_: string | undefined, record) =>
-          record.periodLabel ? <Tag color="blue">{record.periodLabel}</Tag> : "-",
+          record.periodLabel && record.periodLabel !== "-" ? (
+            <Tag color="blue">{record.periodLabel}</Tag>
+          ) : (
+            "-"
+          ),
       },
       {
         title: "Mapel",

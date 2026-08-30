@@ -4,15 +4,31 @@ import { Create, useForm } from "@refinedev/antd";
 import { useAppNotification } from "../hooks/use-app-notification";
 import { Alert, Card, Form, Input, Select, Space, Typography } from "antd";
 import { ResourceActionGuard } from "../components/resource-action-guard";
+import { isTermActive } from "../utils/terms";
 
 const DAY_OPTIONS = [
-  { value: 1, label: "Senin" },
-  { value: 2, label: "Selasa" },
-  { value: 3, label: "Rabu" },
-  { value: 4, label: "Kamis" },
-  { value: 5, label: "Jumat" },
-  { value: 6, label: "Sabtu" },
+  { value: "MONDAY", label: "Senin" },
+  { value: "TUESDAY", label: "Selasa" },
+  { value: "WEDNESDAY", label: "Rabu" },
+  { value: "THURSDAY", label: "Kamis" },
+  { value: "FRIDAY", label: "Jumat" },
+  { value: "SATURDAY", label: "Sabtu" },
 ];
+
+const DAY_INT_TO_NAME: Record<string, string> = {
+  "1": "MONDAY",
+  "2": "TUESDAY",
+  "3": "WEDNESDAY",
+  "4": "THURSDAY",
+  "5": "FRIDAY",
+  "6": "SATURDAY",
+  MONDAY: "MONDAY",
+  TUESDAY: "TUESDAY",
+  WEDNESDAY: "WEDNESDAY",
+  THURSDAY: "THURSDAY",
+  FRIDAY: "FRIDAY",
+  SATURDAY: "SATURDAY",
+};
 
 export const SchedulesCreate: React.FC = () => {
   const { formProps, saveButtonProps } = useForm();
@@ -62,10 +78,17 @@ export const SchedulesCreate: React.FC = () => {
     ...migratedTeachersQuery,
   };
 
+  const migratedTermsQuery = useList({
+    resource: "terms",
+    pagination: { currentPage: 1, pageSize: 200 },
+  });
+
   const classSubjects = (classSubjectsQuery.data?.data as Record<string, any>[]) ?? [];
   const classes = (classesQuery.data?.data as Record<string, any>[]) ?? [];
   const subjects = (subjectsQuery.data?.data as Record<string, any>[]) ?? [];
   const teachers = (teachersQuery.data?.data as Record<string, any>[]) ?? [];
+  const terms = (migratedTermsQuery.result?.data as Record<string, any>[]) ?? [];
+  const activeTerm = terms.find(isTermActive) ?? terms[0];
 
   const classSubjectOptions = useMemo(
     () =>
@@ -91,11 +114,38 @@ export const SchedulesCreate: React.FC = () => {
     });
   };
 
+  const handleFinish = (values: any) => {
+    const mapping = classSubjects.find((m) => m.id === values.classSubjectId);
+    const dayOfWeekName =
+      DAY_INT_TO_NAME[values.dayOfWeek] || String(values.dayOfWeek).toUpperCase();
+    const timeSlot =
+      values.startTime && values.endTime
+        ? `${values.startTime}-${values.endTime}`
+        : values.timeSlot || "07:30-09:00";
+
+    const payload = {
+      ...values,
+      termId: mapping?.termId || activeTerm?.id || "term-2025-1",
+      classId: mapping?.classroomId || values.classId,
+      subjectId: mapping?.subjectId || values.subjectId,
+      teacherId: mapping?.teacherId || values.teacherId,
+      dayOfWeek: dayOfWeekName,
+      timeSlot,
+    };
+
+    return formProps.onFinish?.(payload);
+  };
+
   return (
     <ResourceActionGuard action="create">
       <Create saveButtonProps={saveButtonProps} title="Buat Jadwal Pelajaran">
         <Card>
-          <Form {...formProps} onFinishFailed={handleFinishFailed} layout="vertical">
+          <Form
+            {...formProps}
+            onFinish={handleFinish}
+            onFinishFailed={handleFinishFailed}
+            layout="vertical"
+          >
             <Form.Item
               label="Kelas & Mapel"
               name="classSubjectId"
