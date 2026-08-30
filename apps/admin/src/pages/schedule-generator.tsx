@@ -34,6 +34,7 @@ import {
 import dayjs from "dayjs";
 import { useScheduleGenerator } from "../hooks/use-schedule-generator";
 import type { ScheduleSlot, TeacherCard, TeacherPreference } from "../hooks/use-schedule-generator";
+import { isTermActive } from "../utils/terms";
 
 const STATUS_COLORS: Record<ScheduleSlot["status"], string> = {
   EMPTY: "#f1f5f9",
@@ -253,7 +254,7 @@ export const ScheduleGeneratorPage: React.FC = () => {
 
   useEffect(() => {
     if (!termId && terms.length > 0) {
-      const active = terms.find((term) => (term as { active?: boolean }).active) ?? terms[0];
+      const active = terms.find(isTermActive) ?? terms[0];
       setTermId(active.id);
     }
   }, [termId, terms]);

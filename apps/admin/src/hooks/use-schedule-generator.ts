@@ -149,7 +149,14 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
   }, [dataProvider]);
   const { open: notify } = useAppNotification();
 
-  const termsQuery = useList<{ id: string; name: string; semester?: number; year?: string }>({
+  const termsQuery = useList<{
+    id: string;
+    name: string;
+    semester?: number;
+    year?: string;
+    isActive?: boolean;
+    active?: boolean;
+  }>({
     resource: "terms",
     pagination: { current: 1, pageSize: 50 },
     sorters: [{ field: "startDate", order: "asc" }],
@@ -185,9 +192,22 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
     pagination: { current: 1, pageSize: 200 },
   });
 
+  const targetClassId =
+    filters.activeClassId || filters.classId || (filters.classIds && filters.classIds[0]);
+  const hasRequiredParams = Boolean(filters.termId && targetClassId);
+
   const semesterScheduleQuery = useList<ScheduleSlot>({
     resource: "semester-schedule",
     pagination: { current: 1, pageSize: 5000 },
+    filters: hasRequiredParams
+      ? [
+          { field: "termId", operator: "eq", value: filters.termId },
+          { field: "classId", operator: "eq", value: targetClassId },
+        ]
+      : undefined,
+    queryOptions: {
+      enabled: hasRequiredParams,
+    },
   });
 
   const teacherPreferences = useMemo(
