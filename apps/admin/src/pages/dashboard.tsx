@@ -89,22 +89,70 @@ type AttendanceAlert = {
 };
 
 type PrincipalDashboard = {
-  updatedAt: string;
-  distribution: {
-    overallAverage: number;
-    totalStudents: number;
-    byRange: DistributionBucket[];
-    byClass: ClassSummary[];
+  termId?: string;
+  updatedAt?: string;
+  // Go backend shape
+  grades?: {
+    avgByClass?: Array<{
+      classId: string;
+      className?: string;
+      avg?: number;
+      average?: number;
+      highest?: number;
+      lowest?: number;
+    }>;
+    byClass?: Array<{
+      classId: string;
+      className?: string;
+      avg?: number;
+      average?: number;
+      highest?: number;
+      lowest?: number;
+    }>;
+    distribution?: Array<{
+      bucket?: string;
+      range?: string;
+      count: number;
+    }>;
   };
-  remedial: { studentId: string }[];
-  attendance: {
-    overall: number;
-    byClass: AttendanceByClass[];
-    alerts: AttendanceAlert[];
+  behavior?: {
+    topPositive?: Array<{ studentId: string; points: number }>;
+    topNegative?: Array<{ studentId: string; points: number }>;
+  };
+  ops?: {
+    upcomingEvents?: Array<{ id: string; title: string; date: string }> | null;
+    openAnnouncements?: number;
+  };
+  // Legacy / spec shape
+  distribution?: {
+    overallAverage?: number;
+    totalStudents?: number;
+    byRange?: DistributionBucket[];
+    byClass?: ClassSummary[];
+  };
+  remedial?: { studentId: string }[];
+  attendance?: {
+    overall?: number;
+    overallRate?: number;
+    byClass?: Array<{
+      classId: string;
+      className?: string;
+      percentage?: number;
+      rate?: number;
+    }>;
+    alerts?: AttendanceAlert[];
   };
 };
 
 type Order = "asc" | "desc";
+
+const BUCKET_LABELS: Record<string, string> = {
+  A: "90-100",
+  B: "80-89",
+  C: "70-79",
+  D: "60-69",
+  E: "<60",
+};
 
 const TableSkeleton: React.FC<{ rows?: number; columns?: number }> = ({
   rows = 4,
@@ -150,6 +198,22 @@ export const DashboardPage: React.FC = () => {
   const activeTerm = React.useMemo(() => resolveActiveTerm(activeTerms?.data), [activeTerms]);
   const activeTermId = activeTerm?.id;
 
+  // Resolve class names for displays when the backend only provides classId
+  const { data: classesList } = useRefineList<{ id: string; name: string; code?: string }>({
+    resource: "classes",
+    pagination: { pageSize: 100 },
+  });
+
+  const classNameMap = React.useMemo(() => {
+    const map = new Map<string, string>();
+    (classesList?.data ?? []).forEach((c) => {
+      if (c?.id) {
+        map.set(c.id, c.name || c.code || c.id);
+      }
+    });
+    return map;
+  }, [classesList]);
+
   // Without a termId the API answers 400, so wait for the term rather than
   // firing a request that can only fail and surface as an error state.
   const migratedDashboardQuery = useList<PrincipalDashboard>({
@@ -169,15 +233,162 @@ export const DashboardPage: React.FC = () => {
   const loading = dashboardQuery.isLoading;
   const isError = dashboardQuery.isError;
 
-  const dashboard = React.useMemo(() => {
+  const rawDashboard = React.useMemo(() => {
     const records = (dashboardQuery.data?.data ?? []) as unknown as PrincipalDashboard[];
     return records[0];
   }, [dashboardQuery.data]);
 
-  const distributionByRange = dashboard?.distribution?.byRange ?? [];
-  const classSummaryRaw = dashboard?.distribution?.byClass ?? [];
-  const attendanceByClass = dashboard?.attendance?.byClass ?? [];
-  const attendanceAlerts = dashboard?.attendance?.alerts ?? [];
+  const {
+    overallAverage,
+    totalStudents,
+    overallAttendance,
+    remedialCount,
+    distributionByRange,
+    classSummaryRaw,
+    attendanceByClass,
+    attendanceAlerts,
+  } = React.useMemo(() => {
+    if (!rawDashboard) {
+      return {
+        overallAverage: 0,
+        totalStudents: 0,
+        overallAttendance: 0,
+        remedialCount: 0,
+        distributionByRange: [] as DistributionBucket[],
+        classSummaryRaw: [] as ClassSummary[],
+        attendanceByClass: [] as AttendanceByClass[],
+        attendanceAlerts: [] as AttendanceAlert[],
+      };
+    }
+
+    // 1. Attendance normalization
+    const rawAtt = rawDashboard.attendance ?? {};
+    const rawAttByClass = Array.isArray(rawAtt.byClass) ? rawAtt.byClass : [];
+    const attByClass: AttendanceByClass[] = rawAttByClass.map((item) => {
+      const classId = String(item.classId ?? "");
+      const className = item.className || classNameMap.get(classId) || classId;
+      const percentage = Number(item.percentage ?? item.rate ?? 0);
+      return { classId, className, percentage };
+    });
+
+    let overallAtt = Number(rawAtt.overall ?? rawAtt.overallRate ?? 0);
+    if (overallAtt === 0 && attByClass.length > 0) {
+      const sum = attByClass.reduce((acc, curr) => acc + curr.percentage, 0);
+      overallAtt = sum / attByClass.length;
+    }
+
+    const rawAlerts = Array.isArray(rawAtt.alerts) ? rawAtt.alerts : [];
+    const attAlerts: AttendanceAlert[] =
+      rawAlerts.length > 0
+        ? rawAlerts.map((a) => ({
+            classId: String(a.classId ?? ""),
+            className:
+              a.className || classNameMap.get(String(a.classId ?? "")) || String(a.classId ?? ""),
+            indicator: a.indicator ?? "ABSENCE_SPIKE",
+            percentage: Number(a.percentage ?? 0),
+            week: a.week ?? "Minggu Ini",
+            trend: Array.isArray(a.trend) ? a.trend : undefined,
+          }))
+        : attByClass
+            .filter((c) => c.percentage < 86 && c.percentage > 0)
+            .map((c) => ({
+              classId: c.classId,
+              className: c.className,
+              indicator: "CRITICAL_ATTENDANCE",
+              percentage: c.percentage,
+              week: "Minggu Ini",
+              trend: [c.percentage],
+            }));
+
+    // 2. Grades & Distribution normalization
+    const rawDist = rawDashboard.distribution ?? {};
+    const rawGrd = rawDashboard.grades ?? {};
+
+    const rawBins = (
+      Array.isArray(rawDist.byRange)
+        ? rawDist.byRange
+        : Array.isArray(rawGrd.distribution)
+          ? rawGrd.distribution
+          : []
+    ) as Array<{ range?: string; bucket?: string; count?: number }>;
+
+    const distByRange: DistributionBucket[] = rawBins.map((bin) => {
+      let range = bin.range;
+      if (!range && bin.bucket) {
+        range = BUCKET_LABELS[bin.bucket] ?? bin.bucket;
+      }
+      return {
+        range: range || "Lainnya",
+        count: Number(bin.count ?? 0),
+      };
+    });
+
+    const rawClassGrades = (
+      Array.isArray(rawDist.byClass)
+        ? rawDist.byClass
+        : Array.isArray(rawGrd.avgByClass)
+          ? rawGrd.avgByClass
+          : Array.isArray(rawGrd.byClass)
+            ? rawGrd.byClass
+            : []
+    ) as Array<{
+      classId?: string;
+      className?: string;
+      average?: number;
+      avg?: number;
+      highest?: number;
+      lowest?: number;
+    }>;
+
+    const classSummaries: ClassSummary[] = rawClassGrades.map((item) => {
+      const classId = String(item.classId ?? "");
+      const className = item.className || classNameMap.get(classId) || classId;
+      const average = Number(item.average ?? item.avg ?? 0);
+      const highest = Number(item.highest ?? average);
+      const lowest = Number(item.lowest ?? average);
+      return {
+        classId,
+        className,
+        average,
+        highest,
+        lowest,
+      };
+    });
+
+    let overallAvg = Number(rawDist.overallAverage ?? 0);
+    if (overallAvg === 0 && classSummaries.length > 0) {
+      const sum = classSummaries.reduce((acc, curr) => acc + curr.average, 0);
+      overallAvg = sum / classSummaries.length;
+    }
+
+    let totalStd = Number(rawDist.totalStudents ?? 0);
+    if (totalStd === 0 && distByRange.length > 0) {
+      totalStd = distByRange.reduce((acc, curr) => acc + curr.count, 0);
+    }
+
+    let remedial = 0;
+    if (Array.isArray(rawDashboard.remedial)) {
+      remedial = rawDashboard.remedial.length;
+    } else {
+      const lowBin = distByRange.find(
+        (b) => b.range === "<60" || b.range.includes("<60") || b.range === "E"
+      );
+      if (lowBin) {
+        remedial = lowBin.count;
+      }
+    }
+
+    return {
+      overallAverage: overallAvg,
+      totalStudents: totalStd,
+      overallAttendance: overallAtt,
+      remedialCount: remedial,
+      distributionByRange: distByRange,
+      classSummaryRaw: classSummaries,
+      attendanceByClass: attByClass,
+      attendanceAlerts: attAlerts,
+    };
+  }, [rawDashboard, classNameMap]);
 
   const [sortConfig] = React.useState<{ orderBy: keyof ClassSummary; order: Order }>(() => ({
     orderBy: "average",
@@ -201,12 +412,10 @@ export const DashboardPage: React.FC = () => {
     return rows;
   }, [classSummaryRaw, sortConfig]);
 
-  const totalStudents = distributionByRange.reduce((sum, item) => sum + item.count, 0);
-
   const isEmptyState =
     !loading &&
     !isError &&
-    (!dashboard ||
+    (!rawDashboard ||
       (distributionByRange.length === 0 &&
         sortedClassSummary.length === 0 &&
         attendanceByClass.length === 0 &&
@@ -309,12 +518,8 @@ export const DashboardPage: React.FC = () => {
           <Grid item xs={12} sm={6} lg={4}>
             <SummaryCard
               title="Rata-rata Nilai Sekolah"
-              value={
-                dashboard?.distribution?.overallAverage
-                  ? dashboard.distribution.overallAverage.toFixed(1)
-                  : "0.0"
-              }
-              subtitle={`Dari ${(dashboard?.distribution?.totalStudents ?? 0).toLocaleString("id-ID")} siswa aktif`}
+              value={overallAverage > 0 ? overallAverage.toFixed(1) : "0.0"}
+              subtitle={`Dari ${totalStudents.toLocaleString("id-ID")} siswa aktif`}
               icon={<BarChart3 aria-label="Ikon nilai" />}
               accentColor={themeTokens.accentBlue}
               loading={loading}
@@ -324,9 +529,7 @@ export const DashboardPage: React.FC = () => {
           <Grid item xs={12} sm={6} lg={4}>
             <SummaryCard
               title="Tingkat Kehadiran"
-              value={
-                dashboard?.attendance?.overall ? percent(dashboard.attendance.overall) : percent(0)
-              }
+              value={overallAttendance > 0 ? percent(overallAttendance) : percent(0)}
               subtitle="Rata-rata semua kelas"
               icon={<Users aria-label="Ikon kehadiran" />}
               accentColor={themeTokens.accentGreen}
@@ -337,7 +540,7 @@ export const DashboardPage: React.FC = () => {
           <Grid item xs={12} sm={6} lg={4}>
             <SummaryCard
               title="Siswa Remedial"
-              value={(dashboard?.remedial?.length ?? 0).toLocaleString("id-ID")}
+              value={remedialCount.toLocaleString("id-ID")}
               subtitle="Nilai di bawah KKM"
               icon={<AlertTriangle aria-label="Ikon remedial" />}
               accentColor={themeTokens.accentOrange}
@@ -406,11 +609,11 @@ export const DashboardPage: React.FC = () => {
                           <Cell
                             key={`cell-${index}`}
                             fill={
-                              entry.range.includes("90-100")
+                              entry.range.includes("90-100") || entry.range === "A"
                                 ? theme.palette.success.main
-                                : entry.range.includes("80-89")
+                                : entry.range.includes("80-89") || entry.range === "B"
                                   ? theme.palette.primary.main
-                                  : entry.range.includes("70-79")
+                                  : entry.range.includes("70-79") || entry.range === "C"
                                     ? theme.palette.warning.main
                                     : theme.palette.error.main
                             }
@@ -523,9 +726,7 @@ export const DashboardPage: React.FC = () => {
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
                   Rata-rata sekolah:{" "}
-                  {dashboard?.attendance?.overall
-                    ? percent(dashboard.attendance.overall)
-                    : percent(0)}
+                  {overallAttendance > 0 ? percent(overallAttendance) : percent(0)}
                 </Typography>
               </Stack>
               {loading ? (
