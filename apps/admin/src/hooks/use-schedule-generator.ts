@@ -43,12 +43,20 @@ export type ScheduleSlotProposal = {
 export type TeacherPreference = {
   id: string;
   teacherId: string;
-  preferredDays: number[];
-  blockedDays: number[];
-  preferredSlots: number[];
-  maxDailySessions: number;
-  availabilityLevel: "HIGH" | "MEDIUM" | "LOW";
-  notes: string;
+  preferredDays?: number[];
+  blockedDays?: number[];
+  preferredSlots?: number[];
+  maxDailySessions?: number;
+  maxLoadPerDay?: number;
+  maxLoadPerWeek?: number;
+  unavailable?: Array<{
+    dayOfWeek?: string | number;
+    day_of_week?: string;
+    timeRange?: string;
+    time_range?: string;
+  }>;
+  availabilityLevel?: "HIGH" | "MEDIUM" | "LOW";
+  notes?: string;
 };
 
 export type TeacherCard = {
@@ -118,14 +126,54 @@ const formatPreferredSummary = (preference?: TeacherPreference) => {
   if (!preference) {
     return "Tidak ada preferensi khusus";
   }
-  const days = preference.preferredDays
-    .map((day) => DAYS.find((item) => item.value === day)?.label ?? `Hari ${day}`)
-    .join(", ");
-  const slots = preference.preferredSlots.map((slot) => `Jam ${slot}`).join(", ");
-  return `${days || "Semua hari"} · ${slots || "Semua jam"}`;
+
+  const summaries: string[] = [];
+
+  const maxDay = preference.maxLoadPerDay ?? preference.maxDailySessions;
+  if (maxDay) {
+    summaries.push(`Maks ${maxDay} sesi/hari`);
+  }
+
+  if (preference.maxLoadPerWeek) {
+    summaries.push(`Maks ${preference.maxLoadPerWeek} sesi/minggu`);
+  }
+
+  if (Array.isArray(preference.unavailable) && preference.unavailable.length > 0) {
+    const blockedDays = preference.unavailable
+      .map((u) => {
+        const d = u.dayOfWeek ?? u.day_of_week;
+        return typeof d === "number" ? DAYS.find((item) => item.value === d)?.label : String(d);
+      })
+      .filter(Boolean);
+    const uniqueDays = Array.from(new Set(blockedDays));
+    if (uniqueDays.length > 0) {
+      summaries.push(`Tidak bisa: ${uniqueDays.join(", ")}`);
+    }
+  }
+
+  if (Array.isArray(preference.preferredDays) && preference.preferredDays.length > 0) {
+    const days = preference.preferredDays
+      .map((day) => DAYS.find((item) => item.value === day)?.label ?? `Hari ${day}`)
+      .join(", ");
+    summaries.push(`Hari: ${days}`);
+  }
+
+  if (Array.isArray(preference.preferredSlots) && preference.preferredSlots.length > 0) {
+    const slots = preference.preferredSlots.map((slot) => `Jam ${slot}`).join(", ");
+    summaries.push(`Slot: ${slots}`);
+  }
+
+  if (summaries.length === 0) {
+    return preference.notes || "Tidak ada preferensi khusus";
+  }
+
+  return summaries.join(" · ");
 };
 
-const AVAILABILITY_COLORS: Record<TeacherPreference["availabilityLevel"], TeacherCard["color"]> = {
+const AVAILABILITY_COLORS: Record<
+  NonNullable<TeacherPreference["availabilityLevel"]>,
+  TeacherCard["color"]
+> = {
   HIGH: "success",
   MEDIUM: "warning",
   LOW: "error",
@@ -162,26 +210,32 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
     sorters: [{ field: "startDate", order: "asc" }],
   });
 
-  const teachersQuery = useList<{ id: string; fullName: string }>({
-    resource: "teachers",
-    pagination: { current: 1, pageSize: 200 },
-  });
+  const teachersQuery = useList<{ id: string; fullName: string; expertise?: string; nip?: string }>(
+    {
+      resource: "teachers",
+      pagination: { current: 1, pageSize: 200 },
+    }
+  );
 
-  const subjectsQuery = useList<{ id: string; name: string }>({
+  const subjectsQuery = useList<{ id: string; name: string; code?: string }>({
     resource: "subjects",
     pagination: { current: 1, pageSize: 200 },
   });
 
-  const classesQuery = useList<{ id: string; name: string; termId: string }>({
+  const classesQuery = useList<{ id: string; name: string; termId?: string }>({
     resource: "classes",
     pagination: { current: 1, pageSize: 200 },
   });
 
   const classSubjectsQuery = useList<{
     id: string;
-    classroomId: string;
+    classroomId?: string;
+    classId?: string;
     subjectId: string;
     teacherId: string;
+    subjectName?: string;
+    subjectCode?: string;
+    className?: string;
   }>({
     resource: "class-subjects",
     pagination: { current: 1, pageSize: 500 },
@@ -259,19 +313,26 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
   }, [filters.activeClassId, filters.classId, filters.classIds]);
 
   const classSubjectByTeacher = useMemo(() => {
-    if (targetClassIds.length === 0) {
-      return new Map<string, { subjectId: string; classSubjectId: string; classId: string }[]>();
-    }
     const targetSet = new Set(targetClassIds);
-    const map = new Map<string, { subjectId: string; classSubjectId: string; classId: string }[]>();
+    const map = new Map<
+      string,
+      { subjectId: string; classSubjectId: string; classId: string; subjectName?: string }[]
+    >();
     classSubjects
-      .filter((mapping) => targetSet.has(mapping.classroomId))
+      .filter((mapping) => {
+        const cId = mapping.classId || mapping.classroomId;
+        if (targetSet.size === 0) return true;
+        return cId ? targetSet.has(cId) : false;
+      })
       .forEach((mapping) => {
+        if (!mapping.teacherId) return;
+        const cId = mapping.classId || mapping.classroomId || "";
         const list = map.get(mapping.teacherId) ?? [];
         list.push({
           subjectId: mapping.subjectId,
           classSubjectId: mapping.id,
-          classId: mapping.classroomId,
+          classId: cId,
+          subjectName: mapping.subjectName,
         });
         map.set(mapping.teacherId, list);
       });
@@ -328,14 +389,18 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
           return;
         }
         const preference = teacherPreferenceMap.get(slot.teacherId);
-        const preferredDay = preference ? preference.preferredDays.includes(slot.dayOfWeek) : false;
-        const preferredSlot = preference ? preference.preferredSlots.includes(slot.slot) : false;
-        const blocked = preference ? preference.blockedDays.includes(slot.dayOfWeek) : false;
+        const preferredDay = preference?.preferredDays
+          ? preference.preferredDays.includes(slot.dayOfWeek)
+          : true;
+        const preferredSlot = preference?.preferredSlots
+          ? preference.preferredSlots.includes(slot.slot)
+          : true;
+        const blocked = preference?.blockedDays
+          ? preference.blockedDays.includes(slot.dayOfWeek)
+          : false;
         const dailyLoad = teacherDailyLoad.get(slot.teacherId);
-        const overload =
-          dailyLoad && preference
-            ? (dailyLoad[slot.dayOfWeek] ?? 0) > preference.maxDailySessions
-            : false;
+        const maxSessions = preference?.maxDailySessions || preference?.maxLoadPerDay || 8;
+        const overload = dailyLoad ? (dailyLoad[slot.dayOfWeek] ?? 0) > maxSessions : false;
 
         let status: ScheduleSlot["status"] = "PREFERENCE";
         if (blocked || overload) {
@@ -356,9 +421,23 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
     return teachers.map((teacher) => {
       const preference = teacherPreferenceMap.get(teacher.id);
       const assignments = Object.values(slotState).filter((slot) => slot.teacherId === teacher.id);
-      const subjectNames = (classSubjectByTeacher.get(teacher.id) ?? [])
-        .map((item) => subjectMap.get(item.subjectId) ?? "Mapel")
+
+      let subjectNames = (classSubjectByTeacher.get(teacher.id) ?? [])
+        .map((item) => item.subjectName || subjectMap.get(item.subjectId) || "Mapel")
         .filter((value, index, self) => self.indexOf(value) === index);
+
+      if (subjectNames.length === 0) {
+        const allTeacherSubjects = classSubjects
+          .filter((cs) => cs.teacherId === teacher.id)
+          .map((cs) => cs.subjectName || subjectMap.get(cs.subjectId) || "")
+          .filter(Boolean);
+        subjectNames = Array.from(new Set(allTeacherSubjects));
+      }
+
+      if (subjectNames.length === 0 && teacher.expertise) {
+        subjectNames = [teacher.expertise];
+      }
+
       return {
         id: teacher.id,
         name: teacher.fullName,
@@ -370,7 +449,7 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
         color: AVAILABILITY_COLORS[preference?.availabilityLevel ?? "HIGH"],
       };
     });
-  }, [classSubjectByTeacher, slotState, subjectMap, teacherPreferenceMap, teachers]);
+  }, [classSubjectByTeacher, classSubjects, slotState, subjectMap, teacherPreferenceMap, teachers]);
 
   const daySchedules = useMemo<DaySchedule[]>(() => {
     const evaluated = evaluateSlots(slotState);
@@ -460,7 +539,13 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
       const targetClass = classId || activeClassId;
       const teacherMappings = classSubjectByTeacher.get(teacherId);
       const mapping =
-        teacherMappings?.find((m) => m.classId === targetClass) || teacherMappings?.[0];
+        teacherMappings?.find((m) => m.classId === targetClass) ||
+        classSubjects.find(
+          (cs) =>
+            cs.teacherId === teacherId &&
+            (cs.classId === targetClass || cs.classroomId === targetClass)
+        ) ||
+        teacherMappings?.[0];
 
       setSlotState((prev) => {
         const next = { ...prev };
@@ -481,7 +566,7 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
         return evaluateSlots(next);
       });
     },
-    [activeClassId, classSubjectByTeacher, evaluateSlots]
+    [activeClassId, classSubjectByTeacher, classSubjects, evaluateSlots]
   );
 
   const clearSlot = useCallback(
@@ -526,27 +611,51 @@ export const useScheduleGenerator = (filters: GeneratorFilters) => {
     setIsGenerating(true);
     try {
       const isMultiClass = targetClassIds.length > 1;
-      const subjectLoads = isMultiClass
-        ? classSubjects
-            .filter((m) => targetClassIds.includes(m.classroomId))
-            .map((m) => ({
-              classId: m.classroomId,
-              subjectId: m.subjectId,
-              teacherId: m.teacherId,
-              weeklyCount: 2,
-            }))
-        : classSubjects
-            .filter((m) => m.classroomId === targetClassIds[0])
-            .map((m) => ({
-              subjectId: m.subjectId,
-              teacherId: m.teacherId,
-              weeklyCount: 2,
-            }));
+      const days = [1, 2, 3, 4, 5];
+      const timeSlotsPerDay = 6;
+      const totalSlotsPerClass = days.length * timeSlotsPerDay; // 30 slots
+
+      const subjectLoads: Array<{
+        classId?: string;
+        subjectId: string;
+        teacherId: string;
+        weeklyCount: number;
+      }> = [];
+
+      targetClassIds.forEach((cId) => {
+        const classMappings = classSubjects.filter((m) => (m.classId || m.classroomId) === cId);
+        if (classMappings.length === 0) return;
+
+        const countPerSubject = Math.floor(totalSlotsPerClass / classMappings.length);
+        let remainder = totalSlotsPerClass % classMappings.length;
+
+        classMappings.forEach((m) => {
+          const load = countPerSubject + (remainder > 0 ? 1 : 0);
+          if (remainder > 0) remainder--;
+
+          subjectLoads.push({
+            classId: cId,
+            subjectId: m.subjectId,
+            teacherId: m.teacherId,
+            weeklyCount: Math.max(1, load),
+          });
+        });
+      });
+
+      if (subjectLoads.length === 0) {
+        notify?.({
+          type: "warning",
+          message: "Data mapel kelas belum tersedia",
+          description: "Tambahkan pembagian mapel (class-subjects) terlebih dahulu.",
+        });
+        setIsGenerating(false);
+        return;
+      }
 
       const payload: any = {
         termId: filters.termId,
-        timeSlotsPerDay: 8,
-        days: [1, 2, 3, 4, 5],
+        timeSlotsPerDay,
+        days,
         subjectLoads,
         hardConstraints: [],
         softConstraints: [],

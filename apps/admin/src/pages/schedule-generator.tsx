@@ -49,7 +49,9 @@ const hoverPreferenceMatch = (
   slot: number
 ) => {
   if (!preference) return false;
-  return preference.preferredDays.includes(day) && preference.preferredSlots.includes(slot);
+  const matchDay = preference.preferredDays ? preference.preferredDays.includes(day) : true;
+  const matchSlot = preference.preferredSlots ? preference.preferredSlots.includes(slot) : true;
+  return matchDay && matchSlot;
 };
 
 const TeacherItem: React.FC<{
